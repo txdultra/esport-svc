@@ -1,0 +1,67 @@
+<!DOCTYPE>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0" />
+<title>电竞圈</title>	
+<link rel="stylesheet" type="text/css" href="/static/css/reset.css">
+{{template "m_header.html" .}}
+<style>
+	article .head {float:left; width:100%; height:160px; background-color:#FFF; text-align:center; line-height:80px;}
+	@media screen and (orientation:portrait) {
+		img {
+			max-width: 100%;
+			height: auto;
+			width: auto\9; /* ie8 */
+			}
+	article {background:url(/static/img/app_bj_4.jpg) no-repeat 0 0; background-size:cover;  width:100%; height:100%; position:relative;}
+	article .head { float:left; width:100%; height:70px; background-color:#FFF; text-align:center; line-height:80px;}
+	article .w_ios { position:absolute; z-index:2; top:40%; left:62%; overflow:hidden; color:#FFF;}
+	article .w_and { position:absolute; z-index:2; top:51%; left:62%; color:#FFF;}
+	article .ios {position:absolute;z-index:2;top:44%;left:60%; width:37%; height:7%; border-radius:5px;}
+	article .and {position:absolute;z-index:2;top:55%;left:60%; width:37%; height:7%; border-radius:5px;}
+	article .wenzi { position:absolute; z-index:2; top:95%; left:30%; color:#FFF; width:70%; height:5%; bottom:0; font-family:"微软雅黑"; font-size:0.55em;}
+	article .wenzi span { color:#fd5353;}
+	}
+
+	@media screen and (max-device-width: 400px) {
+		img {
+			max-width: 100%;
+			height: auto;
+			width: auto\9; /* ie8 */
+		}
+	}
+	@media screen and (orientation:landscape) {
+			img {
+				max-width: 100%;
+				height: auto;
+				width: auto\9; /* ie8 */
+				}
+		article {background:url(/static/img/app_bj_3.jpg) no-repeat 0 0; background-size:cover;  width:100%; height:300%; position:relative;}
+		article .w_ios { position:absolute; z-index:2; top:47%; left:65%; overflow:hidden; color:#FFF;}
+		article .w_and { position:absolute; z-index:2; top:57%; left:65%; color:#FFF;}
+		article .ios {position:absolute;z-index:2;top:50%;left:65%; width:30%; height:20%; border-radius:5px;}
+		article .and {position:absolute;z-index:2;top:60%;left:65%; width:30%; height:20%; border-radius:5px;}
+		article .app_ma {position:absolute;z-index:2;top:75%;left:45%; width:15%; height:15%;}
+		article .wenzi { position:absolute; z-index:2; top:95%; left:37%; color:#FFF; width:50%; height:4%; bottom:0; font-family:"微软雅黑";}
+		article .wenzi span { color:#fd5353;}
+		
+	}
+</style>
+</head>
+
+<body>
+	<article>
+		{{if .IN_WEIXIN}}
+		{{if .IS_ANDROID}}
+    	<div class="head"><img src="/static/img/head2.jpg" /></div>
+		{{end}}
+		{{end}}
+        <div class="w_ios">iPhone玩家下载</div>
+        <div class="w_and">Android玩家下载</div>
+    	<div class="ios"><a href="http://m.dianjingquan.cn/download"><img src="/static/img/app_ios.png" /></a></div>
+    	<div class="and"><a href="{{.AND_DOWN}}"><img src="/static/img/app_and.png" /></a></div>
+        <div class="wenzi">Copyright © 2015 <span>电竞圈</span></div>
+    </article>
+</body>
+</html>

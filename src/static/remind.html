@@ -1,0 +1,45 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+ <HEAD>
+  <TITLE> file upload </TITLE>
+  <META name="Generator" content="EditPlus">
+  <META name="Author" content="">
+  <META name="Keywords" content="">
+  <META name="Description" content="">
+ </HEAD>
+
+ <BODY>
+  <form id="up" method="post" action="http://127.0.0.1:8080/v1/live/channel/programs/remind_single">
+	access_token:<input name="access_token" value="" /><br/>
+    订阅二级id:<input name="spid" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+移除:
+  <form id="up" method="post" action="http://127.0.0.1:8080/v1/live/channel/programs/remove_remind_single">
+	access_token:<input name="access_token" value="" /><br/>
+    订阅二级id:<input name="spid" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+
+shop:
+<form id="up2222" method="post" action="http://192.168.0.79:8080/v1/shop/buy">
+	access_token:<input name="access_token" value="" /><br/>
+	商品id:<input name="item_id" value="" /><br/>
+	nums:<input name="nums" value="" /><br/>
+	remark:<input name="remark" value="" /><br/>
+    province:<input name="province" value="" /><br/>
+	city:<input name="city" value="" /><br/>
+	area:<input name="area" value="" /><br/>
+	address:<input name="address" value="" /><br/>
+	receiver:<input name="receiver" value="" /><br/>
+	tel:<input name="tel" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+cancel:
+<form id="up2222" method="post" action="http://192.168.0.79:8080/v1/shop/order/cancel">
+	access_token:<input name="access_token" value="" /><br/>
+	orderno:<input name="order_no" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+ </BODY>
+</HTML>

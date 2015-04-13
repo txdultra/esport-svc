@@ -1,0 +1,30 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+ <HEAD>
+  <TITLE> file upload </TITLE>
+  <META name="Generator" content="EditPlus">
+  <META name="Author" content="">
+  <META name="Keywords" content="">
+  <META name="Description" content="">
+ </HEAD>
+
+ <BODY>
+
+ <form id="create" method="post" action="http://127.0.0.1:8080/v1/user/register">
+	用户名:<input name="user_name" value="" /><br/>
+    密码:<input name="pwd" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+
+<form id="u1p" method="post" action="http://127.0.0.1:8080/v1/user/games">
+	access_token:<input name="access_token" value="" /><br/>
+    游戏ids:<input name="game_ids" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+
+<form id="u1p2" method="post" action="http://192.168.0.33:8080/v1/user/get_token">
+	access_token:<input name="access_token" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+ </BODY>
+</HTML>

@@ -1,0 +1,23 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+ <HEAD>
+  <TITLE> file upload </TITLE>
+  <META name="Generator" content="EditPlus">
+  <META name="Author" content="">
+  <META name="Keywords" content="">
+  <META name="Description" content="">
+ </HEAD>
+
+ <BODY>
+  <form id="up" method="post" enctype="multipart/form-data" action="http://192.168.0.79:8080/v1/file/upload">
+    文件:<input name="file" type="file" />
+    <input type="submit" value="提交" />
+</form>
+
+<form id="up" method="get" action="http://192.168.0.79:8080/v1/img/blur">
+    文件id:<input name="fid" type="text" />
+	模糊度:<input name="sigma" type="text" />
+    <input type="submit" value="提交" />
+</form>
+ </BODY>
+</HTML>

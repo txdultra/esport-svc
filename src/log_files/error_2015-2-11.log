@@ -1,0 +1,1 @@
+2015 Feb 11/12:34:01.366868600 PM CST [Error] file:credits.go line=120 credit service increment insert user_credit_records_001 table fail:Error 1064: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'desc,act,ref,ref_id) values(?,?,?,?,?,?,?,?,?,?,?)' at line 1

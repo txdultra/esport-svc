@@ -1,0 +1,109 @@
+{template "www","header"}
+<div class="lay"><a href="/">首页</a> > <a href="list-{$catid}-1.html">{$CATEGORYS[$catid][catname]}</a> > {$title}</div>
+<div class="news_con_warp">
+<div class="go_top" id="btn1"><img src="/statics/images/home/icon/go_top.png" /></div>
+    <!--  直播x预告-->
+    {template "www","live_program"}
+    <!--直播预告end -->
+    <div class="news_con1">
+        <span class="news1_title">{$title}</span>
+        <div class="news1_info"><span>{$inputtime} </span><!--<span>来源：{$copyfrom}</span>--></div>
+        <div class="introduction">{$description}</div>
+        <div class="news1_con">
+            {if $allow_visitor==1}
+            {$content}
+            <!--内容关联投票-->
+            {if $voteid}<script language="javascript" src="{APP_PATH}index.php?m=vote&c=index&a=show&action=js&subjectid={$voteid}&type=2"></script>{/if}
+            {else}
+            <a href="{APP_PATH}index.php?m=content&c=readpoint&allow_visitor={$allow_visitor}">阅读此信息需要您支付 <B><I>{$readpoint} {if $paytype}元{else}点{/if}</I></B>，点击这里支付</a>
+            {/if}
+            <div id="pages" class="pages">{$pages}</div>
+        </div><!-- news1_con -->
+        <div class="news1_xiangguan">
+            <span>相关文章</span>
+            <ul>
+                <?php echo $relation; ?>
+                {pc:content action="relation" relation="$relation" catid="$catid" num="6" keywords="$rs[keywords]"}
+                {loop $data $r}
+                <li><a href="<?php echo return_url($r); ?>" target="_blank">{$r[title]}</a></li>
+                {/loop}
+                {/pc}
+            </ul>
+        </div><!-- end news1_xiangguan -->
+
+        <!--<div class="pinlun">-->
+            <!--<span class="w_pinlun">网友评论</span>-->
+            <!--<textarea class="news1_atxt" maxlength="300"></textarea>-->
+            <!--<div class="pin_news1">-->
+                <!--<div class="fl">还可以输入<span>300</span>个字符</div>-->
+                <!--<div class="news1_ok"></div>-->
+            <!--</div>-->
+        <!--</div>-->
+        <!--<div class="all_pin">全部评论<span>(27)</span></div>-->
+        <!--<div class="news_liuyan_con">-->
+            <!--<div class="liuyan_1">-->
+                <!--<a href="#" target="_blank" class="touxiang"><img src="images/touxiang.jpg" /></a>-->
+                <!--<div class="name_f">-->
+                    <!--<span class="news1_name">小猪刚出圈</span><span class="news1_time">3小时前:</span><span class="news1_flow">225F</span></div>-->
+                <!--<p>NEOTV英雄联盟平道即日起有了自己专属的优酷视频空间！各位小伙伴也可以参与到视频评论当中，为我们的优酷空间多提意见与建议NEOTV英雄联盟平道即日起有了自己专属的优酷视频空间！各位小伙伴也可以参与到视频评论当中，为我们的优酷空间多提意见与建议NEOTV英雄联盟平道即日起有了自己专属的优酷视频空间！各位小伙伴也可以参与到视频评论当中，为我们的优酷空间多提意见与建议</p>-->
+                <!--<div class="zan_hui">-->
+                    <!--<span class="zan">赞同<span class="shuzi">(0)</span></span>-->
+                    <!--<span>|</span>-->
+                    <!--<span class="huifu">回复</span>-->
+                <!--</div>-->
+            <!--</div>-->
+            <!--<div class="liuyan_1">-->
+                <!--<a href="#" target="_blank" class="touxiang"><img src="images/touxiang.jpg" /></a>-->
+                <!--<div class="name_f">-->
+                    <!--<span class="news1_name">小猪刚出圈</span><span class="news1_time">3小时前:</span><span class="news1_flow">225F</span></div>-->
+                <!--<p>NEOTV英雄联盟平道即日起有了自己专属的优酷视频空间！各位小伙伴也可以参与到视频评论当中，为我们的优酷空间多提意见与建议NEOTV英雄联盟平道即日起有了自己专属的优酷视频空间！各位小伙伴</p>-->
+                <!--<div class="zan_hui">-->
+                    <!--<span class="zan">赞同<span class="shuzi">(0)</span></span>-->
+                    <!--<span>|</span>-->
+                    <!--<span class="huifu">回复</span>-->
+                <!--</div>-->
+            <!--</div>-->
+            <!--<div class="liuyan_1">-->
+                <!--<a href="#" target="_blank" class="touxiang"><img src="images/touxiang.jpg" /></a>-->
+                <!--<div class="name_f">-->
+                    <!--<span class="news1_name">小猪刚出圈</span><span class="news1_time">3小时前:</span><span class="news1_flow">225F</span></div>-->
+                <!--<p>NEOTV英雄联盟平道即日起有了自己专属的优酷视频空间！各位小伙伴也可以参与到视频评论当中，为我们的优酷空间多提意见与建议NEOTV英雄联盟平道即日起有了自己专属的优酷视频空间！各位小伙伴也可以参与到视频评论当中，为我们的优酷空间多提意见与建议NEOTV英雄联盟平道即日起有了自己专属的优酷视频空间！各位小伙伴也可以参与到视频评论当中，为我们的优酷空间多提意见与建议</p>-->
+                <!--<div class="zan_hui">-->
+                    <!--<span class="zan">赞同<span class="shuzi">(0)</span></span>-->
+                    <!--<span>|</span>-->
+                    <!--<span class="huifu">回复</span>-->
+                <!--</div>-->
+            <!--</div>-->
+        <!--</div>&lt;!&ndash; end news_liuyan_con &ndash;&gt;-->
+
+        <div class="news_bai"></div>
+    </div><!-- news_con1 -->
+    {template "www","rightbar"}
+</div>
+
+<script type="text/javascript">
+    window.onload=function(){
+        var oBtn=document.getElementById('btn1');
+        var timer=null//定制定时器
+        var bsye=true;//判断是系统滚动还是用户滚动
+        window.onscroll=function(){
+            //判断是否为用户滚动
+            if(!bsye){ //如果用户滚动，关闭定时器
+                clearInterval(timer);            }
+            bsye=false;
+        }
+        oBtn.onclick=function(){
+            timer=setInterval(function(){
+                var scrollTop=document.documentElement.scrollTop||document.body.scrollTop;
+                var iSpeed=Math.floor(-scrollTop/8);
+                if(scrollTop==0){
+                    clearInterval(timer);
+                }
+                bsye=true;
+                document.body.scrollTop=document.documentElement.scrollTop=scrollTop+iSpeed;
+            },30)
+        }
+    }
+</script>
+
+{template "www","footer"}

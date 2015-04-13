@@ -1,0 +1,24 @@
+<!DOCTYPE>
+<html xmlns="http://www.w3.org/1999/xhtml">
+{{template "header.html" .}}
+
+<body>
+    <div id="bd" style="position:relative;">
+    <div class="header"></div>
+    <div class="main">
+    	<div class="phone"><img src="/static/img/phone_3.png" /></div>
+        <div class="big_logo"><img src="/static/img/big_logo.png" height="147" width="147" /></div>
+        <div class="title">电竞圈，电竞人的生活必备。</div>
+        <div class="erweima"><img src="/static/img/erweima.jpg"/></div>		
+        <a class="pc_ios" href="{{.IOS_DOWN}}"></a>
+        <a class="pc_and" href="{{.AND_DOWN}}"></a>
+		<span>扫码即下</span>
+    </div>
+    <div class="footer">
+    	 <div class="footer_title"></div>
+         <div class="l_BUG"><a href="javascript:;" class="bug">BUG反馈</a></div>
+    	 <div class="footer_con">Copyright © 2015 <span>电竞圈</span></div>
+    </div>
+	{{template "feedbackbox.html" .}}
+</body>
+</html>

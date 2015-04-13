@@ -1,0 +1,60 @@
+
+	<!--  box -->
+        <div class="box" style="display:none;">
+        	<span class="close"></span>
+			<form id="fd_form" action="/feedback" target="post_frame" method="post" enctype="multipart/form-data">
+            <div class="box_content">
+            	<div class="q1"><span class="name">标题:</span><input type="text" name="title" class="txt" /></div>
+                <div class="q2"><span class="name">联系方式:</span><input type="text" id="contact" name="contact" class="txt" /></div>
+                <div class="q3"><span class="name">问题描述:</span><textarea class="atxt" id="atxt" name="content" value=""></textarea></div>
+                <div class="q4"><span class="name">截图上传:</span><input type="file" size="1" name="file" /></div>
+                <span class="s1">(仅支持500k以内的jpg格式文件)</span>
+                <div class="q5"><span><a href="javascript:;" id="feedback_submit">提 交</a></span></div>
+            </div>
+			</form>
+        </div>
+        <!-- end box -->
+		<iframe name='post_frame' id="post_frame" style="display:none;" mce_style="display:none;" allowtransparency="yes">></iframe> 
+		
+<script type="text/javascript">
+function callback(str){
+	if(str === "提交成功"){
+		$(".close").click();
+	}
+	alert(str);
+} 
+$(document).ready(function(){
+	$(".bug").click(function(){
+			 $('.box').show();
+			 $("#bd").addClass("full_bg");
+			});
+			
+		$(".close").click(function(){
+				$(".box").hide();
+				$("#bd").removeClass("full_bg");
+			});
+	$('#feedback_submit').click(function(){
+		if($('#atxt').length == 0){
+			alert("内容不能为空");
+			return;
+		}
+		if($('#contact').length == 0) {
+			alert("请填写联系方式");
+			return;
+		}
+		document.getElementById("fd_form").submit();
+	});
+});
+</script>
+
+<div style="display:none">
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?4ecec6eb9794dce217efb5f0cb742d0d";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+</div>

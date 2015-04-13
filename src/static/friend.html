@@ -1,0 +1,24 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+ <HEAD>
+  <TITLE> shares </TITLE>
+  <META name="Generator" content="EditPlus">
+  <META name="Author" content="">
+  <META name="Keywords" content="">
+  <META name="Description" content="">
+ </HEAD>
+
+ <BODY>
+<p>关注</p>
+  <form id="up" method="post" action="http://192.168.0.33:8080/v1/friendships/create">
+	access_token:<input name="access_token" value="" /><br/>
+    uid:<input name="uid" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+  </form>
+<form id="up2" method="post" action="http://192.168.0.33:8080/v1/friendships/destroy">
+	access_token:<input name="access_token" value="" /><br/>
+    uid:<input name="uid" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+  </form>
+ </BODY>
+</HTML>

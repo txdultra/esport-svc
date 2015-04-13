@@ -1,0 +1,2 @@
+2015 Feb 13/12:29:02.343290400 PM CST [Error] file:credits.go line=125 credit service increment insert user_credit_records_001 table fail:Error 1136: Column count doesn't match value count at row 1
+2015 Feb 13/4:30:28.062826100 PM CST [Error] file:init.go line=80 启动后台消息处理线程失败:connection.open: dial tcp 127.0.0.1:5672: ConnectEx tcp: No connection could be made because the target machine actively refused it.

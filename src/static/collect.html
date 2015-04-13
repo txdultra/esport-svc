@@ -1,0 +1,30 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+ <HEAD>
+  <TITLE> file upload </TITLE>
+  <META name="Generator" content="EditPlus">
+  <META name="Author" content="">
+  <META name="Keywords" content="">
+  <META name="Description" content="">
+ </HEAD>
+
+ <BODY>
+  <form id="up" method="post" action="http://s1.api.dianjingquan.cn:8080/v1/collect/add">
+	access_token:<input name="access_token" value="" /><br/>
+    模块:<input name="mod" value="" /><br/>
+	关联id:<input name="ref_id" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+ <form id="remove" method="post" action="http://127.0.0.1:8080/v1/collect/remove">
+	access_token:<input name="access_token" value="" /><br/>
+	id:<input name="id" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+
+<form id="remove1" method="post" action="http://s2.api.dianjingquan.cn:8080/v1/live/stream/callback">
+	access_token:<input name="id" value="10" /><br/>
+	id:<input name="live_type" value="1" /><br/>
+    <input type="submit" value="提交" /><br/>
+</form>
+ </BODY>
+</HTML>

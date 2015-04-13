@@ -1,0 +1,29 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+ <HEAD>
+  <TITLE> shares </TITLE>
+  <META name="Generator" content="EditPlus">
+  <META name="Author" content="">
+  <META name="Keywords" content="">
+  <META name="Description" content="">
+ </HEAD>
+
+ <BODY>
+<p>发布</p>
+  <form id="up" method="post" action="http://127.0.0.1:8080/v1/share/publish">
+	access_token:<input name="access_token" value="" /><br/>
+    type:<input name="type" value="" /><br/>
+	text:<input name="text" value="" /><br/>
+	vod_ids:<input name="vod_ids" value="" /><br/>
+	source:<input name="source" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+  </form>
+<p>删除</p>
+<form id="del" method="post" action="http://127.0.0.1:8080/v1/share/del">
+	access_token:<input name="access_token" value="" /><br/>
+    type:<input name="share_id" value="" /><br/>
+    <input type="submit" value="提交" /><br/>
+  </form>
+  <a href="http://127.0.0.1:8080/v1/share/timeline?uid=1" target="_blank">查看</a>
+ </BODY>
+</HTML>

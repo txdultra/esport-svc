@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+{{template "header.html" .}}
+
+<body>
+	<header>
+    	<div><a href="#"><img src="/static/img/logo.png" width="74" height="74" /></a><span>电竞圈，电竞人的生活必备。</span></div>
+    </header>
+	<div class="content">
+    	<div class="article">
+        	<div class="vido_title">{{.Vod.Title}}</div>
+            <div class="vido" id="vplayer">				
+			</div>
+            <div class="vido_man">
+           		<a href="#"><img src="{{.MAvatorUrl}}" width="86" height="86" /></a>
+                <div class="vido_name">{{.MName}}</div>
+                <div class="vido_fen"><span>视频：{{.MVods}}</span><span class="fans">粉丝：{{.MFans}}</span></div>
+            </div>
+        </div>
+    </div>
+    <footer>
+    	<div class="f_con">
+        	<span><img src="/static/img/erweima.jpg" /></span>
+            <a href="{{.IOS_DOWN}}" class="IOS"></a>
+            <a href="{{.AND_DOWN}}" class="And"></a>
+            <div class="wenzi">保存二维码到手机扫描下载电竞圈APP</div>
+        </div>
+        <div class="f_last">Copyright © 2015 <span style="color:#F00;">电竞圈</span></div>
+        <div class="r_last"></span><a href="#" class="bug">BUG反馈</a></div>
+    </footer>
+	{{template "feedbackbox.html" .}}
+	<script src="/static/fplayer/vplayer.js"></script>
+	<script type="text/javascript">
+		var flashvars={
+			f:'/vod/[$pat]/stream',
+			a:'{{.Vod.Id}}',
+			c:0,
+			s:2,
+		};
+		var params={bgcolor:'#FFF',allowFullScreen:true,allowScriptAccess:'always',wmode:'transparent'};
+		CKobject.embedSWF('/static/fplayer/vplayer.swf','vplayer','vplayer_v1','800','500',flashvars,params);
+	</script>
+</body>
+</html>

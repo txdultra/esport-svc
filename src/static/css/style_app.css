@@ -1,0 +1,4 @@
+@charset "utf-8";
+/* CSS Document */
+#content{position:fixed; top:0; left:0; bottom:0; right:0; z-index:-1;}
+#content > img { height:100%; width:100%; border:0; }

@@ -1,0 +1,236 @@
+package shop
+
+import (
+	"fmt"
+	"time"
+)
+
+type ITEM_TYPE int
+
+const (
+	ITEM_TYPE_ENTITY  ITEM_TYPE = 1
+	ITEM_TYPE_VIRTUAL ITEM_TYPE = 2
+)
+
+type ITEM_STATE int
+
+const (
+	ITEM_STATE_NORMAL ITEM_STATE = 1
+)
+
+type ISSUE_TYPE int
+
+const (
+	ISSUE_TYPE_EXPRESS ISSUE_TYPE = 1
+	ISSUE_TYPE_DIRECT  ISSUE_TYPE = 2
+)
+
+type ORDER_STATUS string
+
+const (
+	ORDER_STATUS_AUDITING   ORDER_STATUS = "auditing"
+	ORDER_STATUS_AUDITSUCC  ORDER_STATUS = "auditsucc"
+	ORDER_STATUS_AUDITFAIL  ORDER_STATUS = "auditfail"
+	ORDER_STATUS_SENDED     ORDER_STATUS = "sended"
+	ORDER_STATUS_USERCANCEL ORDER_STATUS = "usercancel"
+	ORDER_STATUS_COMPLETED  ORDER_STATUS = "completed"
+)
+
+type PAY_STATUS string
+
+const (
+	PAY_STATUS_UNPAID PAY_STATUS = "unpaid"
+	PAY_STATUS_PAIED  PAY_STATUS = "paid"
+	PAY_STATUS_FAIL   PAY_STATUS = "fail"
+)
+
+type PRICE_TYPE int
+
+const (
+	PRICE_TYPE_CREDIT PRICE_TYPE = 1
+	PRICE_TYPE_RMB    PRICE_TYPE = 2
+)
+
+var PAYID_CREDIT int = 1
+
+type Item struct {
+	ItemId        int64      `orm:"column(itemid);pk"`
+	Name          string     `orm:"column(name)"`
+	Description   string     `orm:"column(description)"`
+	PriceType     PRICE_TYPE `orm:"column(pricetype)"`
+	Price         float64    `orm:"column(price)"`
+	OriginalPrice float64    `orm:"column(oprice)"`
+	RmbPrice      float64    `orm:"column(rprice)"`
+	Img           int64      `orm:"column(img)"`
+	Imgs          string     `orm:"column(imgs)"`
+	ItemType      ITEM_TYPE  `orm:"column(itemtype)"`
+	ItemState     ITEM_STATE `orm:"column(itemstate)"`
+	Ts            int64      `orm:"column(ts)"`
+	ModifyTs      int64      `orm:"column(modifyts)"`
+	DisplayOrder  int        `orm:"column(displayorder)"`
+	Stocks        int        `orm:"column(stocks)"`
+	Sells         int        `orm:"column(sells)"`
+	Enabled       bool       `orm:"column(enabled)"`
+	IsView        bool       `orm:"column(isview)"`
+}
+
+func (self *Item) TableName() string {
+	return "items"
+}
+
+func (self *Item) TableEngine() string {
+	return "INNODB"
+}
+
+type Order struct {
+	OrderNo     string       `orm:"column(orderno);pk"`
+	ItemId      int64        `orm:"column(itemid)"`
+	IssueType   ISSUE_TYPE   `orm:"column(issuetype)"`
+	Ts          int64        `orm:"column(ts)"`
+	Uid         int64        `orm:"column(uid)"`
+	OrderStatus ORDER_STATUS `orm:"column(orderstatus)"`
+	PayStatus   PAY_STATUS   `orm:"column(paystatus)"`
+	Nums        int          `orm:"column(nums)"`
+	Price       float64      `orm:"column(price)"`
+	TotalPrice  float64      `orm:"column(totalprice)"`
+	PriceType   PRICE_TYPE   `orm:"column(pricetype)"`
+	SnapId      int64        `orm:"column(snap)"`
+	Remark      string       `orm:"column(remark)"`
+	PayId       int          `orm:"column(payid)"`
+	PayNo       string       `orm:"column(payno)"`
+	Ex1         string       `orm:"column(ex1)"`
+	Ex2         string       `orm:"column(ex2)"`
+	Ex3         string       `orm:"column(ex3)"`
+}
+
+func (self *Order) TableName() string {
+	return "orders"
+}
+
+func (self *Order) TableEngine() string {
+	return "INNODB"
+}
+
+type OrderIncerment struct {
+	Id int64 `orm:"column(id);pk"`
+	Ts int64 `orm:"column(ts)"`
+}
+
+func (self *OrderIncerment) TableName() string {
+	return "order_incerment"
+}
+
+func (self *OrderIncerment) TableEngine() string {
+	return "INNODB"
+}
+
+type OrderTransport struct {
+	OrderNo   string `orm:"column(orderno);pk"`
+	TransNo   string `orm:"column(transno)"`
+	CompanyId int    `orm:"column(transid)"`
+	Country   string `orm:"column(country)"`
+	Province  string `orm:"column(province)"`
+	City      string `orm:"column(city)"`
+	Area      string `orm:"column(area)"`
+	Addr1     string `orm:"column(addr1)"`
+	Addr2     string `orm:"column(addr2)"`
+	Receiver  string `orm:"column(receiver)"`
+	Tel1      string `orm:"column(tel1)"`
+	Tel2      string `orm:"column(tel2)"`
+	Ts        int64  `orm:"column(ts)"`
+}
+
+func (self *OrderTransport) TableName() string {
+	return "order_trans"
+}
+
+func (self *OrderTransport) TableEngine() string {
+	return "INNODB"
+}
+
+type ItemCode struct {
+	CodeId  int64  `orm:"column(codeid);pk"`
+	ItemId  int64  `orm:"column(itemid)"`
+	Code    string `orm:"column(code)"`
+	Ts      int64  `orm:"column(ts)"`
+	UsedTs  int64  `orm:"column(usedts)"`
+	Used    bool   `orm:"column(used)"`
+	OrderNo string `orm:"column(orderno)"`
+}
+
+func (self *ItemCode) TableName() string {
+	return "item_codes"
+}
+
+func (self *ItemCode) TableEngine() string {
+	return "INNODB"
+}
+
+type OrderItemSnap struct {
+	SnapId      int64      `orm:"column(snapid);pk"`
+	Ts          int64      `orm:"column(ts)"`
+	Name        string     `orm:"column(name)"`
+	Description string     `orm:"column(description)"`
+	PriceType   PRICE_TYPE `orm:"column(pricetype)"`
+	Price       float64    `orm:"column(price)"`
+	Img         int64      `orm:"column(img)"`
+	Imgs        string     `orm:"column(imgs)"`
+}
+
+func (self *OrderItemSnap) TableName() string {
+	return "order_itemsnap"
+}
+
+func (self *OrderItemSnap) TableEngine() string {
+	return "INNODB"
+}
+
+type Province struct {
+	Id         int64  `orm:"column(id);pk"`
+	ProvinceID string `orm:"column(provinceID)"`
+	Province   string `orm:"column(province)"`
+	Enabled    bool   `orm:"column(enabled)"`
+}
+
+func (self *Province) TableName() string {
+	return "province"
+}
+
+func (self *Province) TableEngine() string {
+	return "INNODB"
+}
+
+type City struct {
+	Id     int64  `orm:"column(id);pk"`
+	CityID string `orm:"column(cityID)"`
+	City   string `orm:"column(city)"`
+	Father string `orm:"column(father)"`
+}
+
+func (self *City) TableName() string {
+	return "city"
+}
+
+func (self *City) TableEngine() string {
+	return "INNODB"
+}
+
+type Area struct {
+	Id     int64  `orm:"column(id);pk"`
+	AreaID string `orm:"column(areaID)"`
+	Area   string `orm:"column(area)"`
+	Father string `orm:"column(father)"`
+}
+
+func (self *Area) TableName() string {
+	return "area"
+}
+
+func (self *Area) TableEngine() string {
+	return "INNODB"
+}
+
+func buildOrderNo(orderId int64) string {
+	now := time.Now()
+	return fmt.Sprintf("%d%02d%02d001%09d", now.Year(), now.Month(), now.Day(), orderId)
+}
