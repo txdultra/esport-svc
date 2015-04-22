@@ -9,9 +9,10 @@ import (
 	"logs"
 	"utils"
 	//"github.com/astaxie/beego"
+	"reflect"
+
 	"github.com/astaxie/beego/orm"
 	"github.com/streadway/amqp"
-	"reflect"
 	//"strings"
 	"sync"
 	"time"
@@ -100,11 +101,12 @@ func (s *AmpqMsqService) Init(config *MsqQueueConfig) error {
 }
 
 func (s *AmpqMsqService) DelQueue() error {
-	_, c, err := s.createConn(s._config, nil)
+	conn, c, err := s.createConn(s._config, nil)
 	if err != nil {
 		return errors.New("connection.open: " + err.Error())
 	}
-
+	defer conn.Close()
+	defer c.Close()
 	queue := s._config.QueueName
 	if len(s._config.Exchange) > 0 {
 		queue = s._config.Exchange
@@ -122,7 +124,7 @@ func (s *AmpqMsqService) createConn(config *MsqQueueConfig, args amqp.Table) (*a
 	}
 	c, err := conn.Channel()
 	if err != nil {
-		conn.Close()
+		defer conn.Close()
 		return nil, nil, errors.New("channel.open: " + err.Error())
 	}
 	switch config.QueueMode {

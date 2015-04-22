@@ -306,7 +306,7 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 }
 
 func (sp *ShopPurchaser) getCredit(uid int64) int64 {
-	client, transport, err := credit_client.NewClient()
+	client, transport, err := credit_client.NewClient(credit_service_host)
 	if err != nil {
 		return 0
 	}
@@ -320,7 +320,7 @@ func (sp *ShopPurchaser) getCredit(uid int64) int64 {
 }
 
 func (sp *ShopPurchaser) rollbackCredit(creditNo string) error {
-	client, transport, err := credit_client.NewClient()
+	client, transport, err := credit_client.NewClient(credit_service_host)
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func (sp *ShopPurchaser) rollbackCredit(creditNo string) error {
 }
 
 func (sp *ShopPurchaser) lockCredit(credits int64, uid int64, oper credit_proxy.OPERATION_ACTOIN, product string) (string, error) {
-	client, transport, err := credit_client.NewClient()
+	client, transport, err := credit_client.NewClient(credit_service_host)
 	if err != nil {
 		return "连接积分系统失败", err
 	}
@@ -365,7 +365,7 @@ func (sp *ShopPurchaser) lockCredit(credits int64, uid int64, oper credit_proxy.
 }
 
 func (sp *ShopPurchaser) enterCredit(creditNo string) error {
-	client, transport, err := credit_client.NewClient()
+	client, transport, err := credit_client.NewClient(credit_service_host)
 	if err != nil {
 		return err
 	}

@@ -311,7 +311,11 @@ func (c *WebController) pc_qx(vpf *vod.VideoPlayFlvs, defMode reptile.VOD_STREAM
 		if opt.Mode == reptile.VOD_STREAM_MODE_STANDARD_SP ||
 			opt.Mode == reptile.VOD_STREAM_MODE_HIGH_SP ||
 			opt.Mode == reptile.VOD_STREAM_MODE_SUPER_SP ||
-			opt.Mode == reptile.VOD_STREAM_MODE_1080P_SP {
+			opt.Mode == reptile.VOD_STREAM_MODE_1080P_SP ||
+			opt.Mode == reptile.VOD_STREAM_MODE_M1080P ||
+			opt.Mode == reptile.VOD_STREAM_MODE_MSUPER ||
+			opt.Mode == reptile.VOD_STREAM_MODE_MHIGH ||
+			opt.Mode == reptile.VOD_STREAM_MODE_MSTD {
 			if len(opt.Flvs) > 0 {
 				vsts[opt.Mode] = &opt
 			}
@@ -323,13 +327,25 @@ func (c *WebController) pc_qx(vpf *vod.VideoPlayFlvs, defMode reptile.VOD_STREAM
 	if opt, ok := vsts[reptile.VOD_STREAM_MODE_1080P_SP]; ok {
 		return opt
 	}
+	if opt, ok := vsts[reptile.VOD_STREAM_MODE_M1080P]; ok {
+		return opt
+	}
 	if opt, ok := vsts[reptile.VOD_STREAM_MODE_SUPER_SP]; ok {
+		return opt
+	}
+	if opt, ok := vsts[reptile.VOD_STREAM_MODE_MSUPER]; ok {
 		return opt
 	}
 	if opt, ok := vsts[reptile.VOD_STREAM_MODE_HIGH_SP]; ok {
 		return opt
 	}
+	if opt, ok := vsts[reptile.VOD_STREAM_MODE_MHIGH]; ok {
+		return opt
+	}
 	if opt, ok := vsts[reptile.VOD_STREAM_MODE_STANDARD_SP]; ok {
+		return opt
+	}
+	if opt, ok := vsts[reptile.VOD_STREAM_MODE_MSTD]; ok {
 		return opt
 	}
 	return nil

@@ -61,7 +61,6 @@ import (
 )
 
 func main() {
-	//
 
 	//	rep := reptile.NewYoukuReptileV2()
 	//	fmt.Println(rep.Reptile("http://v.youku.com/v_show/id_XOTEzMzUxOTk2.html"))

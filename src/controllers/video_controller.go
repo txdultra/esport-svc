@@ -31,6 +31,7 @@ func (c *VideoController) URLMapping() {
 	c.Mapping("List", c.List)
 	c.Mapping("ListByGames", c.ListByGames)
 	c.Mapping("FlvsCallback", c.FlvsCallback)
+	c.Mapping("Download", c.Download)
 }
 
 // @Title 获取所有清晰度格式

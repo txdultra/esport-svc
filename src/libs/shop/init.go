@@ -9,7 +9,7 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
-var db_aliasname string
+var db_aliasname, credit_service_host string
 var provinces map[string]*Province = make(map[string]*Province)
 var citys map[string][]*City = make(map[string][]*City)
 var areas map[string][]*Area = make(map[string][]*Area)
@@ -30,6 +30,8 @@ func init() {
 	register_db()
 	//初始化地区
 	init_areas()
+
+	credit_service_host = beego.AppConfig.String("shop.credit.host")
 }
 
 func init_areas() {

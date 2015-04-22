@@ -55,7 +55,7 @@ func GetOutMember(uid int64, sourceUid int64) *OutMember {
 			}
 		}
 	}
-	c_client, transport, err := client.NewClient()
+	c_client, transport, err := client.NewClient("")
 	var credits int64 = 0
 	if err == nil {
 		defer func() {

@@ -96,6 +96,11 @@ func init() {
 				&controllers.FeedbackController{},
 			),
 		),
+		beego.NSNamespace("/groups",
+			beego.NSInclude(
+				&controllers.GroupController{},
+			),
+		),
 		beego.NSNamespace("/file",
 			beego.NSInclude(
 				&controllers.FileController{},

@@ -24,29 +24,29 @@ func FriendTime(t time.Time) string {
 							if sDur.Seconds() < 1 {
 								return fmt.Sprintf("刚刚")
 							} else {
-								return fmt.Sprintf("%d秒之前", int(sDur.Seconds()))
+								return fmt.Sprintf("%d秒前", int(sDur.Seconds()))
 							}
 						} else {
-							return fmt.Sprintf("%d分钟之前", int(sDur.Minutes()))
+							return fmt.Sprintf("%d分钟前", int(sDur.Minutes()))
 						}
 					} else {
-						return fmt.Sprintf("%d小时之前", int(sDur.Hours()))
+						return fmt.Sprintf("%d小时前", int(sDur.Hours()))
 					}
 				} else if days == 1 {
 					return fmt.Sprintf("昨天")
 				} else if days == 2 {
 					return fmt.Sprintf("前天")
 				} else {
-					return fmt.Sprintf("%d天之前", days)
+					return fmt.Sprintf("%d天前", days)
 				}
 			} else {
-				return fmt.Sprintf("%d星期之前", days/7)
+				return fmt.Sprintf("%d星期前", days/7)
 			}
 		} else {
-			return fmt.Sprintf("%d月之前", days/30)
+			return fmt.Sprintf("%d月前", days/30)
 		}
 	} else {
-		return fmt.Sprintf("%d年之前", years)
+		return fmt.Sprintf("%d年前", years)
 	}
 }
 

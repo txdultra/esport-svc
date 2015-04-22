@@ -97,8 +97,6 @@ func (n *Shares) Hash_tbl(uid int64, pfx_table string) string {
 		return tbl
 	}
 	o := dbs.NewOrm(share_db)
-	//	_r, _ := strconv.ParseInt(pfx[:2], 10, 64)
-	//	autoIncr := _r * share_table_max_rows
 	create_tbl_sql := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 	  uid int(11) NOT NULL,
 	  st smallint(6) NOT NULL,
