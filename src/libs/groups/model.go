@@ -163,6 +163,7 @@ type Thread struct {
 	Heats        int           `orm:"column(heats)"`
 	DisplayOrder int           `orm:"column(displayorder)"`
 	HasVod       bool          `orm:"column(hasvod)"`
+	Lordpid      int64         `orm:"column(lordpid)"`
 }
 
 func (self *Thread) TableName() string {

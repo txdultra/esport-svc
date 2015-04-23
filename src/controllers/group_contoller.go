@@ -10,6 +10,7 @@ func (f *GroupController) Prepare() {
 
 func (f *GroupController) URLMapping() {
 	f.Mapping("GetSetting", f.GetSetting)
+	f.Mapping("GetGroup", f.GetGroup)
 	f.Mapping("GetGroups", f.GetGroups)
 	f.Mapping("GetRecruitingGroups", f.GetRecruitingGroups)
 	f.Mapping("GetMyGroups", f.GetMyGroups)
@@ -32,8 +33,18 @@ func (f *GroupController) GetSetting() {
 
 }
 
+// @Title 获取组信息
+// @Description 获取组信息
+// @Param   access_token  path  string  false  "access_token"
+// @Success 200 {object} outobjs.OutGroup
+// @router /group/get [get]
+func (f *GroupController) GetGroup() {
+
+}
+
 // @Title 获取组列表
 // @Description 获取组列表(返回数组)
+// @Param   access_token  path  string  false  "access_token"
 // @Param   page   path  int  true  "页"
 // @Param   words   path  int  true  "搜索关键字"
 // @Param   game_ids   path  string  true  "游戏ids(逗号,分隔)"
@@ -46,6 +57,7 @@ func (f *GroupController) GetGroups() {
 
 // @Title 获取招募中的组列表
 // @Description 获取招募中的组列表(返回数组)
+// @Param   access_token  path  string  false  "access_token"
 // @Param   page   path  int  true  "页"
 // @Success 200 {object} outobjs.OutGroupPagedList
 // @router /group/recruiting [get]
@@ -64,6 +76,7 @@ func (f *GroupController) GetMyGroups() {
 
 // @Title 获取我加入的组列表
 // @Description 获取我加入的组列表(返回数组)
+// @Param   access_token  path  string  true  "access_token"
 // @Param   page   path  int  true  "页"
 // @Success 200 {object} outobjs.OutGroupPagedList
 // @router /group/myjoins [get]
@@ -113,6 +126,7 @@ func (f *GroupController) UpdateGroup() {
 
 // @Title 获取组帖子
 // @Description 获取组帖子列表(返回数组)
+// @Param   access_token  path  string  false  "access_token"
 // @Param   group_id   path  int  true  "组id"
 // @Param   page   path  int  true  "页"
 // @Success 200 {object} outobjs.OutThreadPagedList
@@ -123,7 +137,7 @@ func (f *GroupController) GetThreads() {
 
 // @Title 新建帖子
 // @Description 新建帖子
-// @Param   access_token  path  string  true  "access_token"
+// @Param   access_token  path  string  false  "access_token"
 // @Param   group_id   path  int  true  "组id"
 // @Param   subject   path  string  true  "标题"
 // @Param   message   path  string  true  "内容"
@@ -134,8 +148,9 @@ func (f *GroupController) CreateThread() {
 
 }
 
-// @Title 帖子回复列表
-// @Description 帖子回复列表(返回数组)
+// @Title 帖子评论列表
+// @Description 帖子评论列表(返回数组)
+// @Param   access_token  path  string  false  "access_token"
 // @Param   thread_id   path  int  true  "帖子id"
 // @Param   orderby   path  string  false  "排序规则(pos默认,rev)"
 // @Success 200 {object} outobjs.OutPostPagedList
@@ -144,8 +159,8 @@ func (f *GroupController) GetPosts() {
 
 }
 
-// @Title 创建回复
-// @Description 创建回复
+// @Title 创建评论
+// @Description 创建评论
 // @Param   thread_id   path  int  true  "帖子id"
 // @Param   subject   path  string  false  "标题"
 // @Param   content   path  string  true  "内容"

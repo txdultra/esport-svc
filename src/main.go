@@ -33,6 +33,7 @@ import (
 	"runtime"
 	"time"
 	"utils"
+	"utils/ssdb"
 	//"libs/search"
 	//"libs/share"
 
@@ -61,6 +62,9 @@ import (
 )
 
 func main() {
+	fmt.Println(ssdb.New("a").Zadd("abc", 123456, 1000))
+	fmt.Println(ssdb.New("a").Zscore("abc", 1234567))
+	return
 
 	//	rep := reptile.NewYoukuReptileV2()
 	//	fmt.Println(rep.Reptile("http://v.youku.com/v_show/id_XOTEzMzUxOTk2.html"))

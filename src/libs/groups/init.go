@@ -19,8 +19,14 @@ func init() {
 
 	orm.RegisterModel(new(GroupCfg), new(Group), new(Thread), new(Post),
 		new(Report),
-		new(GroupMemberTable), new(MemberGroupTable), new(ThreadTable), new(PostTable))
+		new(GroupMemberTable), new(MemberGroupTable), new(PostTable))
 	register_db()
+
+	//启动前加载
+	beego.AddAPPStartHook(func() error {
+		load_tbls() //加载分表数据
+		return nil
+	})
 }
 
 func register_db() {
@@ -48,4 +54,15 @@ func register_db() {
 	db_addr := db_host + ":" + strconv.Itoa(db_port)
 	connection_url := db_user + ":" + db_pwd + "@" + db_protocol + "(" + db_addr + ")/" + db_name + "?charset=" + db_charset + "&loc=" + db_time_local
 	dbs.LoadDb(db_aliasname, "mysql", connection_url, db_maxidels, db_maxconns)
+}
+
+func load_tbls() {
+	o := dbs.NewOrm(db_aliasname)
+	var gmtbls []*GroupMemberTable
+	o.QueryTable(&GroupMemberTable{}).All(&gmtbls)
+	tbl_mutex.Lock()
+	defer tbl_mutex.Unlock()
+	for _, tbl := range gmtbls {
+		gmTbls[int(tbl.Id)] = tbl.TblName
+	}
 }

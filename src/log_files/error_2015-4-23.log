@@ -1,0 +1,4 @@
+2015 Apr 23/2:43:06.575243000 PM CST [Error] file:init.go line=80 启动后台消息处理线程失败:connection.open: dial tcp 127.0.0.1:5672: ConnectEx tcp: No connection could be made because the target machine actively refused it.
+2015 Apr 23/2:48:55.441197000 PM CST [Error] file:init.go line=80 启动后台消息处理线程失败:connection.open: dial tcp 127.0.0.1:5672: ConnectEx tcp: No connection could be made because the target machine actively refused it.
+2015 Apr 23/2:50:10.372482800 PM CST [Error] file:init.go line=80 启动后台消息处理线程失败:connection.open: dial tcp 127.0.0.1:5672: ConnectEx tcp: No connection could be made because the target machine actively refused it.
+2015 Apr 23/2:51:40.511638500 PM CST [Error] file:init.go line=80 启动后台消息处理线程失败:connection.open: dial tcp 127.0.0.1:5672: ConnectEx tcp: No connection could be made because the target machine actively refused it.
