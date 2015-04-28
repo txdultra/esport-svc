@@ -514,7 +514,7 @@ func (c *Cluster) Zrangebyscore(key string, start int64, end int64, valType refl
 	return lst, nil
 }
 
-func (c *Cluster) Zrangebyscore2(key string, min int64, max int64, limit int, valType reflect.Type) ([]interface{}, error) {
+func (c *Cluster) Zscan(key string, min int64, max int64, limit int, valType reflect.Type) ([]interface{}, error) {
 	client := c.GetSrv(key)
 	db, err := ssdb.Connect(client.conn_addr, client.conn_port)
 	defer db.Close()
@@ -540,7 +540,7 @@ func (c *Cluster) Zrangebyscore2(key string, min int64, max int64, limit int, va
 	return nil, fmt.Errorf("resp fail:", resp)
 }
 
-func (c *Cluster) Zrevrangebyscore(key string, max int64, min int64, limit int, valType reflect.Type) ([]interface{}, error) {
+func (c *Cluster) Zrscan(key string, max int64, min int64, limit int, valType reflect.Type) ([]interface{}, error) {
 	client := c.GetSrv(key)
 	db, err := ssdb.Connect(client.conn_addr, client.conn_port)
 	defer db.Close()

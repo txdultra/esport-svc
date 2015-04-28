@@ -140,6 +140,15 @@ type OutFileUrl struct {
 	FileUrl string `json:"file_url"`
 }
 
+type OutPicture struct {
+	Id           int64  `json:"img_id"`
+	Title        string `json:"title"`
+	ThumbnailPic string `json:"thumbnail_pic"`
+	BmiddlePic   string `json:"bmiddle_pic"`
+	OriginalPic  string `json:"original_pic"`
+	Views        int    `json:"views"`
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // for admin
 ////////////////////////////////////////////////////////////////////////////////

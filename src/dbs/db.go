@@ -89,6 +89,11 @@ func NewAuthOrm() orm.Ormer {
 	return o
 }
 
+func NewQueryBuilder() orm.QueryBuilder {
+	qp, _ := orm.NewQueryBuilder("mysql")
+	return qp
+}
+
 func LoadDb(aliasName, providerName, connectionUrl string, maxIdles int, maxConns int) {
 	orm.RegisterDataBase(aliasName, providerName, connectionUrl, maxIdles, maxConns)
 }

@@ -1,10 +1,16 @@
 package groups
 
 import (
+	"bytes"
 	"dbs"
+	"encoding/json"
 	"fmt"
+	"image"
+	"libs"
 	credit_client "libs/credits/client"
+	"libs/passport"
 	"logs"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
@@ -12,8 +18,14 @@ import (
 	"utils/cache"
 	"utils/ssdb"
 
+	"github.com/astaxie/beego/httplib"
 	"github.com/astaxie/beego/orm"
+	"github.com/disintegration/imaging"
 )
+
+type BaseService struct {
+	cfg *GroupCfg
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //组设定配置
@@ -51,13 +63,104 @@ func UpdateGroupCfg(cfg *GroupCfg) error {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+//公用方法
+////////////////////////////////////////////////////////////////////////////////
+func savePostTableToDb(addTblId int, addTblName string, ptrTable interface{}) {
+	o := dbs.NewOrm(db_aliasname)
+	create_tbl_sql := fmt.Sprintf(`select TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA='%s' and TABLE_NAME='%s'`, db_name, addTblName)
+	var maps []orm.Params
+	o.Raw(create_tbl_sql).Values(&maps)
+	//已存在表
+	if len(maps) > 0 {
+		return
+	}
+	o.Insert(ptrTable)
+}
+
+var file_storage = libs.NewWeedFsFileStorage()
+
+func fileData(fid int64) ([]byte, error) {
+	fileUrl := file_storage.GetPrivateFileUrl(fid)
+	request := httplib.Get(fileUrl)
+	request.SetTimeout(1*time.Minute, 1*time.Minute)
+	data, err := request.Bytes()
+	if err != nil {
+		logs.Errorf("group pic get file data fail:%s", err.Error())
+		return nil, err
+	}
+	return data, nil
+}
+
+func imgResize(data []byte, file *libs.File, size int) (int64, error) {
+	if size <= 0 {
+		return file.Id, nil
+	}
+	if file.Width <= size && file.Height <= size {
+		return file.Id, nil
+	}
+	if file.Width >= file.Height && file.Width > size {
+		buf := bytes.NewBuffer(data)
+		srcImg, _, err := image.Decode(buf)
+		if err != nil {
+			logs.Errorf("group pic thumbnail by width's ratio data convert to image fail:%s", err.Error())
+			return 0, err
+		}
+		var dstImage image.Image
+		dstImage = imaging.Resize(srcImg, size, 0, imaging.Lanczos)
+		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+		if err != nil {
+			logs.Errorf("group pic thumbnail by width's ratio image to bytes fail:%s", err.Error())
+			return 0, err
+		}
+		ratio := float32(file.Width) / float32(size)
+		resizeName := fmt.Sprintf("%s-r%dx%d.%s", utils.FileName(file.OriginalName), size, int(float32(file.Height)*ratio), file.ExtName)
+		node, err := file_storage.SaveFile(fileData, resizeName, file.Id)
+		if err != nil {
+			logs.Errorf("group pic thumbnail by width's ratio save image fail:%s", err.Error())
+			return 0, err
+		}
+		return node.FileId, err
+	}
+	if file.Width < file.Height && file.Height > size {
+		buf := bytes.NewBuffer(data)
+		srcImg, _, err := image.Decode(buf)
+		if err != nil {
+			logs.Errorf("group pic thumbnail by height's ratio data convert to image fail:%s", err.Error())
+			return 0, err
+		}
+		var dstImage image.Image
+		dstImage = imaging.Resize(srcImg, 0, size, imaging.Lanczos)
+		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+		if err != nil {
+			logs.Errorf("group pic thumbnail by height's ratio image to bytes fail:%s", err.Error())
+			return 0, err
+		}
+		ratio := float32(file.Height) / float32(size)
+		resizeName := fmt.Sprintf("%s-r%dx%d.%s", utils.FileName(file.OriginalName), int(float32(file.Width)*ratio), size, file.ExtName)
+		node, err := file_storage.SaveFile(fileData, resizeName, file.Id)
+		if err != nil {
+			logs.Errorf("group pic thumbnail by height's ratio save image fail:%s", err.Error())
+			return 0, err
+		}
+		return node.FileId, err
+	}
+	return file.Id, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
 //组服务
 ////////////////////////////////////////////////////////////////////////////////
 const (
-	group_members_count_field   = "group_members_count"
 	group_name_sets             = "group.name_sets"
 	group_member_joined_sortset = "group.member_%d_joined"
 	group_joined_member_sortset = "group.joined_%d_uids"
+)
+
+type GP_PROPERTY string
+
+const (
+	GP_PROPERTY_MEMBERS GP_PROPERTY = "members"
+	GP_PROPERTY_THREADS GP_PROPERTY = "threads"
 )
 
 var tbl_mutex *sync.Mutex = new(sync.Mutex)
@@ -71,10 +174,10 @@ func NewGroupService(cfg *GroupCfg) *GroupService {
 }
 
 type GroupService struct {
-	cfg *GroupCfg
+	BaseService
 }
 
-func (s *GroupService) getGroupCacheKey(id int64) string {
+func (s *GroupService) getCacheKey(id int64) string {
 	return fmt.Sprintf("group_model_%d", id)
 }
 
@@ -101,6 +204,23 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	has, err := ssdb.New(use_ssdb_group_db).Hexists(group_name_sets, group.Name)
 	if !has || err != nil {
 		return fmt.Errorf("组名称已存在")
+	}
+
+	//认证用户创建个数不同
+	ps := passport.NewMemberProvider()
+	member := ps.Get(group.Uid)
+	if member == nil {
+		return fmt.Errorf("组创建人不存在")
+	}
+	max_limit := s.cfg.CreateGroupMaxCount
+	if member.Certified {
+		max_limit = s.cfg.CreateGroupCertifiedMaxCount
+	}
+	//验证创建个数限制
+	o := dbs.NewOrm(db_aliasname)
+	nums, _ := o.QueryTable(&Group{}).Exclude("status", GROUP_STATUS_CLOSED).Count()
+	if int(nums) >= max_limit {
+		return fmt.Errorf("已超过可以创建小组的数量限制")
 	}
 
 	//验证积分
@@ -148,9 +268,15 @@ func (s *GroupService) GetGMTable(uid int64) (int, string, error) {
 	create_tbl_sql := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(groupid int(11) NOT NULL,
 	  uid int(11) NOT NULL,
 	  ts int(11) NOT NULL,
-	  PRIMARY KEY (groupid,uid)) ENGINE=InnoDB DEFAULT CHARSET=utf8`, tbl)
+	  PRIMARY KEY (groupid,uid)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`, tbl)
 	o.Raw(create_tbl_sql).Exec()
 	gmTbls[i_tag] = tbl
+
+	savePostTableToDb(i_tag, tbl, &GroupMemberTable{
+		Id:      int64(i_tag),
+		TblName: tbl,
+		Ts:      time.Now().Unix(),
+	})
 	return i_tag, tbl, nil
 }
 
@@ -182,12 +308,19 @@ func (s *GroupService) GetMGTable(uid int64) (int, string, error) {
 	create_tbl_sql := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(uid int(11) NOT NULL,
 	  groupid int(11) NOT NULL,
 	  ts int(11) NOT NULL,
-	  PRIMARY KEY (uid,groupid)) ENGINE=InnoDB DEFAULT CHARSET=utf8`, tbl)
+	  PRIMARY KEY (uid,groupid)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`, tbl)
 	o.Raw(create_tbl_sql).Exec()
 	mgTbls[i_tag] = tbl
+
+	savePostTableToDb(i_tag, tbl, &MemberGroupTable{
+		Id:      int64(i_tag),
+		TblName: tbl,
+		Ts:      time.Now().Unix(),
+	})
 	return i_tag, tbl, nil
 }
 
+//设置新建组分表属性
 func (s *GroupService) setGroupTableId(group *Group) error {
 	group.ThreadTableId = 1 //默认,数据量大后分表
 	tblId, _, err := s.GetGMTable(group.Uid)
@@ -197,7 +330,7 @@ func (s *GroupService) setGroupTableId(group *Group) error {
 	return err
 }
 
-func (s *GroupService) CreateGroup(group *Group) error {
+func (s *GroupService) Create(group *Group) error {
 	err := s.VerifyNewGroup(group)
 	if err != nil {
 		return err
@@ -231,16 +364,103 @@ func (s *GroupService) CreateGroup(group *Group) error {
 	if err != nil {
 		return fmt.Errorf("建组失败:002")
 	}
+
+	//加入组名hash集合
+	ssdb.New(use_ssdb_group_db).Hset(group_name_sets, group.Name, group.Id)
+
 	group.Id = id
 	cache := utils.GetCache()
-	cache.Add(s.getGroupCacheKey(id), *group, 1*time.Hour)
+	cache.Add(s.getCacheKey(id), *group, 1*time.Hour)
+
+	//更新我的缓存
+	cache.Delete(s.getMyGroupIdsCacheKey(group.Uid))
+	//增加计数
+	NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_GROUPS}, []COUNT_ACTION{COUNT_ACTION_INCR}, group.Uid)
+
 	return nil
 }
 
-func (s *GroupService) GetGroup(groupId int64) *Group {
+func (s *GroupService) Delete(groupId int64) error {
+	group := s.Get(groupId)
+	if group == nil {
+		return fmt.Errorf("组已被删除")
+	}
+	o := dbs.NewOrm(db_aliasname)
+	_, err := o.Delete(group)
+	if err != nil {
+		return fmt.Errorf("删除失败:001")
+	}
+
+	gjmkey := fmt.Sprintf(group_joined_member_sortset, groupId)
+	//清理用户加入组的记录
+	vals, _ := ssdb.New(use_ssdb_group_db).Zrange(gjmkey, 0, -1, reflect.TypeOf(int64(0)))
+	for _, val := range vals {
+		uid := *(val.(*int64))
+		if uid <= 0 {
+			continue
+		}
+		s.MemberExit(uid, groupId) //强制用户离开
+	}
+	cache := utils.GetCache()
+	cache.Delete(s.getCacheKey(groupId))
+	//删除计数
+	NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_GROUPS}, []COUNT_ACTION{COUNT_ACTION_DECR}, group.Uid)
+	return nil
+}
+
+func (s *GroupService) Close(groupId int64) error {
+	group := s.Get(groupId)
+	if group == nil {
+		return fmt.Errorf("组不存在")
+	}
+	if group.Status == GROUP_STATUS_CLOSED {
+		return fmt.Errorf("组已被关闭")
+	}
+	o := dbs.NewOrm(db_aliasname)
+	group.Status = GROUP_STATUS_CLOSED
+	o.Update(group)
+	cache := utils.GetCache()
+	cache.Replace(s.getCacheKey(groupId), *group, 1*time.Hour)
+	//减少计数
+	NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_GROUPS}, []COUNT_ACTION{COUNT_ACTION_INCR}, group.Uid)
+	return nil
+}
+
+func (s *GroupService) Update(group *Group) error {
+	if s.cfg == nil {
+		return fmt.Errorf("未设置配置对象")
+	}
+	if len(group.Name) > s.cfg.GroupNameLen {
+		return fmt.Errorf(fmt.Sprintf("组名称不能大于%d个字符", s.cfg.GroupNameLen))
+	}
+	if len(group.Description) > s.cfg.GroupDescLen {
+		return fmt.Errorf(fmt.Sprintf("组描述内容不能大于%d个字符", s.cfg.GroupDescLen))
+	}
+	if group.Uid <= 0 {
+		return fmt.Errorf("未设置创建人")
+	}
+	if len(group.GameIds) == 0 {
+		return fmt.Errorf("未选择游戏分类")
+	}
+	if group.BgImg == 0 {
+		return fmt.Errorf("未设置背景图")
+	}
+
+	o := dbs.NewOrm(db_aliasname)
+	_, err := o.Update(group, "groupname", "description", "uid", "country", "city", "gameids", "displayorder", "img", "bgimg",
+		"belong", "type", "searchkeyword")
+	if err != nil {
+		return err
+	}
+	cache := utils.GetCache()
+	cache.Replace(s.getCacheKey(group.Id), *group, 1*time.Hour)
+	return nil
+}
+
+func (s *GroupService) Get(groupId int64) *Group {
 	cache := utils.GetCache()
 	group := Group{}
-	err := cache.Get(s.getGroupCacheKey(groupId), &group)
+	err := cache.Get(s.getCacheKey(groupId), &group)
 	if err == nil {
 		return &group
 	}
@@ -250,36 +470,27 @@ func (s *GroupService) GetGroup(groupId int64) *Group {
 	if err != nil {
 		return nil
 	}
-	cache.Add(s.getGroupCacheKey(groupId), group, 1*time.Hour)
+	cache.Add(s.getCacheKey(groupId), group, 1*time.Hour)
 	return &group
 }
 
-func (s *GroupService) UpdateGroup(group *Group) error {
-	o := dbs.NewOrm(db_aliasname)
-	_, err := o.Update(group, "groupname", "description", "uid", "country", "city", "gameids", "displayorder", "img", "bgimg",
-		"belong", "type", "searchkeyword")
-	if err != nil {
-		return err
-	}
-	cache := utils.GetCache()
-	cache.Replace(s.getGroupCacheKey(group.Id), *group, 1*time.Hour)
-	return nil
-}
-
-func (s *GroupService) doGroupCounts(groupId int64, fields []string, incrs []int) {
-	group := s.GetGroup(groupId)
+func (s *GroupService) ActionCount(groupId int64, gps []GP_PROPERTY, incrs []int) {
+	group := s.Get(groupId)
 	if group == nil {
 		return
 	}
-	if len(fields) != len(incrs) {
+	if len(gps) != len(incrs) {
 		panic("fields和incrs的数量必须一致")
 	}
 	params := make(orm.Params)
-	for i, field := range fields {
+	for i, field := range gps {
 		switch field {
-		case group_members_count_field:
+		case GP_PROPERTY_MEMBERS:
 			group.Members += incrs[i]
 			params["members"] = orm.ColValue(orm.Col_Add, incrs[i])
+		case GP_PROPERTY_THREADS:
+			group.Threads += incrs[i]
+			params["threads"] = orm.ColValue(orm.Col_Add, incrs[i])
 		default:
 		}
 	}
@@ -291,11 +502,11 @@ func (s *GroupService) doGroupCounts(groupId int64, fields []string, incrs []int
 		return
 	}
 	cache := utils.GetCache()
-	cache.Replace(s.getGroupCacheKey(group.Id), *group, 1*time.Hour)
+	cache.Replace(s.getCacheKey(group.Id), *group, 1*time.Hour)
 }
 
-func (s *GroupService) MemberJoinGroup(uid int64, groupId int64) error {
-	group := s.GetGroup(groupId)
+func (s *GroupService) MemberJoin(uid int64, groupId int64) error {
+	group := s.Get(groupId)
 	if group == nil {
 		return fmt.Errorf("小组不存在")
 	}
@@ -338,13 +549,16 @@ func (s *GroupService) MemberJoinGroup(uid int64, groupId int64) error {
 		ssdb_client.Zrem(gjoined_key, uid)
 	}
 
-	s.doGroupCounts(groupId, []string{group_members_count_field}, []int{1})
+	s.ActionCount(groupId, []GP_PROPERTY{GP_PROPERTY_MEMBERS}, []int{1})
+
+	//计数
+	go NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_JOINS}, []COUNT_ACTION{COUNT_ACTION_INCR}, group.Uid)
 
 	return nil
 }
 
-func (s *GroupService) MemberExitGroup(uid int64, groupId int64) error {
-	group := s.GetGroup(groupId)
+func (s *GroupService) MemberExit(uid int64, groupId int64) error {
+	group := s.Get(groupId)
 	if group == nil {
 		return fmt.Errorf("小组不存在")
 	}
@@ -368,12 +582,15 @@ func (s *GroupService) MemberExitGroup(uid int64, groupId int64) error {
 	//小组中去除用户
 	ssdb_client.Zrem(gjoined_key, uid)
 
-	s.doGroupCounts(groupId, []string{group_members_count_field}, []int{-1})
+	s.ActionCount(groupId, []GP_PROPERTY{GP_PROPERTY_MEMBERS}, []int{-1})
+
+	//计数
+	go NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_JOINS}, []COUNT_ACTION{COUNT_ACTION_DECR}, group.Uid)
 
 	return nil
 }
 
-func (s *GroupService) UpdateMemberLastActionGroup(groupId int64, uid int64, t time.Time) {
+func (s *GroupService) UpdateMemberLastAction(groupId int64, uid int64, t time.Time) {
 	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid) //用户加入小组的集合key
 	ts, err := ssdb.New(use_ssdb_group_db).Zscore(mjoined_key, groupId)
 	if ts == 0 || err != nil {
@@ -386,52 +603,792 @@ func (s *GroupService) UpdateMemberLastActionGroup(groupId int64, uid int64, t t
 	ssdb.New(use_ssdb_group_db).Zincrby(mjoined_key, groupId, gap)
 }
 
-//func (s *GroupService) updateGroupProperty(groupId int64, column string, val interface{}) error {
-//	o := dbs.NewOrm(db_aliasname)
-//	_, err := o.QueryTable(&Group{}).Filter("id", groupId).Update(orm.Params{
-//		column: val,
-//	})
-//	return err
-//}
+func (s *GroupService) MyJoins(uid int64, page int, size int) (int, []*Group) {
+	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid) //用户加入小组的集合key
+	client := ssdb.New(use_ssdb_group_db)
+	count, _ := client.Zcard(mjoined_key)
+	vals, _ := client.Zrevrange(mjoined_key, (page-1)*size, page*size, reflect.TypeOf(int64(0)))
+	ids := make([]int64, len(vals), len(vals))
+	for i, val := range vals {
+		ids[i] = *(val.(*int64))
+	}
 
-//func (s *GroupService) UpdateGroupMemberCount(groupId int64, nums int) error {
-//	err := s.updateGroupProperty(groupId, "members", orm.ColValue(orm.Col_Add, nums))
-//	if err != nil {
-//		return err
-//	}
-//	gp := s.GetGroup(groupId)
-//	if gp != nil {
-//		gp.Members += nums
-//		cache := utils.GetCache()
-//		cache.Replace(s.getGroupCacheKey(groupId), *gp, 12*time.Hour)
-//	}
-//	return nil
-//}
+	groups := s.multiGets(ids)
 
-//func (s *GroupService) UpdateGroupStatus(groupId int64, status GROUP_STATUS) error {
-//	err := s.updateGroupProperty(groupId, "status", status)
-//	if err != nil {
-//		return err
-//	}
-//	gp := s.GetGroup(groupId)
-//	if gp != nil {
-//		gp.Status = status
-//		cache := utils.GetCache()
-//		cache.Replace(s.getGroupCacheKey(groupId), *gp, 12*time.Hour)
-//	}
-//	return nil
-//}
+	return count, groups
+}
 
-//func (s *GroupService) UpdateGroupRecommend(groupId int64, recommend bool) error {
-//	err := s.updateGroupProperty(groupId, "recommend", recommend)
-//	if err != nil {
-//		return err
-//	}
-//	gp := s.GetGroup(groupId)
-//	if gp != nil {
-//		gp.Recommend = recommend
-//		cache := utils.GetCache()
-//		cache.Replace(s.getGroupCacheKey(groupId), *gp, 12*time.Hour)
-//	}
-//	return nil
-//}
+func (s *GroupService) multiGets(groupIds []int64) []*Group {
+	if len(groupIds) == 0 {
+		return []*Group{}
+	}
+	gkeys := make([]string, len(groupIds), len(groupIds))
+	for i, id := range groupIds {
+		gkeys[i] = s.getCacheKey(id)
+	}
+	cache := utils.GetCache()
+	getter, _ := cache.GetMulti(gkeys...)
+
+	groups := []*Group{}
+	for _, id := range groupIds {
+		var _group *Group
+		err := getter.Get(s.getCacheKey(id), _group)
+		if err == nil {
+			groups = append(groups, _group)
+			continue
+		}
+		_g := s.Get(id)
+		if _g != nil {
+			groups = append(groups, _g)
+		}
+	}
+	return groups
+}
+
+func (s *GroupService) getMyGroupIdsCacheKey(uid int64) string {
+	return fmt.Sprintf("group_my_%d", uid)
+}
+
+func (s *GroupService) MyGroups(uid int64) []*Group {
+	ckey := s.getMyGroupIdsCacheKey(uid)
+	cache := utils.GetCache()
+	var ids []int64
+	err := cache.Get(ckey, &ids)
+	if err == nil {
+		return s.multiGets(ids)
+	}
+	_g := &Group{}
+	o := dbs.NewOrm(db_aliasname)
+	var maps []orm.Params
+	num, err := o.Raw(fmt.Sprintf("SELECT id FROM %s WHERE status = ?", _g.TableName()), GROUP_STATUS_CLOSED).Values(&maps)
+	ids = []int64{}
+	if err == nil && num > 0 {
+		for i := range maps {
+			ids = append(ids, maps[i]["id"].(int64))
+		}
+	}
+	cache.Add(ckey, ids, 6*time.Hour)
+	groups := s.multiGets(ids)
+	return groups
+}
+
+func (s *GroupService) Search() (int, []*Group) {
+
+	return 0, nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// 计数
+////////////////////////////////////////////////////////////////////////////////
+type COUNT_ACTION int
+
+const (
+	COUNT_ACTION_INCR COUNT_ACTION = 1
+	COUNT_ACTION_DECR COUNT_ACTION = 2
+)
+
+type MC_PROPERTY int
+
+const (
+	MC_PROPERTY_GROUPS    MC_PROPERTY = 1
+	MC_PROPERTY_TODINGS   MC_PROPERTY = 2
+	MC_PROPERTY_TOCAIS    MC_PROPERTY = 4
+	MC_PROPERTY_FROMDINGS MC_PROPERTY = 8
+	MC_PROPERTY_FROMCAIS  MC_PROPERTY = 16
+	MC_PROPERTY_POSTS     MC_PROPERTY = 32
+	MC_PROPERTY_THREADS   MC_PROPERTY = 64
+	MC_PROPERTY_JOINS     MC_PROPERTY = 128
+	MC_PROPERTY_SHARES    MC_PROPERTY = 256
+	MC_PROPERTY_REPORTS   MC_PROPERTY = 512
+)
+
+func NewMemberCountService() *MemberCountService {
+	return &MemberCountService{}
+}
+
+type MemberCountService struct{}
+
+func (c *MemberCountService) getCacheKey(uid int64) string {
+	return fmt.Sprintf("group_member_count:%d", uid)
+}
+
+func (c *MemberCountService) GetCount(uid int64) *MemberCount {
+	ckey := c.getCacheKey(uid)
+	cache := utils.GetCache()
+	mc := &MemberCount{}
+	err := cache.Get(ckey, mc)
+	if err == nil {
+		return mc
+	}
+	mc.Uid = uid
+	o := dbs.NewOrm(db_aliasname)
+	err = o.Read(mc)
+	if err == nil {
+		cache.Add(ckey, *mc, 24*time.Hour)
+	} else {
+		mc.LastTs = time.Now().Unix()
+		o.Insert(mc)
+		cache.Add(ckey, *mc, 24*time.Hour)
+	}
+	return mc
+}
+
+func (c *MemberCountService) ActionCountProperty(mcs []MC_PROPERTY, actions []COUNT_ACTION, uid int64) error {
+	if len(mcs) != len(actions) {
+		panic("mcs和actions的数量必须一致")
+	}
+	mc := c.GetCount(uid)
+
+	params := make(orm.Params)
+	for i, property := range mcs {
+		switch property {
+		case MC_PROPERTY_GROUPS:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.Groups++
+				params["groups"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.Groups--
+				params["groups"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		case MC_PROPERTY_TODINGS:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.ToDings++
+				params["todings"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.ToDings--
+				params["todings"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		case MC_PROPERTY_TOCAIS:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.ToCais++
+				params["tocais"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.ToCais--
+				params["tocais"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		case MC_PROPERTY_FROMDINGS:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.FromDings++
+				params["fromdings"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.FromDings--
+				params["fromdings"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		case MC_PROPERTY_FROMCAIS:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.FromCais++
+				params["fromcais"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.FromCais--
+				params["fromcais"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		case MC_PROPERTY_POSTS:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.Posts++
+				params["posts"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.Posts--
+				params["posts"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		case MC_PROPERTY_THREADS:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.Threads++
+				params["threads"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.Threads--
+				params["threads"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		case MC_PROPERTY_JOINS:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.Joins++
+				params["joins"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.Joins--
+				params["joins"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		case MC_PROPERTY_SHARES:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.Shares++
+				params["shares"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.Shares--
+				params["shares"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		case MC_PROPERTY_REPORTS:
+			if actions[i] == COUNT_ACTION_INCR {
+				mc.Reports++
+				params["reports"] = orm.ColValue(orm.Col_Add, 1)
+			} else {
+				mc.Reports--
+				params["reports"] = orm.ColValue(orm.Col_Except, 1)
+			}
+		default:
+		}
+	}
+
+	mc.LastTs = time.Now().Unix()
+
+	o := dbs.NewOrm(db_aliasname)
+	_, err := o.QueryTable(&MemberCount{}).Filter("uid", uid).Update(params)
+	if err != nil {
+		logs.Errorf("用户计数数据库更新失败:%s", err.Error())
+		return err
+	}
+	cache := utils.GetCache()
+	cache.Replace(c.getCacheKey(uid), *mc, 12*time.Hour)
+	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// 帖子
+////////////////////////////////////////////////////////////////////////////////
+
+type TH_PROPERTY string
+
+const (
+	TH_PROPERTY_FAVORITES TH_PROPERTY = "favorites"
+	TH_PROPERTY_REPLIES   TH_PROPERTY = "replies"
+	TH_PROPERTY_SHARES    TH_PROPERTY = "shares"
+	TH_PROPERTY_VIEWS     TH_PROPERTY = "views"
+	TH_PROPERTY_LASTPOST  TH_PROPERTY = "lastpost"
+)
+
+var postTbls map[int]string = make(map[int]string)
+var thcQs map[int64]*time.Timer = make(map[int64]*time.Timer)
+var thcQmutex *sync.Mutex = new(sync.Mutex)
+
+const (
+	group_post_table_fmt = "post_%d"
+)
+
+func NewPostId(tblId int) string {
+	ms := time.Now().UnixNano() / 1000
+	return fmt.Sprintf("%03dA%d", tblId, ms)
+}
+
+func PostTableId(postId string) int {
+	if len(postId) != 20 {
+		return 0
+	}
+	_strid := postId[:3]
+	_id, _ := strconv.Atoi(_strid)
+	return _id
+}
+
+func getPostTableId(thread *Thread) (int, string, error) {
+	str_groupid := strconv.FormatInt(thread.GroupId, 10)
+	str_pfx := str_groupid[:1] //1位
+	i_tag, err := strconv.Atoi(str_pfx)
+	if err != nil {
+		return 0, "", fmt.Errorf("参数错误001")
+	}
+	if name, ok := postTbls[i_tag]; ok {
+		return i_tag, name, nil
+	}
+	tbl_mutex.Lock()
+	defer tbl_mutex.Unlock()
+	if name, ok := postTbls[i_tag]; ok {
+		return i_tag, name, nil
+	}
+	tbl := fmt.Sprintf(group_post_table_fmt, i_tag)
+
+	o := dbs.NewOrm(db_aliasname)
+	create_tbl_sql := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(id char(20) NOT NULL,
+	  tid int(11) NOT NULL,
+	  authorid int(11) NOT NULL,
+	  subject char(30) NOT NULL,
+	  dateline int(11) NOT NULL,
+	  message mediumtext NOT NULL,
+	  ip char(15) NOT NULL,
+	  invisible tinyint(1) NOT NULL,
+	  ding int(11) NOT NULL,
+	  cai int(11) NOT NULL,
+	  position int(11) NOT NULL,
+	  replyid char(20) NOT NULL,
+	  replyuid int(11) NOT NULL,
+	  replyposition int(11) NOT NULL,
+	  img int(11) NOT NULL,
+	  resources varchar(500) NOT NULL,
+	  longitude double(7,5) NOT NULL,
+	  latitude double(7,5) NOT NULL,
+	  fromdev tinyint(2) NOT NULL,
+	  PRIMARY KEY (id),
+	  UNIQUE KEY idx_thread_position (tid,position)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`, tbl)
+	o.Raw(create_tbl_sql).Exec()
+	postTbls[i_tag] = tbl
+
+	savePostTableToDb(i_tag, tbl, &PostTable{
+		Id:      int64(i_tag),
+		TblName: tbl,
+		Ts:      time.Now().Unix(),
+	})
+	return i_tag, tbl, nil
+}
+
+func NewThreadService(cfg *GroupCfg) *ThreadService {
+	ts := &ThreadService{}
+	ts.cfg = cfg
+	return ts
+}
+
+type ThreadService struct {
+	BaseService
+}
+
+func (c *ThreadService) getCacheKey(threadId int64) string {
+	return fmt.Sprintf("group_thread_%d", threadId)
+}
+
+func (c *ThreadService) verifyThread(thread *Thread) error {
+	if c.cfg == nil {
+		return fmt.Errorf("未设定配置")
+	}
+	if len(thread.Subject) == 0 {
+		return fmt.Errorf("必须提供标题")
+	}
+	if thread.GroupId <= 0 {
+		return fmt.Errorf("未指定所属组")
+	}
+	if thread.AuthorId <= 0 {
+		return fmt.Errorf("未指定发表人")
+	}
+	gs := NewGroupService(c.cfg)
+	if gs.Get(thread.GroupId) == nil {
+		return fmt.Errorf("指定的组不存在")
+	}
+	return nil
+}
+
+func (c *ThreadService) Create(thread *Thread, post *Post) error {
+	err := c.verifyThread(thread)
+	if err != nil {
+		return err
+	}
+	ps := passport.NewMemberProvider()
+	author := ps.Get(thread.AuthorId)
+	if author == nil {
+		return fmt.Errorf("创建人不存在")
+	}
+
+	thread.Author = author.NickName
+	thread.DateLine = time.Now().Unix()
+	thread.LastPost = time.Now().Unix()
+	thread.Status = c.cfg.NewThreadStatus
+	thread.Subject = utils.CensorWords(thread.Subject) //过滤关键字
+
+	//设置post表id
+	tblId, _, err := getPostTableId(thread)
+	if err != nil {
+		return fmt.Errorf("创建帖子失败:001")
+	}
+	thread.PostTableId = tblId
+
+	o := dbs.NewOrm(db_aliasname)
+	id, err := o.Insert(thread)
+	if err != nil {
+		logs.Errorf("新建帖子失败:%s", err.Error())
+		return fmt.Errorf("创建帖子失败:002")
+	}
+	//插入楼主评论
+	post.ThreadId = id
+	post.Id = NewPostId(int(id))
+	err = NewPostService(c.cfg).Create(post)
+	if err != nil {
+		o.Delete(thread)
+		logs.Errorf("新建帖子失败:%s", err.Error())
+		return fmt.Errorf("创建帖子失败:003")
+	}
+
+	thread.Lordpid = post.Id
+	thread.Img = post.Img
+	o.Update(thread)
+
+	ssdb.New(use_ssdb_group_db).Set(c.getCacheKey(id), *thread)
+
+	//计数
+	go NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_THREADS}, []COUNT_ACTION{COUNT_ACTION_INCR}, thread.AuthorId)
+
+	return err
+}
+
+func (c *ThreadService) Get(threadId int64) *Thread {
+	var thread *Thread
+	cclient := ssdb.New(use_ssdb_group_db)
+	ckey := c.getCacheKey(threadId)
+	err := cclient.Get(ckey, thread)
+	if err == nil {
+		return thread
+	}
+	thread = &Thread{
+		Id: threadId,
+	}
+	o := dbs.NewOrm(db_aliasname)
+	err = o.Read(thread)
+	if err == nil {
+		cclient.Set(ckey, *thread)
+		return thread
+	}
+	return nil
+}
+
+func (c *ThreadService) ActionProperty(ths []TH_PROPERTY, vals []int64, threadId int64) {
+	if len(ths) != len(vals) {
+		return
+	}
+	for i, th := range ths {
+		ckey := fmt.Sprintf("group_thread_%s_count", string(th))
+		if th == TH_PROPERTY_LASTPOST {
+			ssdb.New(use_ssdb_group_db).Set(ckey, vals[i])
+		} else {
+			ssdb.New(use_ssdb_group_db).Incrby(ckey, vals[i])
+		}
+	}
+
+	if _, ok := thcQs[threadId]; ok {
+		return
+	}
+
+	thcQmutex.Lock()
+	defer thcQmutex.Unlock()
+	if _, ok := thcQs[threadId]; ok {
+		return
+	}
+	//延迟更新数据库计数
+	refId := threadId
+	thcQs[threadId] = time.AfterFunc(1*time.Minute, func() {
+		thread := c.Get(refId)
+		if thread == nil {
+			return
+		}
+		cclient := ssdb.New(use_ssdb_group_db)
+		fmtstr := "group_thread_%s_count"
+		var i int64 = 0
+		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_FAVORITES)), &i)
+		thread.Favorites = int(i)
+		i = 0
+		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_REPLIES)), &i)
+		thread.Replies = int(i)
+		i = 0
+		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_SHARES)), &i)
+		thread.Shares = int(i)
+		i = 0
+		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_VIEWS)), &i)
+		thread.Views = int(i)
+		i = 0
+		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_LASTPOST)), &i)
+		thread.LastPost = i
+
+		o := dbs.NewOrm(db_aliasname)
+		_, err := o.Update(thread)
+		if err == nil {
+			cclient.Set(c.getCacheKey(refId), *thread)
+		}
+		thcQmutex.Lock()
+		defer thcQmutex.Unlock()
+		delete(thcQs, refId)
+	})
+}
+
+func (c *ThreadService) Gets(groupId int64, page int, size int, uid int64) (int, []*Thread) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
+	threads := []*Thread{}
+	group := NewGroupService(c.cfg).Get(groupId)
+	if group == nil {
+		return 0, threads
+	}
+	o := dbs.NewOrm(db_aliasname)
+	var maps []orm.Params
+	_, err := o.QueryTable(&Thread{}).Filter("groupid", groupId).OrderBy("-lastpost").Limit(size).Offset((page-1)*size).Values(&maps, "id")
+	if err == nil {
+		strids := make([]string, len(maps), len(maps))
+		for i, m := range maps {
+			_id := m["id"].(int64)
+			strids[i] = c.getCacheKey(_id)
+		}
+		objs := ssdb.New(use_ssdb_group_db).MultiGet(strids, reflect.TypeOf(&Thread{}))
+		for _, t := range objs {
+			threads = append(threads, t.(*Thread))
+		}
+		return group.Threads, threads
+	}
+	return 0, threads
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// 评论
+////////////////////////////////////////////////////////////////////////////////
+type PostRes struct {
+	ImgResource []*ImgRes `json:"imgs"`
+}
+
+type ImgRes struct {
+	ThumbnailImgId int64 `json:"t_id"`
+	BmiddleImgId   int64 `json:"b_id"`
+	OriginalImgId  int64 `json:"o_id"`
+}
+
+type POST_ACTION int
+
+const (
+	POST_ACTION_DING POST_ACTION = 1
+	POST_ACTION_CAI  POST_ACTION = 2
+)
+
+const (
+	thread_post_sets            = "group.thread_%d_post_set"
+	thread_post_dc_sets         = "group.thread_%d_post_dc_set"
+	thread_post_user_dc_hashtbl = "group.thread_%d_post_user_dc_hashtbl" //postid <=> 1,0 (1顶0踩)
+)
+
+func NewPostService(cfg *GroupCfg) *PostService {
+	ps := &PostService{}
+	ps.cfg = cfg
+	return ps
+}
+
+type PostService struct {
+	BaseService
+}
+
+func (s *PostService) getCacheKey(id string) string {
+	return fmt.Sprintf("group_post_%s", id)
+}
+
+func (s *PostService) getImgResCacheKey(imgId int64) string {
+	return fmt.Sprintf("group_post_img_%d", imgId)
+}
+
+func (s *PostService) Get(id string) *Post {
+	ckey := s.getCacheKey(id)
+	p := &Post{}
+	cclient := ssdb.New(use_ssdb_group_db)
+	err := cclient.Get(ckey, p)
+	if err == nil {
+		return p
+	}
+	o := dbs.NewOrm(db_aliasname)
+	tblId := PostTableId(id)
+	tbl := fmt.Sprintf(group_post_table_fmt, tblId)
+	var post *Post
+	sql := fmt.Sprintf("SELECT * FROM %s WHERE id = ?", tbl)
+	err = o.Raw(sql, id).QueryRow(post)
+	if err == nil {
+		cclient.Set(ckey, *post)
+		return post
+	}
+	return nil
+}
+
+func (s *PostService) Action(postId string, uid int64, action POST_ACTION) {
+	post := s.Get(postId)
+	if post == nil {
+		return
+	}
+	ckey := fmt.Sprintf(thread_post_dc_sets, post.ThreadId)
+	var i int64 = 0
+	switch action {
+	case POST_ACTION_DING:
+		i = 1
+		break
+	case POST_ACTION_CAI:
+		i = -1
+		break
+	default:
+	}
+	ssdb.New(use_ssdb_group_db).Zincrby(ckey, post.Id, i)
+
+	//用户顶踩记录
+	//...
+}
+
+func (s *PostService) GetTops(threadId int64, action POST_ACTION) []*Post {
+	return nil
+}
+
+func (s *PostService) Invisible(postId string, do bool) error {
+	post := s.Get(postId)
+	if post == nil {
+		return fmt.Errorf("评论不存在")
+	}
+	o := dbs.NewOrm(db_aliasname)
+	tblid := PostTableId(postId)
+	tbl := fmt.Sprintf(group_post_table_fmt, tblid)
+	sql := fmt.Sprintf(`update %s set invisible=? where id=?`, tbl)
+	_, err := o.Raw(sql, true, postId).Exec()
+	if err != nil {
+		return err
+	}
+	post.Invisible = true
+	ssdb.New(use_ssdb_group_db).Set(s.getCacheKey(postId), *post)
+	return nil
+}
+
+func (s *PostService) imgToRes(imgId int64, picSizes []libs.PIC_SIZE) *ImgRes {
+	if imgId <= 0 {
+		return nil
+	}
+	file := file_storage.GetFile(imgId)
+	if file == nil {
+		return nil
+	}
+	data, err := fileData(imgId)
+	if err != nil {
+		fmt.Println("---------------------------------", err)
+		logs.Errorf("post view pic err:%s", err.Error())
+		return nil
+	}
+	ir := &ImgRes{}
+	for _, spsize := range picSizes {
+		size := 0
+		switch spsize {
+		case libs.PIC_SIZE_MIDDLE:
+			size = group_pic_middle_w
+			break
+		case libs.PIC_SIZE_THUMBNAIL:
+			size = group_pic_thumbnail_w
+			break
+		default:
+			size = 0
+			break
+		}
+		if spsize != libs.PIC_SIZE_ORIGINAL {
+			fid, err := imgResize(data, file, size)
+			if err != nil {
+				fmt.Println("---------------------------------", err)
+				continue
+			}
+			if spsize == libs.PIC_SIZE_MIDDLE {
+				ir.BmiddleImgId = fid
+			}
+			if spsize == libs.PIC_SIZE_THUMBNAIL {
+				ir.ThumbnailImgId = fid
+			}
+		} else {
+			ir.OriginalImgId = imgId
+		}
+	}
+	cache := utils.GetCache()
+	cache.Set(s.getImgResCacheKey(imgId), *ir, 92*time.Hour)
+	return ir
+}
+
+func (s *PostService) GetResToImgs(resource string) []*ImgRes {
+	var pr *PostRes
+	err := json.Unmarshal([]byte(resource), &pr)
+	if err == nil {
+		return pr.ImgResource
+	}
+	return []*ImgRes{}
+}
+
+func (s *PostService) MaxPosition(threadId int64) int {
+	i, _ := ssdb.New(use_ssdb_group_db).Zcard(fmt.Sprintf(thread_post_sets, threadId))
+	return i
+}
+
+func (s *PostService) Create(post *Post) error {
+	if post.ThreadId <= 0 {
+		return fmt.Errorf("帖子不存在")
+	}
+	if post.AuthorId <= 0 {
+		return fmt.Errorf("未指定评论人")
+	}
+	tservice := NewThreadService(s.cfg)
+	thread := tservice.Get(post.ThreadId)
+	if thread == nil {
+		return fmt.Errorf("帖子不存在")
+	}
+	if len(post.ReplyId) > 0 {
+		reply := s.Get(post.ReplyId)
+		if reply == nil {
+			return fmt.Errorf("回复的评论不存在")
+		}
+		post.ReplyPosition = reply.Position
+		post.ReplyUid = reply.AuthorId
+	}
+
+	pr := &PostRes{}
+	//处理图片数据
+	if len(post.ImgIds) > 0 {
+		irs := []*ImgRes{}
+		var wait sync.WaitGroup
+		for _, imgid := range post.ImgIds {
+			_id := imgid
+			go func() {
+				wait.Add(1)
+				defer wait.Done()
+				file := file_storage.GetFile(_id)
+				if file == nil {
+					return
+				}
+				if file.ExtName == "gif" { //gif不支持
+					return
+				}
+				ir := s.imgToRes(_id, []libs.PIC_SIZE{
+					libs.PIC_SIZE_ORIGINAL,
+					libs.PIC_SIZE_THUMBNAIL,
+					libs.PIC_SIZE_MIDDLE,
+				})
+				if ir != nil {
+					irs = append(irs, ir)
+				}
+			}()
+		}
+		wait.Wait()
+		pr.ImgResource = irs
+	}
+	//处理视频数据
+
+	_jd, err := json.Marshal(pr)
+	if err == nil {
+		post.Resources = string(_jd)
+	}
+	post.Subject = utils.CensorWords(post.Subject) //过滤关键字
+	post.Message = utils.CensorWords(post.Message) //过滤关键字
+	post.DateLine = time.Now().Unix()
+	post.Position = s.MaxPosition(post.ThreadId) + 1 //设置楼层
+	post.Id = NewPostId(thread.PostTableId)          //设置id
+	if len(pr.ImgResource) > 0 {                     //头图片,默认第一张
+		post.Img = pr.ImgResource[0].ThumbnailImgId
+	}
+
+	tbl := fmt.Sprintf(group_post_table_fmt, thread.PostTableId)
+	o := dbs.NewOrm(db_aliasname)
+	sql := fmt.Sprintf(`insert %s(id,tid,authorid,subject,dateline,message,ip,invisible,position,
+		replyid,replyuid,replyposition,img,resources,longitude,latitude,fromdev)
+		values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, tbl)
+	_, err = o.Raw(sql, post.Id,
+		post.ThreadId,
+		post.AuthorId,
+		post.Subject,
+		post.DateLine,
+		post.Message,
+		post.Ip,
+		post.Invisible,
+		post.Position,
+		post.ReplyId,
+		post.ReplyUid,
+		post.ReplyPosition,
+		post.Img,
+		post.Resources,
+		post.LongiTude,
+		post.LatiTude,
+		post.FromDevice).Exec()
+	if err != nil {
+		return fmt.Errorf("发表评论失败:001")
+	}
+	cclient := ssdb.New(use_ssdb_group_db)
+	cclient.Zadd(fmt.Sprintf(thread_post_sets), post.Id, int64(post.Position))
+	cclient.Set(s.getCacheKey(post.Id), *post)
+
+	if post.Position > 1 {
+		go tservice.ActionProperty([]TH_PROPERTY{TH_PROPERTY_REPLIES, TH_PROPERTY_LASTPOST}, []int64{1, post.DateLine}, post.ThreadId)
+	}
+
+	return nil
+}

@@ -1,16 +1,18 @@
 package groups
 
 type GroupCfg struct {
-	Id                    int64   `orm:"column(id);pk"`
-	GroupNameLen          int     `orm:"column(groupname_len)"`
-	GroupDescLen          int     `orm:"column(groupdesc_len)"`
-	CreateGroupBasePoint  int     `orm:"column(creategroup_basepoint)"`
-	CreateGroupRate       float32 `orm:"column(creategroup_rate)"`
-	CreateGroupMinUsers   int     `orm:"column(creategroup_minusers)"`
-	CreateGroupRecruitDay int     `orm:"column(creategroup_recruitday)"`
-	CreateGroupMaxCount   int     `orm:"column(creategroup_maxcount)"`
-	CreateGroupClause     string  `orm:"column(creategroup_clause)"`
-	ReportOptions         string  `orm:"column(report_options)"`
+	Id                           int64         `orm:"column(id);pk"`
+	GroupNameLen                 int           `orm:"column(groupname_len)"`
+	GroupDescLen                 int           `orm:"column(groupdesc_len)"`
+	CreateGroupBasePoint         int           `orm:"column(creategroup_basepoint)"`
+	CreateGroupRate              float32       `orm:"column(creategroup_rate)"`
+	CreateGroupMinUsers          int           `orm:"column(creategroup_minusers)"`
+	CreateGroupRecruitDay        int           `orm:"column(creategroup_recruitday)"`
+	CreateGroupMaxCount          int           `orm:"column(creategroup_maxcount)"`
+	CreateGroupCertifiedMaxCount int           `orm:"column(creategroup_certifiedmaxcount)"`
+	CreateGroupClause            string        `orm:"column(creategroup_clause)"`
+	ReportOptions                string        `orm:"column(report_options)"`
+	NewThreadStatus              THREAD_STATUS `orm:"column(new_threadstatus)"`
 }
 
 func (self *GroupCfg) TableName() string {
@@ -24,7 +26,7 @@ func (self *GroupCfg) TableEngine() string {
 type GroupMemberTable struct {
 	Id      int64  `orm:"column(id);pk"`
 	TblName string `orm:"column(tablename)"`
-	Ts      int    `orm:"column(ts)"`
+	Ts      int64  `orm:"column(ts)"`
 }
 
 func (self *GroupMemberTable) TableName() string {
@@ -38,7 +40,7 @@ func (self *GroupMemberTable) TableEngine() string {
 type MemberGroupTable struct {
 	Id      int64  `orm:"column(id);pk"`
 	TblName string `orm:"column(tablename)"`
-	Ts      int    `orm:"column(ts)"`
+	Ts      int64  `orm:"column(ts)"`
 }
 
 func (self *MemberGroupTable) TableName() string {
@@ -52,7 +54,7 @@ func (self *MemberGroupTable) TableEngine() string {
 type PostTable struct {
 	Id      int64  `orm:"column(id);pk"`
 	TblName string `orm:"column(tablename)"`
-	Ts      int    `orm:"column(ts)"`
+	Ts      int64  `orm:"column(ts)"`
 }
 
 func (self *PostTable) TableName() string {
@@ -94,6 +96,7 @@ type Group struct {
 	Uid            int64        `orm:"column(uid)"`
 	CreateTime     int64        `orm:"column(createtime)"`
 	Members        int          `orm:"column(members)"`
+	Threads        int          `orm:"column(threads)"`
 	Country        string       `orm:"column(country)"`
 	City           string       `orm:"column(city)"`
 	GameIds        string       `orm:"column(gameids)"`
@@ -143,15 +146,16 @@ const (
 
 type Thread struct {
 	Id           int64         `orm:"column(id);pk"`
+	GroupId      int64         `orm:"column(groupid)"`
 	PostTableId  int           `orm:"column(posts_tableid)"`
 	Subject      string        `orm:"column(subject)"`
 	AuthorId     int64         `orm:"column(authorid)"`
 	Author       string        `orm:"column(author)"`
-	DateLine     int           `orm:"column(dateline)"`
+	DateLine     int64         `orm:"column(dateline)"`
 	LastPost     int64         `orm:"column(lastpost)"`
 	LastPoster   string        `orm:"column(lastposter)"`
 	LastPostUid  int64         `orm:"column(lastpostuid)"`
-	LastId       int64         `orm:"column(lastid)"`
+	LastId       string        `orm:"column(lastid)"`
 	Views        int           `orm:"column(views)"`
 	Replies      int           `orm:"column(replies)"`
 	Shares       int           `orm:"column(shares)"`
@@ -163,7 +167,7 @@ type Thread struct {
 	Heats        int           `orm:"column(heats)"`
 	DisplayOrder int           `orm:"column(displayorder)"`
 	HasVod       bool          `orm:"column(hasvod)"`
-	Lordpid      int64         `orm:"column(lordpid)"`
+	Lordpid      string        `orm:"column(lordpid)"`
 }
 
 func (self *Thread) TableName() string {
@@ -185,7 +189,7 @@ const (
 )
 
 type Post struct {
-	Id            int64       `orm:"column(id);pk"`
+	Id            string      `orm:"column(id);pk"`
 	ThreadId      int64       `orm:"column(tid)"`
 	AuthorId      int64       `orm:"column(authorid)"`
 	Subject       string      `orm:"column(subject)"`
@@ -196,7 +200,7 @@ type Post struct {
 	Ding          int         `orm:"column(ding)"`
 	Cai           int         `orm:"column(cai)"`
 	Position      int         `orm:"column(position)"`
-	ReplyId       int64       `orm:"column(replyid)"`
+	ReplyId       string      `orm:"column(replyid)"`
 	ReplyUid      int64       `orm:"column(replyuid)"`
 	ReplyPosition int         `orm:"column(replyposition)"`
 	Img           int64       `orm:"column(img)"`
@@ -204,6 +208,8 @@ type Post struct {
 	LongiTude     float32     `orm:"column(longitude)"`
 	LatiTude      float32     `orm:"column(latitude)"`
 	FromDevice    FROM_DEVICE `orm:"column(fromdev)"`
+	ImgIds        []int64     `orm:"-"`
+	VodIds        []int64     `orm:"-"`
 }
 
 func (self *Post) TableName() string {
@@ -214,41 +220,6 @@ func (self *Post) TableEngine() string {
 	return "INNODB"
 }
 
-//type GroupRecruit struct {
-//	GroupId    int64  `orm:"column(groupid)"`
-//	CreateTime int    `orm:"column(createtime)"`
-//	Uid        int64  `orm:"column(uid)"`
-//	StartTime  int    `orm:"column(starttime)"`
-//	EndTime    int    `orm:"column(endtime)"`
-//	MinUsers   int    `orm:"column(min_users)"`
-//	OrderNo    string `orm:"column(orderno)"`
-//}
-
-//func (self *GroupRecruit) TableName() string {
-//	return "group_recruit_temp"
-//}
-
-//func (self *GroupRecruit) TableEngine() string {
-//	return "INNODB"
-//}
-
-//type GroupReadyStop struct {
-//	GroupId    int64 `orm:"column(groupid)"`
-//	CreateTime int   `orm:"column(createtime)"`
-//	Uid        int64 `orm:"column(uid)"`
-//	StartTime  int   `orm:"column(starttime)"`
-//	EndTime    int   `orm:"column(endtime)"`
-//	MinUsers   int   `orm:"column(min_users)"`
-//}
-
-//func (self *GroupReadyStop) TableName() string {
-//	return "group_readystop_temp"
-//}
-
-//func (self *GroupReadyStop) TableEngine() string {
-//	return "INNODB"
-//}
-
 type REPORT_CATEGORY int
 
 const (
@@ -258,7 +229,7 @@ const (
 
 type Report struct {
 	Id      int64           `orm:"column(id);pk"`
-	RefId   int64           `orm:"column(refid)"`
+	RefId   string          `orm:"column(refid)"`
 	C       REPORT_CATEGORY `orm:"column(c)"`
 	Ts      int64           `orm:"column(ts)"`
 	RefTxt  string          `orm:"column(reftxt)"`
@@ -271,5 +242,28 @@ func (self *Report) TableName() string {
 }
 
 func (self *Report) TableEngine() string {
+	return "INNODB"
+}
+
+type MemberCount struct {
+	Uid       int64 `orm:"column(uid);pk"`
+	Groups    int   `orm:"column(groups)"`
+	ToDings   int   `orm:"column(todings)"`
+	ToCais    int   `orm:"column(tocais)"`
+	FromDings int   `orm:"column(fromdings)"`
+	FromCais  int   `orm:"column(fromcais)"`
+	Posts     int   `orm:"column(posts)"`
+	Threads   int   `orm:"column(threads)"`
+	Joins     int   `orm:"column(joins)"`
+	Shares    int   `orm:"column(shares)"`
+	Reports   int   `orm:"column(reports)"`
+	LastTs    int64 `orm:"column(lastts)"`
+}
+
+func (self *MemberCount) TableName() string {
+	return "member_count"
+}
+
+func (self *MemberCount) TableEngine() string {
 	return "INNODB"
 }

@@ -62,8 +62,14 @@ import (
 )
 
 func main() {
-	fmt.Println(ssdb.New("a").Zadd("abc", 123456, 1000))
-	fmt.Println(ssdb.New("a").Zscore("abc", 1234567))
+	//	o := dbs.NewOrm("group_db")
+	//	nums, _ := o.QueryTable("group").Exclude("status", 4).Count()
+	//	fmt.Println(nums)
+	fmt.Println(fmt.Sprintf("%03dA%d", 1, time.Now().UnixNano()/1000))
+	ssdb.New("a").Zadd("aaa", "a", 1)
+	ssdb.New("a").Zadd("aaa", "b", 1)
+	fmt.Println(ssdb.New("a").Zcard("aaa"))
+
 	return
 
 	//	rep := reptile.NewYoukuReptileV2()

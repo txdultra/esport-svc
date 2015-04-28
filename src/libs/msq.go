@@ -26,8 +26,10 @@ func RegisterMsqProcessHandler(name string, handlerType reflect.Type) {
 }
 
 const (
-	MSQ_RECEIVE_CLOSED = "closed"
-	MSQ_RECEIVE_SUCC   = "ok"
+	MSQ_RECEIVE_CLOSED    = "closed"
+	MSQ_RECEIVE_SUCC      = "ok"
+	MSQ_RECEIVE_COMPLETED = "completed"
+	MSQ_RECEIVE_FAIL      = "fail"
 )
 
 type MsqMode string
@@ -130,13 +132,19 @@ func (s *AmpqMsqService) createConn(config *MsqQueueConfig, args amqp.Table) (*a
 	switch config.QueueMode {
 	case MsqExcDirectMode:
 		if err := c.ExchangeDeclare(config.Exchange, string(config.QueueMode), config.Durable, false, false, false, args); err != nil {
+			defer conn.Close()
+			defer c.Close()
 			return nil, nil, errors.New("exchange.declare destination: " + err.Error())
 		}
 	case MsqWorkQueueMode:
 		if _, err := c.QueueDeclare(config.QueueName, config.Durable, false, false, false, args); err != nil {
+			defer conn.Close()
+			defer c.Close()
 			return nil, nil, errors.New("queue.declare source: " + err.Error())
 		}
 	default:
+		defer conn.Close()
+		defer c.Close()
 		return nil, nil, errors.New("not exist queue's mode")
 	}
 	return conn, c, nil
@@ -178,9 +186,6 @@ func (s *AmpqMsqService) Receive(handler IMsqMsgProcesser) (<-chan string, error
 	if err != nil {
 		return nil, errors.New(err.Error())
 	}
-	//defer conn.Close()
-	//defer c.Close()
-	//fmt.Println(time.Now(), ":", "启动MSQ接收方法")
 	cc := make(chan string)
 	queueName := s._config.QueueName
 	rkey := ""
@@ -194,9 +199,9 @@ func (s *AmpqMsqService) Receive(handler IMsqMsgProcesser) (<-chan string, error
 		defer c.Close()
 		return nil, errors.New("接收队列消息错误:" + err.Error())
 	}
-	go func(channel chan string) {
-		defer conn.Close()
-		defer c.Close()
+	go func(channel chan string, mqconn *amqp.Connection, mqc *amqp.Channel) {
+		defer mqconn.Close()
+		defer mqc.Close()
 		for {
 			msg, ok := <-deliver
 			if !ok {
@@ -219,9 +224,10 @@ func (s *AmpqMsqService) Receive(handler IMsqMsgProcesser) (<-chan string, error
 				}
 			}, func(e interface{}) {
 				//记录错误,保证继续执行
-			}, func() {})
+			}, func() {
+			})
 		}
-	}(cc)
+	}(cc, conn, c)
 	return (<-chan string)(cc), nil
 }
 

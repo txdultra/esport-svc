@@ -70,6 +70,7 @@ type OutThreadPagedList struct {
 
 type OutThread struct {
 	Id                 int64                `json:"id"`
+	GroupId            int64                `json:"group_id"`
 	Subject            string               `json:"subject"`
 	AuthorId           int64                `json:"author_id"`
 	Author             string               `json:"author"`
@@ -78,7 +79,7 @@ type OutThread struct {
 	CreateFriendTime   string               `json:"create_friendtime"`
 	LastPostTime       time.Time            `json:"last_posttime"`
 	LastPostFriendTime string               `json:"last_postfriendtime"`
-	LastPostId         int64                `json:"last_postid"`
+	LastPostId         string               `json:"last_postid"`
 	LastPostMember     *OutSimpleMember     `json:"last_postmember"`
 	Views              int                  `json:"views"`
 	Replies            int                  `json:"replies"`
@@ -105,7 +106,7 @@ type OutPostPagedList struct {
 }
 
 type OutPost struct {
-	Id               int64            `json:"id"`
+	Id               string           `json:"id"`
 	AuthorId         int64            `json:"author_id"`
 	AuthorMember     *OutSimpleMember `json:"author_member"`
 	Subject          string           `json:"subject"`
@@ -117,12 +118,11 @@ type OutPost struct {
 	Ding             int              `json:"ding"`
 	Cai              int              `json:"cai"`
 	Position         int              `json:"position"`
-	ReplyId          int64            `json:"reply_id"`
+	ReplyId          string           `json:"reply_id"`
 	ReplyUid         int64            `json:"reply_uid"`
 	ReplyMember      *OutSimpleMember `json:"reply_member"`
 	ReplyPosition    int              `json:"reply_position"`
-	ImgIds           []int64          `json:"img_ids"`
-	ImgUrls          []string         `json:"img_urls"`
+	Pics             []*OutPicture    `json:"imgs"`
 	LongiTude        float32          `json:"longi_tude"`
 	latiTude         float32          `json:"lati_tude"`
 	Dinged           bool             `json:"dinged"`

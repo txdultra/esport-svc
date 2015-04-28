@@ -401,7 +401,7 @@ func (m *FriendShips) FriendCounts(uid int64) int {
 func (m *FriendShips) FriendIdsP(uid int64, size int, page int, ts time.Time) (int, []int64, int64) {
 	friends_col := fmt.Sprintf(friendship_friend_sets, uid)
 	total, _ := ssdb.New(use_ssdb_passport_db).Zcard(friends_col)
-	uids, _ := ssdb.New(use_ssdb_passport_db).Zrevrangebyscore(friends_col, utils.TimeMillisecond(ts)-1, 0, size, reflect.TypeOf(int64(0)))
+	uids, _ := ssdb.New(use_ssdb_passport_db).Zrscan(friends_col, utils.TimeMillisecond(ts)-1, 0, size, reflect.TypeOf(int64(0)))
 	if len(uids) == 0 {
 		return 0, []int64{}, utils.TimeMillisecond(ts)
 	}
@@ -423,7 +423,7 @@ func (m *FriendShips) FollowerIdsP(uid int64, size int, page int, ts time.Time) 
 
 	follower_col := fmt.Sprintf(friendship_follower_sets, uid)
 	total, _ := ssdb.New(use_ssdb_passport_db).Zcard(follower_col)
-	uids, _ := ssdb.New(use_ssdb_passport_db).Zrevrangebyscore(follower_col, utils.TimeMillisecond(ts)-1, 0, size, reflect.TypeOf(int64(0)))
+	uids, _ := ssdb.New(use_ssdb_passport_db).Zrscan(follower_col, utils.TimeMillisecond(ts)-1, 0, size, reflect.TypeOf(int64(0)))
 	if len(uids) == 0 {
 		return 0, []int64{}, utils.TimeMillisecond(ts)
 	}

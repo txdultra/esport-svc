@@ -199,6 +199,9 @@ func XmlEscape(input string) string {
 }
 
 func CensorWords(source string) string {
+	if len(source) == 0 {
+		return source
+	}
 	_cp := source
 	for c, _ := range censorWords {
 		if strings.Contains(_cp, c) {

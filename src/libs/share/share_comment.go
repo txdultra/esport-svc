@@ -207,7 +207,7 @@ func (s *ShareComments) TopComments(sid int64, top int) []*ShareComment {
 }
 
 func (s *ShareComments) GetsByTsDesc(sid int64, page int, size int, ts time.Time) []*ShareComment {
-	ids, err := ssdb.New(use_ssdb_cmt_db).Zrevrangebyscore(fmt.Sprintf(SHARE_COMMENT_LIST_KEY, sid), utils.TimeMillisecond(ts)-1, 0, size, reflect.TypeOf(int64(0)))
+	ids, err := ssdb.New(use_ssdb_cmt_db).Zrscan(fmt.Sprintf(SHARE_COMMENT_LIST_KEY, sid), utils.TimeMillisecond(ts)-1, 0, size, reflect.TypeOf(int64(0)))
 	scs := []*ShareComment{}
 	if err != nil {
 		logs.Errorf("share's comments get by ts_desc tops fail:%v", err)

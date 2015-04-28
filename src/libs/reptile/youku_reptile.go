@@ -9,6 +9,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -351,6 +352,11 @@ func (r *YoukuUserReptile) analysisHtmlToVodDatas(html string) []*RVodData {
 				title, _ := ss.Find(".v-meta-title a").Attr("title")
 				purl, _ := ss.Find(".v-link a").Attr("href")
 				ctime, _ := utils.StrToTime(cTime)
+				_url, err := url.Parse(purl)
+				if err != nil {
+					return
+				}
+				purl = fmt.Sprintf("%s://%s%s", _url.Scheme, _url.Host, _url.Path)
 				rvd := &RVodData{title, img, "jpg", purl, ctime}
 				arr = append(arr, rvd)
 			})

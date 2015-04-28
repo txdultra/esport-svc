@@ -8,8 +8,9 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
-var db_aliasname string
+var db_aliasname, db_name string
 var use_ssdb_group_db, credit_service_host string
+var group_pic_thumbnail_w, group_pic_middle_w int
 
 func init() {
 	//ssdb tag
@@ -17,8 +18,17 @@ func init() {
 	//积分系统地址
 	credit_service_host = beego.AppConfig.String("group.credit.host")
 
+	group_pic_thumbnail_w, _ = beego.AppConfig.Int("group.pic.thumbnail.w")
+	if group_pic_thumbnail_w <= 0 {
+		group_pic_thumbnail_w = 74 * 2
+	}
+	group_pic_middle_w, _ = beego.AppConfig.Int("group.pic.middle.w")
+	if group_pic_middle_w <= 0 {
+		group_pic_middle_w = 148 * 2
+	}
+
 	orm.RegisterModel(new(GroupCfg), new(Group), new(Thread), new(Post),
-		new(Report),
+		new(Report), new(MemberCount),
 		new(GroupMemberTable), new(MemberGroupTable), new(PostTable))
 	register_db()
 
@@ -38,7 +48,7 @@ func register_db() {
 	db_pwd := beego.AppConfig.String("group.db.pwd")
 	db_host := beego.AppConfig.String("group.db.host")
 	db_port, _ := beego.AppConfig.Int("group.db.port")
-	db_name := beego.AppConfig.String("group.db.name")
+	db_name = beego.AppConfig.String("group.db.name")
 	db_charset := beego.AppConfig.String("group.db.charset")
 	db_protocol := beego.AppConfig.String("group.db.protocol")
 	db_time_local := beego.AppConfig.String("group.db.time_local")
@@ -57,12 +67,26 @@ func register_db() {
 }
 
 func load_tbls() {
-	o := dbs.NewOrm(db_aliasname)
-	var gmtbls []*GroupMemberTable
-	o.QueryTable(&GroupMemberTable{}).All(&gmtbls)
 	tbl_mutex.Lock()
 	defer tbl_mutex.Unlock()
+
+	o := dbs.NewOrm(db_aliasname)
+
+	var gmtbls []*GroupMemberTable
+	o.QueryTable(&GroupMemberTable{}).All(&gmtbls)
 	for _, tbl := range gmtbls {
 		gmTbls[int(tbl.Id)] = tbl.TblName
+	}
+
+	var mgtbls []*MemberGroupTable
+	o.QueryTable(&MemberGroupTable{}).All(&mgtbls)
+	for _, tbl := range mgtbls {
+		mgTbls[int(tbl.Id)] = tbl.TblName
+	}
+
+	var ptbls []*PostTable
+	o.QueryTable(&PostTable{}).All(&ptbls)
+	for _, tbl := range ptbls {
+		postTbls[int(tbl.Id)] = tbl.TblName
 	}
 }
