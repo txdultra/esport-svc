@@ -4,6 +4,7 @@ import (
 	_ "controllers"
 	_ "docs"
 	"fmt"
+	"strconv"
 	//"strings"
 
 	"github.com/astaxie/beego"
@@ -66,10 +67,22 @@ func main() {
 	//	nums, _ := o.QueryTable("group").Exclude("status", 4).Count()
 	//	fmt.Println(nums)
 	fmt.Println(fmt.Sprintf("%03dA%d", 1, time.Now().UnixNano()/1000))
-	ssdb.New("a").Zadd("aaa", "a", 1)
-	ssdb.New("a").Zadd("aaa", "b", 1)
-	fmt.Println(ssdb.New("a").Zcard("aaa"))
+	//	ssdb.New("a").Zadd("aaa", "a", 1)
+	//	ssdb.New("a").Zadd("aaa", "b", 1)
+	//	fmt.Println(ssdb.New("a").Zcard("aaa"))
 
+	ssdb.New("a").Hset("hset_test", "a_1", 1000)
+	ssdb.New("a").Hset("hset_test", "a_2", 1001)
+
+	kvs, _ := ssdb.New("a").Hgetall("hset_test")
+	for i := 0; i < len(kvs); i += 2 {
+		k := kvs[i]
+		v, err := strconv.Atoi(kvs[i+1])
+		if err != nil {
+			continue
+		}
+		fmt.Println(k, ":", v)
+	}
 	return
 
 	//	rep := reptile.NewYoukuReptileV2()

@@ -1110,7 +1110,7 @@ func (c *ThreadService) Gets(groupId int64, page int, size int, uid int64) (int,
 			_id := m["id"].(int64)
 			strids[i] = c.getCacheKey(_id)
 		}
-		objs := ssdb.New(use_ssdb_group_db).MultiGet(strids, reflect.TypeOf(&Thread{}))
+		objs := ssdb.New(use_ssdb_group_db).MultiGet(strids, reflect.TypeOf(Thread{}))
 		for _, t := range objs {
 			threads = append(threads, t.(*Thread))
 		}
@@ -1135,14 +1135,23 @@ type ImgRes struct {
 type POST_ACTION int
 
 const (
-	POST_ACTION_DING POST_ACTION = 1
-	POST_ACTION_CAI  POST_ACTION = 2
+	POST_ACTION_DING        POST_ACTION = 1
+	POST_ACTION_CAI         POST_ACTION = 2
+	POST_ACTION_CANCEL_DING POST_ACTION = 3
+	POST_ACTION_CANCEL_CAI  POST_ACTION = 4
+)
+
+type POST_ACTIONTAG int
+
+const (
+	POST_ACTIONTAG_DING POST_ACTIONTAG = 1
+	POST_ACTIONTAG_CAI  POST_ACTIONTAG = -1
 )
 
 const (
 	thread_post_sets            = "group.thread_%d_post_set"
 	thread_post_dc_sets         = "group.thread_%d_post_dc_set"
-	thread_post_user_dc_hashtbl = "group.thread_%d_post_user_dc_hashtbl" //postid <=> 1,0 (1顶0踩)
+	thread_post_user_dc_hashtbl = "group.thread_%d_post_dc_uid_%d_hashtbl" //postid <=> 1,0 (1顶0踩)
 )
 
 func NewPostService(cfg *GroupCfg) *PostService {
@@ -1192,22 +1201,77 @@ func (s *PostService) Action(postId string, uid int64, action POST_ACTION) {
 	ckey := fmt.Sprintf(thread_post_dc_sets, post.ThreadId)
 	var i int64 = 0
 	switch action {
-	case POST_ACTION_DING:
+	case POST_ACTION_DING, POST_ACTION_CANCEL_CAI:
 		i = 1
 		break
-	case POST_ACTION_CAI:
+	case POST_ACTION_CAI, POST_ACTION_CANCEL_DING:
 		i = -1
 		break
 	default:
 	}
-	ssdb.New(use_ssdb_group_db).Zincrby(ckey, post.Id, i)
+	cclient := ssdb.New(use_ssdb_group_db)
+	cclient.Zincrby(ckey, post.Id, i)
 
 	//用户顶踩记录
-	//...
+	user_action_key := fmt.Sprintf(thread_post_user_dc_hashtbl, post.ThreadId, uid)
+	switch action {
+	case POST_ACTION_DING:
+		cclient.Hset(user_action_key, post.Id, int64(POST_ACTIONTAG_DING))
+		break
+	case POST_ACTION_CAI:
+		cclient.Hset(user_action_key, post.Id, int64(POST_ACTIONTAG_CAI))
+		break
+	case POST_ACTION_CANCEL_DING, POST_ACTION_CANCEL_CAI:
+		cclient.Hdel(user_action_key, post.Id)
+		break
+	default:
+	}
 }
 
-func (s *PostService) GetTops(threadId int64, action POST_ACTION) []*Post {
-	return nil
+func (s *PostService) GetTops(threadId int64, tops int, pt POST_ACTIONTAG) []*Post {
+	ckey := fmt.Sprintf(thread_post_dc_sets, threadId)
+	var objs []interface{}
+	cclient := ssdb.New(use_ssdb_group_db)
+	switch pt {
+	case POST_ACTIONTAG_DING:
+		objs, _ = cclient.Zrscan(ckey, 1<<32, -1<<32, tops, reflect.TypeOf(""))
+	case POST_ACTIONTAG_CAI:
+		objs, _ = cclient.Zscan(ckey, -1<<32, 1<<32, tops, reflect.TypeOf(""))
+	}
+	posts := []*Post{}
+	if len(objs) == 0 {
+		return posts
+	}
+	post_keys := []string{}
+	for _, obj := range objs {
+		id, ok := obj.(string)
+		if ok {
+			post_keys = append(post_keys, s.getCacheKey(id))
+		}
+	}
+	post_objs := cclient.MultiGet(post_keys, reflect.TypeOf(Post{}))
+	for _, pobj := range post_objs {
+		posts = append(posts, pobj.(*Post))
+	}
+	return posts
+}
+
+func (s *PostService) MemberThreadPostActionTags(threadId int64, uid int64) map[string]POST_ACTIONTAG {
+	maps := make(map[string]POST_ACTIONTAG)
+	user_action_key := fmt.Sprintf(thread_post_user_dc_hashtbl, threadId, uid)
+	kvs, err := ssdb.New(use_ssdb_group_db).Hgetall(user_action_key)
+	if err != nil {
+		return maps
+	}
+	for i := 0; i < len(kvs); i += 2 {
+		k := kvs[i]
+		v, err := strconv.Atoi(kvs[i+1])
+		if err != nil {
+			continue
+		}
+		maps[k] = POST_ACTIONTAG(v)
+	}
+	return maps
 }
 
 func (s *PostService) Invisible(postId string, do bool) error {

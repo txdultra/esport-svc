@@ -295,6 +295,24 @@ func (c *Cluster) Hmget(key string, valType reflect.Type, fields ...string) ([]i
 	return lst, nil
 }
 
+func (c *Cluster) Hgetall(key string) ([]string, error) {
+	client := c.GetSrv(key)
+	db, err := ssdb.Connect(client.conn_addr, client.conn_port)
+	defer db.Close()
+	if err != nil {
+		return []string{}, nil
+	}
+	resp, err := db.Do("hgetall", key)
+	if err == nil {
+		if resp[0] == "ok" {
+			return resp[1:], nil
+		} else {
+			return []string{}, fmt.Errorf(resp[0])
+		}
+	}
+	return []string{}, err
+}
+
 //
 //列表操作
 //
