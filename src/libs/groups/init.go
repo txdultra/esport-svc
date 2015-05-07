@@ -8,6 +8,7 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
+var group_setting_id int
 var db_aliasname, db_name string
 var use_ssdb_group_db, credit_service_host string
 var group_pic_thumbnail_w, group_pic_middle_w int
@@ -17,6 +18,9 @@ func init() {
 	use_ssdb_group_db = beego.AppConfig.String("group.ssdb.db")
 	//积分系统地址
 	credit_service_host = beego.AppConfig.String("group.credit.host")
+
+	//setting id
+	group_setting_id, _ = beego.AppConfig.Int("group.setting.id")
 
 	group_pic_thumbnail_w, _ = beego.AppConfig.Int("group.pic.thumbnail.w")
 	if group_pic_thumbnail_w <= 0 {

@@ -1,10 +1,16 @@
 package groups
 
+import (
+	"strconv"
+	"strings"
+)
+
 type GroupCfg struct {
 	Id                           int64         `orm:"column(id);pk"`
 	GroupNameLen                 int           `orm:"column(groupname_len)"`
-	GroupDescLen                 int           `orm:"column(groupdesc_len)"`
-	CreateGroupBasePoint         int           `orm:"column(creategroup_basepoint)"`
+	GroupDescMaxLen              int           `orm:"column(groupdesc_maxlen)"`
+	GroupDescMinLen              int           `orm:"column(groupdesc_minlen)"`
+	CreateGroupBasePoint         int64         `orm:"column(creategroup_basepoint)"`
 	CreateGroupRate              float32       `orm:"column(creategroup_rate)"`
 	CreateGroupMinUsers          int           `orm:"column(creategroup_minusers)"`
 	CreateGroupRecruitDay        int           `orm:"column(creategroup_recruitday)"`
@@ -114,6 +120,7 @@ type Group struct {
 	StartTime      int64        `orm:"column(starttime)"`
 	EndTime        int64        `orm:"column(endtime)"`
 	MinUsers       int          `orm:"column(min_users)"`
+	OrderNo        string       `orm:"column(orderno)"`
 }
 
 func (self *Group) TableName() string {
@@ -122,6 +129,18 @@ func (self *Group) TableName() string {
 
 func (self *Group) TableEngine() string {
 	return "INNODB"
+}
+
+func (self *Group) GameIDs() []int {
+	gids := strings.Split(self.GameIds, ",")
+	ids := []int{}
+	for _, gid := range gids {
+		id, err := strconv.Atoi(gid)
+		if err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 type GroupMember struct {

@@ -3,15 +3,17 @@ package outobjs
 import (
 	"libs/groups"
 	"time"
+	"utils"
 )
 
 type OutGroupSetting struct {
-	GroupNameLen string `json:"groupname_len"`
-	GroupDescLen string `json:"groupdesc_len"`
-	DeductPoint  int    `json:"deduct_point"`
-	MinUsers     int    `json:"min_users"`
-	LimitDay     int    `json:"limit_day"`
-	GroupClause  string `json:"group_clause"`
+	GroupNameLen    int    `json:"groupname_len"`
+	GroupDescMaxLen int    `json:"groupdesc_maxlen"`
+	GroupDescMinLen int    `json:"groupdesc_minlen"`
+	DeductPoint     int64  `json:"deduct_point"`
+	MinUsers        int    `json:"min_users"`
+	LimitDay        int    `json:"limit_day"`
+	GroupClause     string `json:"group_clause"`
 }
 
 type OutGroup struct {
@@ -39,7 +41,7 @@ type OutGroup struct {
 	Recommend        bool                `json:"recommend"`
 	StartTime        time.Time           `json:"start_time"`
 	EndTime          time.Time           `json:"end_time"`
-	RemainSeconds    int                 `json:"remain_seconds"`
+	RemainSeconds    int64               `json:"remain_seconds"`
 	MinUsers         int                 `json:"min_users"`
 	IsJoined         bool                `json:"is_joined"`
 }
@@ -127,4 +129,72 @@ type OutPost struct {
 	latiTude         float32          `json:"lati_tude"`
 	Dinged           bool             `json:"dinged"`
 	Caied            bool             `json:"caied"`
+}
+
+func GetOutGroup(group *groups.Group, concernUid int64) *OutGroup {
+	outgames := []*OutGame{}
+	for _, gid := range group.GameIDs() {
+		outgames = append(outgames, GetOutGameById(gid))
+	}
+	var remain_seconds int64 = 0
+	if time.Now().Unix() > group.EndTime {
+		remain_seconds = time.Now().Unix() - group.EndTime
+	}
+	gs := groups.NewGroupService(groups.GetDefaultCfg())
+	return &OutGroup{
+		Id:               group.Id,
+		Name:             group.Name,
+		Description:      group.Description,
+		OfUid:            group.Uid,
+		OfMember:         GetOutSimpleMember(group.Uid),
+		CreateTime:       time.Unix(group.CreateTime, 0),
+		CreateFriendTime: utils.FriendTime(time.Unix(group.CreateTime, 0)),
+		MemberCount:      group.Members,
+		Country:          group.Country,
+		City:             group.City,
+		Games:            outgames,
+		Status:           group.Status,
+		Type:             group.Type,
+		Belong:           group.Belong,
+		ImgId:            group.Img,
+		ImgUrl:           file.GetFileUrl(group.Img),
+		BgImgId:          group.BgImg,
+		BgImgUrl:         file.GetFileUrl(group.BgImg),
+		Vitality:         group.Vitality,
+		LongiTude:        group.LongiTude,
+		latiTude:         group.LatiTude,
+		Recommend:        group.Recommend,
+		StartTime:        time.Unix(group.StartTime, 0),
+		EndTime:          time.Unix(group.EndTime, 0),
+		RemainSeconds:    remain_seconds,
+		MinUsers:         group.MinUsers,
+		IsJoined:         gs.IsJoined(concernUid, group.Id),
+	}
+}
+
+func GetOutThread(thread *groups.Thread) *OutThread {
+	return &OutThread{
+		Id:                 thread.Id,
+		GroupId:            thread.GroupId,
+		Subject:            thread.Subject,
+		AuthorId:           thread.AuthorId,
+		Author:             thread.Author,
+		AuthorMember:       GetOutSimpleMember(thread.AuthorId),
+		CreateTime:         time.Unix(thread.DateLine, 0),
+		CreateFriendTime:   utils.FriendTime(time.Unix(thread.DateLine, 0)),
+		LastPostTime:       time.Unix(thread.LastPost, 0),
+		LastPostFriendTime: utils.FriendTime(time.Unix(thread.LastPost, 0)),
+		LastPostId:         thread.LastId,
+		LastPostMember:     GetOutSimpleMember(thread.LastPostUid),
+		Views:              thread.Views,
+		Replies:            thread.Replies,
+		Shares:             thread.Shares,
+		Favs:               thread.Favorites,
+		Status:             thread.Status,
+		ImgId:              thread.Img,
+		ImgUrl:             file.GetFileUrl(thread.Img),
+		Closed:             thread.Closed,
+		Highlight:          thread.Highlight,
+		Heats:              thread.Heats,
+	}
 }

@@ -8,6 +8,7 @@ import (
 	"image"
 	"libs"
 	credit_client "libs/credits/client"
+	credit_proxy "libs/credits/proxy"
 	"libs/passport"
 	"logs"
 	"reflect"
@@ -30,6 +31,8 @@ type BaseService struct {
 ////////////////////////////////////////////////////////////////////////////////
 //组设定配置
 ////////////////////////////////////////////////////////////////////////////////
+var default_cfg *GroupCfg
+
 func getCfgCacheKey(id int64) string {
 	return fmt.Sprintf("group.config_%d", id)
 }
@@ -50,6 +53,14 @@ func GetGroupCfg(id int64) *GroupCfg {
 	}
 	cache.Add(ckey, cfg, 24*time.Hour)
 	return &cfg
+}
+
+func GetDefaultCfg() *GroupCfg {
+	//需要zookeeper控制cfg更换
+	if default_cfg == nil {
+		default_cfg = GetGroupCfg(int64(group_setting_id))
+	}
+	return default_cfg
 }
 
 func UpdateGroupCfg(cfg *GroupCfg) error {
@@ -181,6 +192,48 @@ func (s *GroupService) getCacheKey(id int64) string {
 	return fmt.Sprintf("group_model_%d", id)
 }
 
+func (s *GroupService) CheckMemberNewGroupPass(uid int64, belong GROUP_BELONG) error {
+	//认证用户创建个数不同
+	ps := passport.NewMemberProvider()
+	member := ps.Get(uid)
+	if member == nil {
+		return fmt.Errorf("组创建人不存在")
+	}
+	max_limit := s.cfg.CreateGroupMaxCount
+	if member.Certified {
+		max_limit = s.cfg.CreateGroupCertifiedMaxCount
+	}
+	//验证创建个数限制
+	o := dbs.NewOrm(db_aliasname)
+	nums, _ := o.QueryTable(&Group{}).Exclude("status", GROUP_STATUS_CLOSED).Count()
+	if int(nums) >= max_limit {
+		return fmt.Errorf("已超过可以创建小组的数量限制")
+	}
+
+	//验证积分
+	if belong == GROUP_BELONG_MEMBER {
+		var needPoint int64 = 0 //需要积分
+		needPoint = s.cfg.CreateGroupBasePoint
+		client, transport, err := credit_client.NewClient(credit_service_host)
+		if err != nil {
+			return fmt.Errorf("查询积分失败:001")
+		}
+		defer func() {
+			if transport != nil {
+				transport.Close()
+			}
+		}()
+		points, err := client.GetCredit(uid)
+		if err != nil {
+			return fmt.Errorf("查询积分失败:002")
+		}
+		if needPoint > points {
+			return fmt.Errorf("积分不足")
+		}
+	}
+	return nil
+}
+
 func (s *GroupService) VerifyNewGroup(group *Group) error {
 	if s.cfg == nil {
 		return fmt.Errorf("未设置配置对象")
@@ -188,8 +241,11 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	if len(group.Name) > s.cfg.GroupNameLen {
 		return fmt.Errorf(fmt.Sprintf("组名称不能大于%d个字符", s.cfg.GroupNameLen))
 	}
-	if len(group.Description) > s.cfg.GroupDescLen {
-		return fmt.Errorf(fmt.Sprintf("组描述内容不能大于%d个字符", s.cfg.GroupDescLen))
+	if len(group.Description) > s.cfg.GroupDescMaxLen {
+		return fmt.Errorf(fmt.Sprintf("组描述内容不能大于%d个字符", s.cfg.GroupDescMaxLen))
+	}
+	if len(group.Description) < s.cfg.GroupDescMinLen {
+		return fmt.Errorf(fmt.Sprintf("组描述内容不能小于%d个字符", s.cfg.GroupDescMinLen))
 	}
 	if group.Uid <= 0 {
 		return fmt.Errorf("未设置创建人")
@@ -226,6 +282,7 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	//验证积分
 	if group.Belong == GROUP_BELONG_MEMBER {
 		var needPoint int64 = 0 //需要积分
+		needPoint = s.cfg.CreateGroupBasePoint
 		client, transport, err := credit_client.NewClient(credit_service_host)
 		if err != nil {
 			return fmt.Errorf("查询积分失败:001")
@@ -330,6 +387,44 @@ func (s *GroupService) setGroupTableId(group *Group) error {
 	return err
 }
 
+func (s *GroupService) thumbnailImgResize(group *Group) error {
+	//图片压缩
+	file := file_storage.GetFile(group.BgImg)
+	if file == nil {
+		return fmt.Errorf("背景图片不存在")
+	}
+	data, err := fileData(group.BgImg)
+	if err != nil {
+		fmt.Println("---------------------------------", err)
+		logs.Errorf("group view pic err:%s", err.Error())
+		return fmt.Errorf("获取背景图片失败")
+	}
+	fid, err := imgResize(data, file, group_pic_thumbnail_w)
+	if err != nil {
+		fmt.Println("---------------------------------", err)
+		return fmt.Errorf("压缩图片失败")
+	}
+	group.Img = fid //设置小图
+	return nil
+}
+
+func (s *GroupService) setSearchKeyword(group *Group) error {
+	gids := group.GameIDs()
+	if len(gids) == 0 {
+		return nil
+	}
+	str := ""
+	bas := &libs.Bas{}
+	for _, gid := range gids {
+		game := bas.GetGame(gid)
+		if game != nil {
+			str += fmt.Sprintf("%s,%s,", game.Name, game.En)
+		}
+	}
+	group.SearchKeyword = str
+	return nil
+}
+
 func (s *GroupService) Create(group *Group) error {
 	err := s.VerifyNewGroup(group)
 	if err != nil {
@@ -359,9 +454,44 @@ func (s *GroupService) Create(group *Group) error {
 		return fmt.Errorf("建组失败:001")
 	}
 
+	//图片压缩
+	err = s.thumbnailImgResize(group)
+	if err != nil {
+		return err
+	}
+
+	//设置搜索关键字
+	s.setSearchKeyword(group)
+
+	//扣除积分
+	client, transport, err := credit_client.NewClient(credit_service_host)
+	if err != nil {
+		return fmt.Errorf("扣除积分失败:001")
+	}
+	defer func() {
+		if transport != nil {
+			transport.Close()
+		}
+	}()
+	cr, err := client.Do(&credit_proxy.OperationCreditParameter{
+		Uid:    group.Uid,
+		Points: s.cfg.CreateGroupBasePoint,
+		Action: credit_proxy.OPERATION_ACTOIN_LOCKDECR,
+	})
+	if err != nil {
+		return fmt.Errorf("扣除积分失败:002")
+	}
+	//记录积分订单号
+	group.OrderNo = cr.No
+
 	o := dbs.NewOrm(db_aliasname)
 	id, err := o.Insert(group)
 	if err != nil {
+		//退回积分
+		client.Do(&credit_proxy.OperationCreditParameter{
+			No:     cr.No,
+			Action: credit_proxy.OPERATION_ACTOIN_UNLOCK,
+		})
 		return fmt.Errorf("建组失败:002")
 	}
 
@@ -399,7 +529,7 @@ func (s *GroupService) Delete(groupId int64) error {
 		if uid <= 0 {
 			continue
 		}
-		s.MemberExit(uid, groupId) //强制用户离开
+		s.Exit(uid, groupId) //强制用户离开
 	}
 	cache := utils.GetCache()
 	cache.Delete(s.getCacheKey(groupId))
@@ -430,11 +560,17 @@ func (s *GroupService) Update(group *Group) error {
 	if s.cfg == nil {
 		return fmt.Errorf("未设置配置对象")
 	}
+	if group.Status == GROUP_STATUS_CLOSED {
+		return fmt.Errorf("组已被关闭")
+	}
 	if len(group.Name) > s.cfg.GroupNameLen {
 		return fmt.Errorf(fmt.Sprintf("组名称不能大于%d个字符", s.cfg.GroupNameLen))
 	}
-	if len(group.Description) > s.cfg.GroupDescLen {
-		return fmt.Errorf(fmt.Sprintf("组描述内容不能大于%d个字符", s.cfg.GroupDescLen))
+	if len(group.Description) > s.cfg.GroupDescMaxLen {
+		return fmt.Errorf(fmt.Sprintf("组描述内容不能大于%d个字符", s.cfg.GroupDescMaxLen))
+	}
+	if len(group.Description) < s.cfg.GroupDescMinLen {
+		return fmt.Errorf(fmt.Sprintf("组描述内容不能小于%d个字符", s.cfg.GroupDescMinLen))
 	}
 	if group.Uid <= 0 {
 		return fmt.Errorf("未设置创建人")
@@ -444,6 +580,15 @@ func (s *GroupService) Update(group *Group) error {
 	}
 	if group.BgImg == 0 {
 		return fmt.Errorf("未设置背景图")
+	}
+
+	//图片压缩
+	src_group := s.Get(group.Id)
+	if src_group.BgImg != group.BgImg {
+		err := s.thumbnailImgResize(group)
+		if err != nil {
+			return err
+		}
 	}
 
 	o := dbs.NewOrm(db_aliasname)
@@ -505,13 +650,16 @@ func (s *GroupService) ActionCount(groupId int64, gps []GP_PROPERTY, incrs []int
 	cache.Replace(s.getCacheKey(group.Id), *group, 1*time.Hour)
 }
 
-func (s *GroupService) MemberJoin(uid int64, groupId int64) error {
+func (s *GroupService) Join(uid int64, groupId int64) error {
 	group := s.Get(groupId)
 	if group == nil {
 		return fmt.Errorf("小组不存在")
 	}
 	if group.Status == GROUP_STATUS_CLOSED {
 		return fmt.Errorf("小组已关闭,不允许加入")
+	}
+	if group.Uid == uid {
+		return fmt.Errorf("无法加入自己创建的组")
 	}
 	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid)     //用户加入小组的集合key
 	gjoined_key := fmt.Sprintf(group_joined_member_sortset, groupId) //小组中加入用户的集合key
@@ -557,10 +705,13 @@ func (s *GroupService) MemberJoin(uid int64, groupId int64) error {
 	return nil
 }
 
-func (s *GroupService) MemberExit(uid int64, groupId int64) error {
+func (s *GroupService) Exit(uid int64, groupId int64) error {
 	group := s.Get(groupId)
 	if group == nil {
 		return fmt.Errorf("小组不存在")
+	}
+	if group.Uid == uid {
+		return fmt.Errorf("无法离开自己创建的组")
 	}
 	if group.Status == GROUP_STATUS_CLOSED {
 		return fmt.Errorf("小组已关闭,不允许退出")
@@ -618,6 +769,23 @@ func (s *GroupService) MyJoins(uid int64, page int, size int) (int, []*Group) {
 	return count, groups
 }
 
+func (s *GroupService) IsJoined(uid int64, groupId int64) bool {
+	if uid <= 0 {
+		return false
+	}
+	group := s.Get(groupId)
+	if group == nil {
+		return false
+	}
+	if group.Uid == uid {
+		return true
+	}
+	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid) //用户加入小组的集合key
+	client := ssdb.New(use_ssdb_group_db)
+	joined, _ := client.Zexists(mjoined_key, groupId)
+	return joined
+}
+
 func (s *GroupService) multiGets(groupIds []int64) []*Group {
 	if len(groupIds) == 0 {
 		return []*Group{}
@@ -660,7 +828,7 @@ func (s *GroupService) MyGroups(uid int64) []*Group {
 	_g := &Group{}
 	o := dbs.NewOrm(db_aliasname)
 	var maps []orm.Params
-	num, err := o.Raw(fmt.Sprintf("SELECT id FROM %s WHERE status = ?", _g.TableName()), GROUP_STATUS_CLOSED).Values(&maps)
+	num, err := o.Raw(fmt.Sprintf("SELECT id FROM %s WHERE status <> ?", _g.TableName()), GROUP_STATUS_CLOSED).Values(&maps)
 	ids = []int64{}
 	if err == nil && num > 0 {
 		for i := range maps {
@@ -1148,6 +1316,13 @@ const (
 	POST_ACTIONTAG_CAI  POST_ACTIONTAG = -1
 )
 
+type POST_ORDERBY string
+
+const (
+	POST_ORDERBY_ASC  POST_ORDERBY = "asc"
+	POST_ORDERBY_DESC POST_ORDERBY = "desc"
+)
+
 const (
 	thread_post_sets            = "group.thread_%d_post_set"
 	thread_post_dc_sets         = "group.thread_%d_post_dc_set"
@@ -1447,7 +1622,7 @@ func (s *PostService) Create(post *Post) error {
 		return fmt.Errorf("发表评论失败:001")
 	}
 	cclient := ssdb.New(use_ssdb_group_db)
-	cclient.Zadd(fmt.Sprintf(thread_post_sets), post.Id, int64(post.Position))
+	cclient.Zadd(fmt.Sprintf(thread_post_sets, post.ThreadId), post.Id, int64(post.Position))
 	cclient.Set(s.getCacheKey(post.Id), *post)
 
 	if post.Position > 1 {
@@ -1455,4 +1630,52 @@ func (s *PostService) Create(post *Post) error {
 	}
 
 	return nil
+}
+
+func (s *PostService) Gets(threadId int64, page int, size int, orderby POST_ORDERBY, onlylz bool) (int, []*Post) {
+	tservice := NewThreadService(s.cfg)
+	thread := tservice.Get(threadId)
+	posts := []*Post{}
+	if thread == nil {
+		return 0, posts
+	}
+	type Result struct {
+		Id string
+	}
+	offset := (page - 1) * size
+
+	tbl := fmt.Sprintf(group_post_table_fmt, thread.PostTableId)
+	o := dbs.NewOrm(db_aliasname)
+	if onlylz {
+		var rs []Result
+		sql := fmt.Sprintf("SELECT id FROM %s where tid=? and authorid=%d and position > 1 order by position %s limit %d,%d", tbl, thread.AuthorId, orderby, offset, size)
+		_, err := o.Raw(sql, threadId).QueryRows(&rs)
+		if err != nil {
+			return 0, posts
+		}
+		keys := make([]string, len(rs), len(rs))
+		for i, r := range rs {
+			keys[i] = r.Id
+		}
+		objs := ssdb.New(use_ssdb_group_db).MultiGet(keys, reflect.TypeOf(Post{}))
+		for _, t := range objs {
+			posts = append(posts, t.(*Post))
+		}
+	} else {
+		var rs []Result
+		sql := fmt.Sprintf("SELECT id FROM %s where tid=? and position > 1 order by position %s limit %d,%d", tbl, orderby, offset, size)
+		_, err := o.Raw(sql, threadId).QueryRows(&rs)
+		if err != nil {
+			return 0, posts
+		}
+		keys := make([]string, len(rs), len(rs))
+		for i, r := range rs {
+			keys[i] = r.Id
+		}
+		objs := ssdb.New(use_ssdb_group_db).MultiGet(keys, reflect.TypeOf(Post{}))
+		for _, t := range objs {
+			posts = append(posts, t.(*Post))
+		}
+	}
+	return thread.Replies, posts
 }
