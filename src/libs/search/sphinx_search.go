@@ -77,7 +77,7 @@ func (f *Searcher) Segment(text string) string {
 	segments := segmenter.Segment(byts)
 
 	// 处理分词结果
-	return sego.SegmentsToString(segments, true)
+	return sego.SegmentsToStringV2(segments, false)
 }
 
 func (f *Searcher) sphinxOptions() *sphinx.Options {

@@ -421,6 +421,37 @@ func (c *Cluster) MultiZadd(key string, vals []interface{}, scores []int64) (int
 	return 0, err
 }
 
+func (c *Cluster) MultiZget(key string, vals []interface{}, valType reflect.Type) (map[interface{}]int64, error) {
+	args := []interface{}{}
+	args = append(args, "multi_zget")
+	args = append(args, key) //key
+	for _, val := range vals {
+		b, err := Serialize(val)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, b)
+	}
+	client := c.GetSrv(key)
+	db, _ := ssdb.Connect(client.conn_addr, client.conn_port)
+	defer db.Close()
+	resp, err := db.Do(args...)
+	maps := make(map[interface{}]int64)
+	if len(resp) > 0 && resp[0] == "ok" {
+		for i := 1; i < len(resp); i += 2 {
+			val := resp[i]
+			obj := reflect.New(valType).Interface()
+			err = Deserialize([]byte(val), obj)
+			if err != nil {
+				continue
+			}
+			score := resp[i+1]
+			maps[obj], _ = strconv.ParseInt(score, 10, 64)
+		}
+	}
+	return maps, err
+}
+
 func (c *Cluster) MultiZdel(key string, vals []interface{}) (int, error) {
 	if len(vals) == 0 {
 		return 0, nil
@@ -543,6 +574,7 @@ func (c *Cluster) Zscan(key string, min int64, max int64, limit int, valType ref
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(resp)
 	if resp[0] == "ok" {
 		lst := []interface{}{}
 		for i := 1; i < len(resp); i += 2 {

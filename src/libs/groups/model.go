@@ -18,7 +18,7 @@ type GroupCfg struct {
 	CreateGroupCertifiedMaxCount int           `orm:"column(creategroup_certifiedmaxcount)"`
 	CreateGroupClause            string        `orm:"column(creategroup_clause)"`
 	ReportOptions                string        `orm:"column(report_options)"`
-	NewThreadStatus              THREAD_STATUS `orm:"column(new_threadstatus)"`
+	NewThreadDefaultStatus       THREAD_STATUS `orm:"column(new_threadstatus)"`
 }
 
 func (self *GroupCfg) TableName() string {
@@ -121,10 +121,11 @@ type Group struct {
 	EndTime        int64        `orm:"column(endtime)"`
 	MinUsers       int          `orm:"column(min_users)"`
 	OrderNo        string       `orm:"column(orderno)"`
+	InviteUids     []int64      `orm:"-"`
 }
 
 func (self *Group) TableName() string {
-	return "group"
+	return "groups"
 }
 
 func (self *Group) TableEngine() string {
@@ -153,6 +154,12 @@ type MemberGroup struct {
 	Uid     int64 `orm:"column(uid)"`
 	GroupId int64 `orm:"column(groupid)"`
 	Ts      int64 `orm:"column(ts)"`
+}
+
+type InviteMember struct {
+	Uid     int64
+	Invited bool
+	Joined  bool
 }
 
 type THREAD_STATUS int
@@ -205,7 +212,25 @@ const (
 	FROM_DEVICE_ANDROID FROM_DEVICE = 3
 	FROM_DEVICE_WEB     FROM_DEVICE = 4
 	FROM_DEVICE_WPHONE  FROM_DEVICE = 5
+	FROM_DEVICE_OTHER   FROM_DEVICE = 6
 )
+
+func GetFromDevice(name string) FROM_DEVICE {
+	switch name {
+	case "android":
+		return FROM_DEVICE_ANDROID
+	case "ios":
+		return FROM_DEVICE_IPHONE
+	case "ipad":
+		return FROM_DEVICE_IPAD
+	case "wphone":
+		return FROM_DEVICE_WPHONE
+	case "web":
+		return FROM_DEVICE_WEB
+	default:
+		return FROM_DEVICE_OTHER
+	}
+}
 
 type Post struct {
 	Id            string      `orm:"column(id);pk"`

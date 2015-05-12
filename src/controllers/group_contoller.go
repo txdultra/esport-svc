@@ -5,6 +5,8 @@ import (
 	"libs"
 	"libs/groups"
 	"outobjs"
+	"strconv"
+	"strings"
 	"utils"
 )
 
@@ -27,10 +29,13 @@ func (c *GroupController) URLMapping() {
 	c.Mapping("UpdateGroup", c.UpdateGroup)
 	c.Mapping("JoinGroup", c.JoinGroup)
 	c.Mapping("ExitGroup", c.ExitGroup)
+	c.Mapping("InvitedFriendList", c.InvitedFriendList)
+	c.Mapping("Invite", c.Invite)
 	c.Mapping("GetThreads", c.GetThreads)
 	c.Mapping("GetThreads", c.GetThreads)
 	c.Mapping("GetPosts", c.GetPosts)
 	c.Mapping("CreatePost", c.CreatePost)
+	c.Mapping("ActionPost", c.ActionPost)
 	c.Mapping("ReportOptions", c.ReportOptions)
 	c.Mapping("Report", c.Report)
 }
@@ -142,9 +147,10 @@ func (c *GroupController) GetMyJoinGroups() {
 	if page <= 0 {
 		page = 1
 	}
+	size := 20
 	cfg := groups.GetDefaultCfg()
 	gs := groups.NewGroupService(cfg)
-	total, joinGroups := gs.MyJoins(current_uid, page, 20)
+	total, joinGroups := gs.MyJoins(current_uid, page, size)
 	out_groups := []*outobjs.OutGroup{}
 	for _, gp := range joinGroups {
 		out_g := outobjs.GetOutGroup(gp, 0)
@@ -153,8 +159,8 @@ func (c *GroupController) GetMyJoinGroups() {
 	}
 	out_p := &outobjs.OutGroupPagedList{
 		CurrentPage: page,
-		PageSize:    20,
-		TotalPages:  utils.TotalPages(total, 20),
+		PageSize:    size,
+		TotalPages:  utils.TotalPages(total, size),
 		Groups:      out_groups,
 	}
 	c.Json(out_p)
@@ -171,6 +177,7 @@ func (c *GroupController) GetMyJoinGroups() {
 // @Param   bgimg   path  int  true  "背景图片id"
 // @Param   longitude   path  float  false  "经度"
 // @Param   latitude   path  float  false  "维度"
+// @Param   invite_uids   path  string  false  "用户uids(用,分隔)"
 // @Success 200 {object} libs.Error
 // @router /group/create [post]
 func (c *GroupController) CreateGroup() {
@@ -187,6 +194,16 @@ func (c *GroupController) CreateGroup() {
 	bgimg, _ := c.GetInt64("bgimg")
 	longitude, _ := c.GetFloat("longitude")
 	latitude, _ := c.GetFloat("latitude")
+	inviteuids := c.GetString("invite_uids")
+	inv_uids := []int64{}
+	inv_uidss := strings.Split(inviteuids, ",")
+	for _, str := range inv_uidss {
+		_id, _ := strconv.ParseInt(str, 10, 64)
+		if _id > 0 {
+			inv_uids = append(inv_uids, _id)
+		}
+	}
+
 	gs := groups.NewGroupService(groups.GetDefaultCfg())
 	group := &groups.Group{
 		Name:        name,
@@ -200,6 +217,7 @@ func (c *GroupController) CreateGroup() {
 		Type:        groups.GROUP_TYPE_NORMAL,
 		LongiTude:   float32(longitude),
 		LatiTude:    float32(latitude),
+		InviteUids:  inv_uids,
 	}
 	err := gs.Create(group)
 	if err != nil {
@@ -257,7 +275,9 @@ func (c *GroupController) UpdateGroup() {
 		return
 	}
 	group.Description = desc
-	group.BgImg = bgimg
+	if bgimg > 0 {
+		group.BgImg = bgimg
+	}
 	err := gs.Update(group)
 	if err != nil {
 		c.Json(libs.NewError("group_update_fail", "GP1060", err.Error(), ""))
@@ -310,6 +330,86 @@ func (c *GroupController) ExitGroup() {
 	c.Json(libs.NewError("group_exit_success", RESPONSE_SUCCESS, "成功离开小组", ""))
 }
 
+// @Title 邀请好友列表
+// @Description 邀请好友列表
+// @Param   access_token  path  string  true  "access_token"
+// @Param   groupid   path  int  true  "组id"
+// @Success 200
+// @router /group/invite_friends [get]
+func (c *GroupController) InvitedFriendList() {
+	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_invitefriend_premission_denied", UNAUTHORIZED_CODE, "必须登录后才能查询", ""))
+		return
+	}
+	groupid, _ := c.GetInt64("groupid")
+	if groupid <= 0 {
+		c.Json(libs.NewError("group_invitefriend_fail", "GP1090", "组id错误", ""))
+		return
+	}
+	gs := groups.NewGroupService(groups.GetDefaultCfg())
+	maps := gs.InviteFriends(current_uid, groupid)
+	type OutPy struct {
+		Key     string                     `json:"w"`
+		Members []*outobjs.OutInviteMember `json:"ims"`
+	}
+	outs := []*OutPy{}
+	for _, v := range py_chars {
+		vs, ok := maps[string(v)]
+		if ok {
+			out_ims := []*outobjs.OutInviteMember{}
+			for _, im := range vs {
+				out_member := outobjs.GetOutSimpleMember(im.Uid)
+				if out_member != nil {
+					out_ims = append(out_ims, &outobjs.OutInviteMember{
+						Uid:     im.Uid,
+						Member:  out_member,
+						Invited: im.Invited,
+						Joined:  im.Joined,
+					})
+				}
+			}
+			outs = append(outs, &OutPy{
+				Key:     string(v),
+				Members: out_ims,
+			})
+		}
+	}
+	c.Json(outs)
+}
+
+// @Title 邀请好友
+// @Description 邀请好友
+// @Param   access_token  path  string  true  "access_token"
+// @Param   groupid   path  int  true  "组id"
+// @Param   uids   path  string  true  "用户uids(用,分隔)"
+// @Success 200  {object} libs.Error
+// @router /group/invite [post]
+func (c *GroupController) Invite() {
+	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_invite_premission_denied", UNAUTHORIZED_CODE, "必须登录后才能邀请", ""))
+		return
+	}
+	groupid, _ := c.GetInt64("groupid")
+	if groupid <= 0 {
+		c.Json(libs.NewError("group_invite_fail", "GP1190", "组id错误", ""))
+		return
+	}
+	uidstrs := c.GetString("uids")
+	uids := []int64{}
+	uidss := strings.Split(uidstrs, ",")
+	for _, str := range uidss {
+		_id, _ := strconv.ParseInt(str, 10, 64)
+		if _id > 0 {
+			uids = append(uids, _id)
+		}
+	}
+	gs := groups.NewGroupService(groups.GetDefaultCfg())
+	gs.Invite(current_uid, groupid, uids)
+	c.Json(libs.NewError("group_invite_success", RESPONSE_SUCCESS, "成功邀请用户", ""))
+}
+
 // @Title 获取组帖子
 // @Description 获取组帖子列表(返回数组)
 // @Param   access_token  path  string  false  "access_token"
@@ -350,22 +450,161 @@ func (c *GroupController) GetThreads() {
 // @Param   subject   path  string  true  "标题"
 // @Param   message   path  string  true  "内容"
 // @Param   img_ids   path  string  true  "图片集(最大9张 逗号,分隔)"
+// @Param   longitude   path  float  false  "经度"
+// @Param   latitude   path  float  false  "维度"
+// @Param   fromdev   path  string  false  "设备标识(android,ios,ipad,wphone,web)"
 // @Success 200 {object} libs.Error
 // @router /thread/submit [post]
 func (c *GroupController) CreateThread() {
-
+	current_uid := c.CurrentUid()
+	groupid, _ := c.GetInt64("group_id")
+	subject, _ := utils.UrlDecode(c.GetString("subject"))
+	message, _ := utils.UrlDecode(c.GetString("message"))
+	imgids := c.GetString("img_ids")
+	fromdev := c.GetString("fromdev")
+	longitude, _ := c.GetFloat("longitude")
+	latitude, _ := c.GetFloat("latitude")
+	ths := groups.NewThreadService(groups.GetDefaultCfg())
+	thread := &groups.Thread{
+		GroupId:  groupid,
+		Subject:  subject,
+		AuthorId: current_uid,
+	}
+	img_ids := []int64{}
+	arrImg := strings.Split(imgids, ",")
+	for _, _ai := range arrImg {
+		_id, _ := strconv.ParseInt(_ai, 10, 64)
+		if _id > 0 {
+			img_ids = append(img_ids, _id)
+		}
+	}
+	if len(img_ids) > 9 {
+		c.Json(libs.NewError("group_newthread_fail", "GP1300", "图片数量不能大于9张", ""))
+		return
+	}
+	post := &groups.Post{
+		AuthorId:   current_uid,
+		Subject:    subject,
+		Message:    message,
+		Ip:         c.Ctx.Input.IP(),
+		FromDevice: groups.GetFromDevice(fromdev),
+		ImgIds:     img_ids,
+		LongiTude:  float32(longitude),
+		LatiTude:   float32(latitude),
+	}
+	err := ths.Create(thread, post)
+	if err != nil {
+		c.Json(libs.NewError("group_newthread_fail", "GP1301", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("group_newthread_success", RESPONSE_SUCCESS, "新建帖子成功", ""))
 }
 
 // @Title 帖子评论列表
 // @Description 帖子评论列表(返回数组)
 // @Param   access_token  path  string  false  "access_token"
 // @Param   thread_id   path  int  true  "帖子id"
+// @Param   page   path  int  false  "页"
 // @Param   orderby   path  string  false  "排序规则(pos默认,rev)"
 // @Param   onlylz   path  bool  false  "只看楼主"
 // @Success 200 {object} outobjs.OutPostPagedList
 // @router /post/list [get]
 func (c *GroupController) GetPosts() {
+	current_uid := c.CurrentUid()
+	threadid, _ := c.GetInt64("thread_id")
+	page, _ := c.GetInt("page")
+	orderby := c.GetString("orderby")
+	onlylz, _ := c.GetBool("onlylz")
 
+	oby := groups.POST_ORDERBY_ASC
+	if orderby == "rev" {
+		oby = groups.POST_ORDERBY_DESC
+	}
+	if page <= 0 {
+		page = 1
+	}
+	size := 20
+	cfg := groups.GetDefaultCfg()
+	ps := groups.NewPostService(cfg)
+	ths := groups.NewThreadService(cfg)
+	gs := groups.NewGroupService(cfg)
+	thread := ths.Get(threadid)
+	if thread == nil || thread.Closed {
+		c.Json(libs.NewError("group_getpost_fail", "GP1400", "帖子不存在", ""))
+		return
+	}
+	//用户顶踩记录
+	actionTags := ps.MemberThreadPostActionTags(threadid, current_uid)
+	dcTag := func(outp *outobjs.OutPost) {
+		if dc, ok := actionTags[outp.Id]; ok {
+			if dc == groups.POST_ACTIONTAG_DING {
+				outp.Dinged = true
+			}
+			if dc == groups.POST_ACTIONTAG_CAI {
+				outp.Caied = true
+			}
+		}
+	}
+	//顶计数查询ids,进行统一获取
+	postids := []string{}
+	postids = append(postids, thread.Lordpid) //楼主评论
+
+	//最大顶post
+	maxdings := ps.GetTops(threadid, 2, groups.POST_ACTIONTAG_DING)
+	var maxding *outobjs.OutPost
+	for _, md := range maxdings {
+		if md.Position != 1 {
+			maxding = outobjs.GetOutPost(md, ps.GetSrcToRes(md.Resources))
+			dcTag(maxding)
+			postids = append(postids, maxding.Id)
+		}
+	}
+	//楼主post
+	lordPost := ps.Get(thread.Lordpid)
+	lordOutPost := outobjs.GetOutPost(lordPost, ps.GetSrcToRes(lordPost.Resources))
+	dcTag(lordOutPost)
+
+	//获取post列表
+	total, posts := ps.Gets(threadid, page, size, oby, onlylz)
+
+	//顶记录
+	for _, p := range posts {
+		postids = append(postids, p.Id)
+	}
+	dingCs := ps.GetPostActionCounts(threadid, postids, groups.POST_ACTIONTAG_DING)
+	dingCsF := func(outp *outobjs.OutPost) {
+		if outp == nil {
+			return
+		}
+		if cs, ok := dingCs[outp.Id]; ok {
+			outp.Ding = cs
+		}
+	}
+
+	//转换输出模型
+	out_posts := []*outobjs.OutPost{}
+	for _, p := range posts {
+		res := ps.GetSrcToRes(p.Resources)
+		_outp := outobjs.GetOutPost(p, res)
+		dcTag(_outp)
+		dingCsF(_outp)
+		out_posts = append(out_posts, _outp)
+	}
+	dingCsF(maxding)
+	dingCsF(lordOutPost)
+
+	out_p := &outobjs.OutPostPagedList{
+		CurrentPage: page,
+		TotalPages:  utils.TotalPages(total, size),
+		PageSize:    size,
+		Posts:       out_posts,
+		MaxDingPost: maxding,
+		MaxCaiPost:  nil,
+		Thread:      outobjs.GetOutThread(thread),
+		JoinedGroup: gs.IsJoined(current_uid, thread.GroupId),
+		LordPost:    lordOutPost,
+	}
+	c.Json(out_p)
 }
 
 // @Title 创建评论
@@ -378,10 +617,89 @@ func (c *GroupController) GetPosts() {
 // @Param   replyid   path  string  false  "回复id"
 // @Param   longitude   path  float  false  "经度"
 // @Param   latitude   path  float  false  "维度"
+// @Param   fromdev   path  string  false  "设备标识(android,ios,ipad,wphone,web)"
 // @Success 200 {object} libs.Error
 // @router /post/submit [post]
 func (c *GroupController) CreatePost() {
+	current_uid := c.CurrentUid()
+	threadid, _ := c.GetInt64("thread_id")
+	subject, _ := utils.UrlDecode(c.GetString("subject"))
+	content, _ := utils.UrlDecode(c.GetString("content"))
+	imgids := c.GetString("img_ids")
+	replyid := c.GetString("replyid")
+	longitude, _ := c.GetFloat("longitude")
+	latitude, _ := c.GetFloat("latitude")
+	fromdev := c.GetString("fromdev")
 
+	cfg := groups.GetDefaultCfg()
+	ps := groups.NewPostService(cfg)
+
+	img_ids := []int64{}
+	arrImg := strings.Split(imgids, ",")
+	for _, _ai := range arrImg {
+		_id, _ := strconv.ParseInt(_ai, 10, 64)
+		if _id > 0 {
+			img_ids = append(img_ids, _id)
+		}
+	}
+	if len(img_ids) > 9 {
+		c.Json(libs.NewError("group_newpost_fail", "GP1400", "图片数量不能大于9张", ""))
+		return
+	}
+	post := &groups.Post{
+		ThreadId:   threadid,
+		AuthorId:   current_uid,
+		Subject:    subject,
+		Message:    content,
+		Ip:         c.Ctx.Input.IP(),
+		FromDevice: groups.GetFromDevice(fromdev),
+		ImgIds:     img_ids,
+		ReplyId:    replyid,
+		LongiTude:  float32(longitude),
+		LatiTude:   float32(latitude),
+	}
+	err := ps.Create(post)
+	if err != nil {
+		c.Json(libs.NewError("group_newpost_fail", "GP1401", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("group_newpost_success", RESPONSE_SUCCESS, "评论成功", ""))
+}
+
+// @Title 顶踩评论
+// @Description 顶踩评论
+// @Param   access_token  path  string  true  "access_token"
+// @Param   post_id   path  string  true  "评论id"
+// @Param   action   path  string  true  "动作(ding,cancel_ding)"
+// @Success 200 {object} libs.Error
+// @router /post/action [post]
+func (c *GroupController) ActionPost() {
+	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_actionpost_premission_denied", UNAUTHORIZED_CODE, "必须登录后才能操作", ""))
+		return
+	}
+	postid := c.GetString("post_id")
+	action := c.GetString("action")
+	var act groups.POST_ACTION
+	if action == "ding" {
+		act = groups.POST_ACTION_DING
+	}
+	if action == "cancel_ding" {
+		act = groups.POST_ACTION_CANCEL_DING
+	}
+	if int(act) == 0 {
+		c.Json(libs.NewError("group_actionpost_fail", "GP1500", "action操作符不被支持", ""))
+		return
+	}
+	cfg := groups.GetDefaultCfg()
+	ps := groups.NewPostService(cfg)
+	err := ps.Action(postid, current_uid, act)
+	if err != nil {
+		c.Json(libs.NewError("group_actionpost_fail", "GP1501", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("group_actionpost_success", RESPONSE_SUCCESS, "操作成功", ""))
 }
 
 // @Title 举报选项
@@ -389,7 +707,12 @@ func (c *GroupController) CreatePost() {
 // @Success 200
 // @router /report/options [get]
 func (c *GroupController) ReportOptions() {
-
+	c.Json([]string{
+		"广告或垃圾信息",
+		"色情、淫秽或低俗内容",
+		"激进时政或意识形态话题",
+		"人身攻击或文字侮辱",
+	})
 }
 
 // @Title 举报

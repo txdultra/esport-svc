@@ -10,10 +10,6 @@ import (
 	"utils"
 )
 
-const (
-	py_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ*"
-)
-
 // 关系模块 API
 type FriendShipsController struct {
 	AuthorizeController

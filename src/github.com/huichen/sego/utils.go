@@ -2,7 +2,43 @@ package sego
 
 import (
 	"fmt"
+	"strings"
 )
+
+func SegmentsToStringV2(segs []Segment, searchMode bool) (output string) {
+	if searchMode {
+		for _, seg := range segs {
+			str := tokenToStringV2(seg.token)
+			if len(str) == 0 {
+				continue
+			}
+			output += str
+		}
+		output = strings.TrimRight(output, "|")
+	} else {
+		for _, seg := range segs {
+			sliceStr := textSliceToString(seg.token.text)
+			if len(strings.Trim(sliceStr, " ")) == 0 {
+				continue
+			}
+			output += fmt.Sprintf("(%s)|", sliceStr)
+		}
+		output = strings.TrimRight(output, "|")
+	}
+	return
+}
+
+func tokenToStringV2(token *Token) (output string) {
+	for _, s := range token.segments {
+		output += tokenToStringV2(s.token)
+	}
+	sliceStr := textSliceToString(token.text)
+	if len(strings.Trim(sliceStr, " ")) == 0 {
+		return
+	}
+	output += fmt.Sprintf("(%s)|", sliceStr)
+	return
+}
 
 // 输出分词结果为字符串
 //
@@ -20,8 +56,7 @@ func SegmentsToString(segs []Segment, searchMode bool) (output string) {
 		}
 	} else {
 		for _, seg := range segs {
-			output += fmt.Sprintf(
-				"%s/%s ", textSliceToString(seg.token.text), seg.token.pos)
+			output += fmt.Sprintf("%s/%s ", textSliceToString(seg.token.text), seg.token.pos)
 		}
 	}
 	return

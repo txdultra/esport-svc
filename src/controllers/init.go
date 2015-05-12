@@ -6,6 +6,10 @@ import (
 	"github.com/astaxie/beego"
 )
 
+const (
+	py_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ*"
+)
+
 var host_maps map[string]string = make(map[string]string)
 var file_storage libs.IFileStorage
 

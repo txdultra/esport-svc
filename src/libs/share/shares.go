@@ -166,8 +166,8 @@ func (n *Shares) Create(s *Share, msg_notice bool) (error, int64) {
 		var wait sync.WaitGroup
 		for _, _tag := range _tags {
 			res_tag := _tag
+			wait.Add(1)
 			go func() {
-				wait.Add(1)
 				defer wait.Done()
 				kind, _sid := n.ResourceTranform(res_tag)
 				if kind != SHARE_KIND_PIC {

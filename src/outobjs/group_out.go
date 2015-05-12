@@ -37,13 +37,20 @@ type OutGroup struct {
 	BgImgUrl         string              `json:"bgimg_url"`
 	Vitality         int                 `json:"vitality"`
 	LongiTude        float32             `json:"longi_tude"`
-	latiTude         float32             `json:"lati_tude"`
+	LatiTude         float32             `json:"lati_tude"`
 	Recommend        bool                `json:"recommend"`
 	StartTime        time.Time           `json:"start_time"`
 	EndTime          time.Time           `json:"end_time"`
 	RemainSeconds    int64               `json:"remain_seconds"`
 	MinUsers         int                 `json:"min_users"`
 	IsJoined         bool                `json:"is_joined"`
+}
+
+type OutInviteMember struct {
+	Uid     int64            `json:"uid"`
+	Member  *OutSimpleMember `json:"member"`
+	Invited bool             `json:"invited"`
+	Joined  bool             `json:"joined"`
 }
 
 type OutMyGroups struct {
@@ -109,6 +116,7 @@ type OutPostPagedList struct {
 
 type OutPost struct {
 	Id               string           `json:"id"`
+	ThreadId         int64            `json:"thread_id"`
 	AuthorId         int64            `json:"author_id"`
 	AuthorMember     *OutSimpleMember `json:"author_member"`
 	Subject          string           `json:"subject"`
@@ -126,7 +134,7 @@ type OutPost struct {
 	ReplyPosition    int              `json:"reply_position"`
 	Pics             []*OutPicture    `json:"imgs"`
 	LongiTude        float32          `json:"longi_tude"`
-	latiTude         float32          `json:"lati_tude"`
+	LatiTude         float32          `json:"lati_tude"`
 	Dinged           bool             `json:"dinged"`
 	Caied            bool             `json:"caied"`
 }
@@ -137,8 +145,8 @@ func GetOutGroup(group *groups.Group, concernUid int64) *OutGroup {
 		outgames = append(outgames, GetOutGameById(gid))
 	}
 	var remain_seconds int64 = 0
-	if time.Now().Unix() > group.EndTime {
-		remain_seconds = time.Now().Unix() - group.EndTime
+	if time.Now().Unix() < group.EndTime {
+		remain_seconds = group.EndTime - time.Now().Unix()
 	}
 	gs := groups.NewGroupService(groups.GetDefaultCfg())
 	return &OutGroup{
@@ -162,7 +170,7 @@ func GetOutGroup(group *groups.Group, concernUid int64) *OutGroup {
 		BgImgUrl:         file.GetFileUrl(group.BgImg),
 		Vitality:         group.Vitality,
 		LongiTude:        group.LongiTude,
-		latiTude:         group.LatiTude,
+		LatiTude:         group.LatiTude,
 		Recommend:        group.Recommend,
 		StartTime:        time.Unix(group.StartTime, 0),
 		EndTime:          time.Unix(group.EndTime, 0),
@@ -196,5 +204,42 @@ func GetOutThread(thread *groups.Thread) *OutThread {
 		Closed:             thread.Closed,
 		Highlight:          thread.Highlight,
 		Heats:              thread.Heats,
+	}
+}
+
+func GetOutPost(post *groups.Post, res *groups.PostRes) *OutPost {
+	var pics []*OutPicture
+	if res != nil && len(res.ImgResource) > 0 {
+		pics = []*OutPicture{}
+		for _, img := range res.ImgResource {
+			pics = append(pics, &OutPicture{
+				Id:           img.OriginalImgId,
+				ThumbnailPic: file.GetFileUrl(img.ThumbnailImgId),
+				BmiddlePic:   file.GetFileUrl(img.BmiddleImgId),
+				OriginalPic:  file.GetFileUrl(img.OriginalImgId),
+			})
+		}
+	}
+	return &OutPost{
+		Id:               post.Id,
+		ThreadId:         post.ThreadId,
+		AuthorId:         post.AuthorId,
+		AuthorMember:     GetOutSimpleMember(post.AuthorId),
+		Subject:          post.Subject,
+		CreateTime:       time.Unix(post.DateLine, 0),
+		CreateFriendTime: utils.FriendTime(time.Unix(post.DateLine, 0)),
+		Message:          post.Message,
+		Ip:               post.Ip,
+		Invisible:        post.Invisible,
+		Ding:             post.Ding,
+		Cai:              post.Cai,
+		Position:         post.Position,
+		ReplyId:          post.ReplyId,
+		ReplyUid:         post.ReplyUid,
+		ReplyMember:      GetOutSimpleMember(post.ReplyUid),
+		ReplyPosition:    post.ReplyPosition,
+		Pics:             pics,
+		LongiTude:        post.LongiTude,
+		LatiTude:         post.LatiTude,
 	}
 }

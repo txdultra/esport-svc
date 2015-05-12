@@ -2,9 +2,9 @@ package main
 
 import (
 	_ "controllers"
+	"database/sql"
 	_ "docs"
 	"fmt"
-	"strconv"
 	//"strings"
 
 	"github.com/astaxie/beego"
@@ -31,11 +31,10 @@ import (
 	//"libs/comment"
 
 	//"memcache"
+
 	"runtime"
 	"time"
 	"utils"
-	"utils/ssdb"
-	//"libs/search"
 	//"libs/share"
 
 	//"libs/vod"
@@ -51,6 +50,8 @@ import (
 	"libs/pushapi"
 	//"strings"
 
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/sphinxql"
 	"github.com/yunge/sphinx"
 	//"math/rand"
 	//"logs"
@@ -63,26 +64,139 @@ import (
 )
 
 func main() {
-	//	o := dbs.NewOrm("group_db")
-	//	nums, _ := o.QueryTable("group").Exclude("status", 4).Count()
-	//	fmt.Println(nums)
-	fmt.Println(fmt.Sprintf("%03dA%d", 1, time.Now().UnixNano()/1000))
-	//	ssdb.New("a").Zadd("aaa", "a", 1)
-	//	ssdb.New("a").Zadd("aaa", "b", 1)
-	//	fmt.Println(ssdb.New("a").Zcard("aaa"))
+	//	//	o := dbs.NewOrm("group_db")
+	//	//	nums, _ := o.QueryTable("group").Exclude("status", 4).Count()
+	//	//	fmt.Println(nums)
+	//	fmt.Println(fmt.Sprintf("%03dA%d", 1, time.Now().UnixNano()/1000))
+	//	//	ssdb.New("a").Zadd("aaa", "a", 1)
+	//	//	ssdb.New("a").Zadd("aaa", "b", 1)
+	//	//	fmt.Println(ssdb.New("a").Zcard("aaa"))
 
-	ssdb.New("a").Hset("hset_test", "a_1", 1000)
-	ssdb.New("a").Hset("hset_test", "a_2", 1001)
+	//	ssdb.New("a").Hset("hset_test", "a_1", 1000)
+	//	ssdb.New("a").Hset("hset_test", "a_2", 1001)
 
-	kvs, _ := ssdb.New("a").Hgetall("hset_test")
-	for i := 0; i < len(kvs); i += 2 {
-		k := kvs[i]
-		v, err := strconv.Atoi(kvs[i+1])
-		if err != nil {
-			continue
-		}
-		fmt.Println(k, ":", v)
+	//	kvs, _ := ssdb.New("a").Hgetall("hset_test")
+	//	for i := 0; i < len(kvs); i += 2 {
+	//		k := kvs[i]
+	//		v, err := strconv.Atoi(kvs[i+1])
+	//		if err != nil {
+	//			continue
+	//		}
+	//		fmt.Println(k, ":", v)
+	//	}
+	//	val := groups.Post{
+	//		ThreadId:   1,
+	//		AuthorId:   1,
+	//		Subject:    "32",
+	//		Message:    "32",
+	//		Ip:         "",
+	//		FromDevice: groups.FROM_DEVICE_ANDROID,
+	//		ImgIds:     []int64{1, 2, 3},
+	//		ReplyId:    "",
+	//		LongiTude:  1.12,
+	//		LatiTude:   2.33,
+	//	}
+	//	var value interface{} = val
+	//	var b bytes.Buffer
+	//	encoder := gob.NewEncoder(&b)
+	//	if err := encoder.Encode(value); err != nil {
+	//		fmt.Printf("revel/cache: gob encoding '%s' failed: %s", value, err)
+	//	}
+
+	//cclient := ssdb.New("f")
+	//	objs := cclient.MultiGet([]string{"group_post_001A1431080248022584", "group_post_001A1431079443586341"}, reflect.TypeOf(groups.Post{}))
+	//	for _, ojb := range objs {
+	//		fmt.Println(ojb.(*groups.Post))
+	//	}
+	//	cclient.Zadd("a123", "a", 10)
+	//	cclient.Zadd("a123", "b", 11)
+	//	cclient.Zadd("a123", "c", 12)
+	//	cclient.Zadd("a123", "d", 13)
+	//	cclient.Zadd("a123", "e", 14)
+
+	//	fmt.Println(cclient.MultiZadd("b123", []interface{}{1, 2, 3}, []int64{100, 101, 102}))
+
+	//	fmt.Println(cclient.MultiZget("a123", []interface{}{"b", "e", "e"}, reflect.TypeOf("")))
+	//	fmt.Println(cclient.Zcard("group.invited_2_52_uids"))
+	//	fmt.Println(cclient.Zscore("group.invited_2_52_uids", 123))
+
+	//	objs, _ := cclient.Zscan("group.invited_2_52_uids", 0, 1<<40, 1<<10, reflect.TypeOf(int64(0))) //cclient.Zscan("b123", 0, 1<<32, 1<<10, reflect.TypeOf(int64(0)))
+	//	fmt.Println(objs)
+	//	for _, ojb := range objs {
+	//		str := *(ojb.(*int64))
+	//		fmt.Println(str)
+	//	}
+
+	//	//1431398695153046
+	//	fmt.Println(1 << 53)
+
+	type rtData struct {
+		Id            uint64
+		Pid           uint64
+		Groupname     string
+		Createtime    uint64
+		Members       int
+		Threads       int
+		Gameids       string
+		Displayorder  int
+		Status        int
+		Belong        int
+		Type          int
+		Vitality      int
+		Searchkeyword string
+		Longitude     float64
+		Latitude      float64
+		Recommend     int
+		Starttime     uint64
+		Endtime       uint64
 	}
+
+	//	rt := sphinx.NewClient(&sphinx.Options{
+	//		Host:       "192.168.0.79",
+	//		Port:       9316,
+	//		SqlPort:    9317,
+	//		Timeout:    5000,
+	//		MaxMatches: 500,
+	//	})
+	//	err := rt.SetIndex("group_rt").Insert(&rtData{
+	//		Id:            1,
+	//		Pid:           1,
+	//		Groupname:     "总共凤姐哦",
+	//		Createtime:    uint64(time.Now().Unix()),
+	//		Members:       0,
+	//		Threads:       1,
+	//		Gameids:       "1,2,3",
+	//		Displayorder:  0,
+	//		Status:        1,
+	//		Belong:        1,
+	//		Type:          1,
+	//		Vitality:      0,
+	//		Searchkeyword: "lol,英雄联盟",
+	//		Longitude:     0,
+	//		Latitude:      0,
+	//		Recommend:     1,
+	//		Starttime:     uint64(time.Now().Unix()),
+	//		Endtime:       uint64(time.Now().Add(48 * time.Hour).Unix()),
+	//	})
+	//	fmt.Println(err)
+
+	//	result, err := rt.SetIndex("group_rt").Execute("select * from group_rt")
+	//	fmt.Println(result, err)
+
+	//	res, err := rt.Query("共凤", "group_rt", "test rt insert")
+	//	if err != nil {
+	//		fmt.Println("TestInsert > %v\n", err)
+	//		return
+	//	}
+	//	fmt.Println(res.TotalFound)
+	//sphsql := sphinxql.
+	mySql, err := sql.Open("sphinxql", "tcp(192.168.0.79:9317)/gotest")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer mySql.Close()
+	fmt.Println(mySql.Exec("select * from group_rt"))
 	return
 
 	//	rep := reptile.NewYoukuReptileV2()
@@ -772,6 +886,7 @@ func main() {
 	fmt.Println("current server version:", libs.APP_SERVER_VER)
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	beego.Run()
+
 	fmt.Println("Server Running...")
 }
 

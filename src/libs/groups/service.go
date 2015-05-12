@@ -82,10 +82,7 @@ func savePostTableToDb(addTblId int, addTblName string, ptrTable interface{}) {
 	var maps []orm.Params
 	o.Raw(create_tbl_sql).Values(&maps)
 	//已存在表
-	if len(maps) > 0 {
-		return
-	}
-	o.Insert(ptrTable)
+	o.ReadOrCreate(ptrTable, "Id")
 }
 
 var file_storage = libs.NewWeedFsFileStorage()
@@ -165,6 +162,7 @@ const (
 	group_name_sets             = "group.name_sets"
 	group_member_joined_sortset = "group.member_%d_joined"
 	group_joined_member_sortset = "group.joined_%d_uids"
+	group_invited_set           = "group.invited_%d_%d_uids"
 )
 
 type GP_PROPERTY string
@@ -238,13 +236,15 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	if s.cfg == nil {
 		return fmt.Errorf("未设置配置对象")
 	}
-	if len(group.Name) > s.cfg.GroupNameLen {
+	nameRunes := []rune(group.Name)
+	if len(nameRunes) > s.cfg.GroupNameLen {
 		return fmt.Errorf(fmt.Sprintf("组名称不能大于%d个字符", s.cfg.GroupNameLen))
 	}
-	if len(group.Description) > s.cfg.GroupDescMaxLen {
+	descRunes := []rune(group.Description)
+	if len(descRunes) > s.cfg.GroupDescMaxLen {
 		return fmt.Errorf(fmt.Sprintf("组描述内容不能大于%d个字符", s.cfg.GroupDescMaxLen))
 	}
-	if len(group.Description) < s.cfg.GroupDescMinLen {
+	if len(descRunes) <= s.cfg.GroupDescMinLen {
 		return fmt.Errorf(fmt.Sprintf("组描述内容不能小于%d个字符", s.cfg.GroupDescMinLen))
 	}
 	if group.Uid <= 0 {
@@ -253,12 +253,12 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	if len(group.GameIds) == 0 {
 		return fmt.Errorf("未选择游戏分类")
 	}
-	if group.BgImg == 0 {
-		return fmt.Errorf("未设置背景图")
-	}
+	//	if group.BgImg == 0 {
+	//		return fmt.Errorf("未设置背景图")
+	//	}
 	//验证是否同名
-	has, err := ssdb.New(use_ssdb_group_db).Hexists(group_name_sets, group.Name)
-	if !has || err != nil {
+	has, _ := ssdb.New(use_ssdb_group_db).Hexists(group_name_sets, group.Name)
+	if has {
 		return fmt.Errorf("组名称已存在")
 	}
 
@@ -455,9 +455,11 @@ func (s *GroupService) Create(group *Group) error {
 	}
 
 	//图片压缩
-	err = s.thumbnailImgResize(group)
-	if err != nil {
-		return err
+	if group.BgImg > 0 {
+		err = s.thumbnailImgResize(group)
+		if err != nil {
+			return err
+		}
 	}
 
 	//设置搜索关键字
@@ -494,11 +496,11 @@ func (s *GroupService) Create(group *Group) error {
 		})
 		return fmt.Errorf("建组失败:002")
 	}
+	group.Id = id
 
 	//加入组名hash集合
 	ssdb.New(use_ssdb_group_db).Hset(group_name_sets, group.Name, group.Id)
 
-	group.Id = id
 	cache := utils.GetCache()
 	cache.Add(s.getCacheKey(id), *group, 1*time.Hour)
 
@@ -506,6 +508,9 @@ func (s *GroupService) Create(group *Group) error {
 	cache.Delete(s.getMyGroupIdsCacheKey(group.Uid))
 	//增加计数
 	NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_GROUPS}, []COUNT_ACTION{COUNT_ACTION_INCR}, group.Uid)
+
+	//邀请好友
+	go s.Invite(group.Uid, group.Id, group.InviteUids)
 
 	return nil
 }
@@ -676,7 +681,7 @@ func (s *GroupService) Join(uid int64, groupId int64) error {
 	o.Begin()
 	sql := fmt.Sprintf("insert %s(groupid,uid,ts) values(?,?,?)", gmTbl)
 	_, err := o.Raw(sql, groupId, uid, ts).Exec()
-	sql = fmt.Sprint("insert %s(uid,groupid,ts) values(?,?,?)", mgTbl)
+	sql = fmt.Sprintf("insert %s(uid,groupid,ts) values(?,?,?)", mgTbl)
 	_, err = o.Raw(sql, uid, groupId, ts).Exec()
 	if err != nil {
 		o.Rollback()
@@ -701,6 +706,8 @@ func (s *GroupService) Join(uid int64, groupId int64) error {
 
 	//计数
 	go NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_JOINS}, []COUNT_ACTION{COUNT_ACTION_INCR}, group.Uid)
+	//检查是否完成招募
+	go s.CheckCompletedInvited(group)
 
 	return nil
 }
@@ -724,7 +731,7 @@ func (s *GroupService) Exit(uid int64, groupId int64) error {
 	o := dbs.NewOrm(db_aliasname)
 	sql := fmt.Sprintf("delete from %s where groupid=? and uid=?", gmTbl)
 	o.Raw(sql, groupId, uid).Exec()
-	sql = fmt.Sprint("delete from %s where uid=? and groupid=?", mgTbl)
+	sql = fmt.Sprintf("delete from %s where uid=? and groupid=?", mgTbl)
 	o.Raw(sql, uid, groupId).Exec()
 
 	ssdb_client := ssdb.New(use_ssdb_group_db)
@@ -799,10 +806,10 @@ func (s *GroupService) multiGets(groupIds []int64) []*Group {
 
 	groups := []*Group{}
 	for _, id := range groupIds {
-		var _group *Group
-		err := getter.Get(s.getCacheKey(id), _group)
+		var _group Group
+		err := getter.Get(s.getCacheKey(id), &_group)
 		if err == nil {
-			groups = append(groups, _group)
+			groups = append(groups, &_group)
 			continue
 		}
 		_g := s.Get(id)
@@ -828,11 +835,13 @@ func (s *GroupService) MyGroups(uid int64) []*Group {
 	_g := &Group{}
 	o := dbs.NewOrm(db_aliasname)
 	var maps []orm.Params
-	num, err := o.Raw(fmt.Sprintf("SELECT id FROM %s WHERE status <> ?", _g.TableName()), GROUP_STATUS_CLOSED).Values(&maps)
+	num, err := o.Raw(fmt.Sprintf("SELECT id FROM %s WHERE status <> ? and uid=?", _g.TableName()), GROUP_STATUS_CLOSED, uid).Values(&maps)
 	ids = []int64{}
 	if err == nil && num > 0 {
 		for i := range maps {
-			ids = append(ids, maps[i]["id"].(int64))
+			_strid := maps[i]["id"].(string)
+			_id, _ := strconv.ParseInt(_strid, 10, 64)
+			ids = append(ids, _id)
 		}
 	}
 	cache.Add(ckey, ids, 6*time.Hour)
@@ -843,6 +852,139 @@ func (s *GroupService) MyGroups(uid int64) []*Group {
 func (s *GroupService) Search() (int, []*Group) {
 
 	return 0, nil
+}
+
+func (s *GroupService) CheckCompletedInvited(group *Group) (bool, error) {
+	if group == nil || group.Status == GROUP_STATUS_OPENING || group.Status == GROUP_STATUS_CLOSED {
+		return true, nil
+	}
+	gjoined_key := fmt.Sprintf(group_joined_member_sortset, group.Id)
+	count, _ := ssdb.New(use_ssdb_group_db).Zcard(gjoined_key)
+	if count >= group.MinUsers {
+		o := dbs.NewOrm(db_aliasname)
+		o.Begin()
+		group.Status = GROUP_STATUS_OPENING
+		_, err := o.Update(group, "status")
+		if err != nil {
+			o.Rollback()
+			return false, fmt.Errorf("更新状态失败")
+		}
+		cache := utils.GetCache()
+		cache.Delete(s.getCacheKey(group.Id))
+		//正式扣除积分
+		client, transport, err := credit_client.NewClient(credit_service_host)
+		if err != nil {
+			o.Rollback()
+			return false, fmt.Errorf("扣除正式积分失败")
+		}
+		defer func() {
+			if transport != nil {
+				transport.Close()
+			}
+		}()
+		client.Do(&credit_proxy.OperationCreditParameter{
+			No:     group.OrderNo,
+			Action: credit_proxy.OPERATION_ACTOIN_UNLOCK,
+		})
+		o.Commit()
+	}
+	return true, nil
+}
+
+func (s *GroupService) InviteFriends(uid int64, groupId int64) map[string][]*InviteMember {
+	fs := &passport.FriendShips{}
+	friendsPy := fs.BothFriendUidsPy(uid)
+	ckey := fmt.Sprintf(group_invited_set, groupId, uid)
+	cclient := ssdb.New(use_ssdb_group_db)
+	objs, _ := cclient.Zscan(ckey, 0, time.Now().UnixNano()/1000, 1<<10, reflect.TypeOf(int64(0)))
+	invmaps := make(map[int64]bool)
+	joined_uids := []interface{}{}
+	for _, obj := range objs {
+		_uid := *(obj.(*int64))
+		invmaps[_uid] = true
+	}
+	for _, friends := range friendsPy {
+		for _, uid := range friends {
+			joined_uids = append(joined_uids, uid)
+		}
+	}
+	//已加入组的
+	gjoined_key := fmt.Sprintf(group_joined_member_sortset, groupId) //小组中加入用户的集合key
+	joinedObjs, _ := cclient.MultiZget(gjoined_key, joined_uids, reflect.TypeOf(int64(0)))
+	joineds := make(map[int64]int64)
+	for obj, score := range joinedObjs {
+		_uid := *(obj.(*int64))
+		joineds[_uid] = score
+	}
+
+	maps := make(map[string][]*InviteMember)
+	for c, uids := range friendsPy {
+		ims := []*InviteMember{}
+		for _, uid := range uids {
+			ed := false
+			jd := false
+			if _, ok := invmaps[uid]; ok {
+				ed = true
+			}
+			if _, ok := joineds[uid]; ok {
+				jd = true
+			}
+			ims = append(ims, &InviteMember{
+				Uid:     uid,
+				Invited: ed,
+				Joined:  jd,
+			})
+		}
+		maps[c] = ims
+	}
+	return maps
+}
+
+func (s *GroupService) Invite(uid int64, groupId int64, inviteUids []int64) {
+	if len(inviteUids) == 0 {
+		return
+	}
+	ckey := fmt.Sprintf(group_invited_set, groupId, uid)
+	vals := make([]interface{}, len(inviteUids), len(inviteUids))
+	scores := make([]int64, len(inviteUids), len(inviteUids))
+	for i := range inviteUids {
+		vals[i] = inviteUids[i]
+		scores[i] = time.Now().UnixNano() / 1000
+	}
+	ssdb.New(use_ssdb_group_db).MultiZadd(ckey, vals, scores)
+}
+
+//搜索引擎数据
+type rtGroupData struct {
+	Pid           int64
+	Groupname     string
+	Createtime    int64
+	Members       int
+	Threads       int
+	Gameids       string
+	Displayorder  int
+	Status        int
+	Belong        int
+	Type          int
+	Vitality      int
+	Searchkeyword string
+	Longitude     float32
+	Latitude      float32
+	Recommend     int
+	Starttime     int64
+	Endtime       int64
+}
+
+func (s *GroupService) AddToSearchEngine(group *Group) error {
+	return nil
+}
+
+func (s *GroupService) UpdateToSearchEngine(group *Group) error {
+	return nil
+}
+
+func (s *GroupService) DeleteToSearchEngine(groupId int64) error {
+	return nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1018,7 +1160,6 @@ const (
 	TH_PROPERTY_REPLIES   TH_PROPERTY = "replies"
 	TH_PROPERTY_SHARES    TH_PROPERTY = "shares"
 	TH_PROPERTY_VIEWS     TH_PROPERTY = "views"
-	TH_PROPERTY_LASTPOST  TH_PROPERTY = "lastpost"
 )
 
 var postTbls map[int]string = make(map[int]string)
@@ -1112,7 +1253,7 @@ func (c *ThreadService) verifyThread(thread *Thread) error {
 		return fmt.Errorf("未设定配置")
 	}
 	if len(thread.Subject) == 0 {
-		return fmt.Errorf("必须提供标题")
+		return fmt.Errorf("标题不能为空")
 	}
 	if thread.GroupId <= 0 {
 		return fmt.Errorf("未指定所属组")
@@ -1121,8 +1262,12 @@ func (c *ThreadService) verifyThread(thread *Thread) error {
 		return fmt.Errorf("未指定发表人")
 	}
 	gs := NewGroupService(c.cfg)
-	if gs.Get(thread.GroupId) == nil {
-		return fmt.Errorf("指定的组不存在")
+	group := gs.Get(thread.GroupId)
+	if group == nil || group.Status == GROUP_STATUS_CLOSED {
+		return fmt.Errorf("组不存在")
+	}
+	if group.Status == GROUP_STATUS_RECRUITING {
+		return fmt.Errorf("组正在招募中,不能发帖")
 	}
 	return nil
 }
@@ -1141,7 +1286,7 @@ func (c *ThreadService) Create(thread *Thread, post *Post) error {
 	thread.Author = author.NickName
 	thread.DateLine = time.Now().Unix()
 	thread.LastPost = time.Now().Unix()
-	thread.Status = c.cfg.NewThreadStatus
+	thread.Status = c.cfg.NewThreadDefaultStatus
 	thread.Subject = utils.CensorWords(thread.Subject) //过滤关键字
 
 	//设置post表id
@@ -1157,6 +1302,7 @@ func (c *ThreadService) Create(thread *Thread, post *Post) error {
 		logs.Errorf("新建帖子失败:%s", err.Error())
 		return fmt.Errorf("创建帖子失败:002")
 	}
+	thread.Id = id
 	//插入楼主评论
 	post.ThreadId = id
 	post.Id = NewPostId(int(id))
@@ -1171,30 +1317,33 @@ func (c *ThreadService) Create(thread *Thread, post *Post) error {
 	thread.Img = post.Img
 	o.Update(thread)
 
-	ssdb.New(use_ssdb_group_db).Set(c.getCacheKey(id), *thread)
+	ssdb.New(use_ssdb_group_db).Set(c.getCacheKey(id), thread)
 
 	//计数
 	go NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_THREADS}, []COUNT_ACTION{COUNT_ACTION_INCR}, thread.AuthorId)
-
+	go func() {
+		gs := NewGroupService(c.cfg)
+		gs.ActionCount(thread.GroupId, []GP_PROPERTY{GP_PROPERTY_THREADS}, []int{1})
+	}()
 	return err
 }
 
 func (c *ThreadService) Get(threadId int64) *Thread {
-	var thread *Thread
+	var thread Thread
 	cclient := ssdb.New(use_ssdb_group_db)
 	ckey := c.getCacheKey(threadId)
-	err := cclient.Get(ckey, thread)
+	err := cclient.Get(ckey, &thread)
 	if err == nil {
-		return thread
+		return &thread
 	}
-	thread = &Thread{
+	thread = Thread{
 		Id: threadId,
 	}
 	o := dbs.NewOrm(db_aliasname)
-	err = o.Read(thread)
+	err = o.Read(&thread)
 	if err == nil {
-		cclient.Set(ckey, *thread)
-		return thread
+		cclient.Set(ckey, &thread)
+		return &thread
 	}
 	return nil
 }
@@ -1204,12 +1353,8 @@ func (c *ThreadService) ActionProperty(ths []TH_PROPERTY, vals []int64, threadId
 		return
 	}
 	for i, th := range ths {
-		ckey := fmt.Sprintf("group_thread_%s_count", string(th))
-		if th == TH_PROPERTY_LASTPOST {
-			ssdb.New(use_ssdb_group_db).Set(ckey, vals[i])
-		} else {
-			ssdb.New(use_ssdb_group_db).Incrby(ckey, vals[i])
-		}
+		ckey := fmt.Sprintf("group_thread_%d_%s_count", threadId, string(th))
+		ssdb.New(use_ssdb_group_db).Incrby(ckey, vals[i])
 	}
 
 	if _, ok := thcQs[threadId]; ok {
@@ -1229,22 +1374,19 @@ func (c *ThreadService) ActionProperty(ths []TH_PROPERTY, vals []int64, threadId
 			return
 		}
 		cclient := ssdb.New(use_ssdb_group_db)
-		fmtstr := "group_thread_%s_count"
+		fmtstr := "group_thread_%d_%s_count"
 		var i int64 = 0
-		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_FAVORITES)), &i)
+		cclient.Get(fmt.Sprintf(fmtstr, refId, string(TH_PROPERTY_FAVORITES)), &i)
 		thread.Favorites = int(i)
 		i = 0
-		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_REPLIES)), &i)
+		cclient.Get(fmt.Sprintf(fmtstr, refId, string(TH_PROPERTY_REPLIES)), &i)
 		thread.Replies = int(i)
 		i = 0
-		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_SHARES)), &i)
+		cclient.Get(fmt.Sprintf(fmtstr, refId, string(TH_PROPERTY_SHARES)), &i)
 		thread.Shares = int(i)
 		i = 0
-		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_VIEWS)), &i)
+		cclient.Get(fmt.Sprintf(fmtstr, refId, string(TH_PROPERTY_VIEWS)), &i)
 		thread.Views = int(i)
-		i = 0
-		cclient.Get(fmt.Sprintf(fmtstr, string(TH_PROPERTY_LASTPOST)), &i)
-		thread.LastPost = i
 
 		o := dbs.NewOrm(db_aliasname)
 		_, err := o.Update(thread)
@@ -1275,7 +1417,7 @@ func (c *ThreadService) Gets(groupId int64, page int, size int, uid int64) (int,
 	if err == nil {
 		strids := make([]string, len(maps), len(maps))
 		for i, m := range maps {
-			_id := m["id"].(int64)
+			_id := m["Id"].(int64)
 			strids[i] = c.getCacheKey(_id)
 		}
 		objs := ssdb.New(use_ssdb_group_db).MultiGet(strids, reflect.TypeOf(Thread{}))
@@ -1285,6 +1427,30 @@ func (c *ThreadService) Gets(groupId int64, page int, size int, uid int64) (int,
 		return group.Threads, threads
 	}
 	return 0, threads
+}
+
+func (c *ThreadService) SetLastPost(post *Post) {
+	thread := c.Get(post.ThreadId)
+	if thread == nil {
+		return
+	}
+	mp := passport.NewMemberProvider()
+	member := mp.Get(post.AuthorId)
+	if member == nil {
+		return
+	}
+	thread.LastId = post.Id
+	thread.LastPost = post.DateLine
+	thread.LastPoster = member.NickName
+	thread.LastPostUid = post.AuthorId
+
+	cclient := ssdb.New(use_ssdb_group_db)
+	ckey := c.getCacheKey(post.ThreadId)
+	cclient.Set(ckey, thread)
+
+	o := dbs.NewOrm(db_aliasname)
+	o.Update(thread, "lastpost", "lastposter", "lastpostuid", "lastid")
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1324,9 +1490,9 @@ const (
 )
 
 const (
-	thread_post_sets            = "group.thread_%d_post_set"
-	thread_post_dc_sets         = "group.thread_%d_post_dc_set"
-	thread_post_user_dc_hashtbl = "group.thread_%d_post_dc_uid_%d_hashtbl" //postid <=> 1,0 (1顶0踩)
+	thread_post_sets              = "group.thread_%d_post_set"
+	thread_post_ding_sets         = "group.thread_%d_post_ding_set"
+	thread_post_user_ding_hashtbl = "group.thread_%d_post_ding_uid_%d_hashtbl" //postid <=> 1,0 (1顶)
 )
 
 func NewPostService(cfg *GroupCfg) *PostService {
@@ -1349,11 +1515,11 @@ func (s *PostService) getImgResCacheKey(imgId int64) string {
 
 func (s *PostService) Get(id string) *Post {
 	ckey := s.getCacheKey(id)
-	p := &Post{}
+	var p Post
 	cclient := ssdb.New(use_ssdb_group_db)
-	err := cclient.Get(ckey, p)
+	err := cclient.Get(ckey, &p)
 	if err == nil {
-		return p
+		return &p
 	}
 	o := dbs.NewOrm(db_aliasname)
 	tblId := PostTableId(id)
@@ -1362,56 +1528,86 @@ func (s *PostService) Get(id string) *Post {
 	sql := fmt.Sprintf("SELECT * FROM %s WHERE id = ?", tbl)
 	err = o.Raw(sql, id).QueryRow(post)
 	if err == nil {
-		cclient.Set(ckey, *post)
+		cclient.Set(ckey, post)
 		return post
 	}
 	return nil
 }
 
-func (s *PostService) Action(postId string, uid int64, action POST_ACTION) {
+func (s *PostService) Action(postId string, uid int64, action POST_ACTION) error {
 	post := s.Get(postId)
 	if post == nil {
-		return
+		return fmt.Errorf("评论不存在")
 	}
-	ckey := fmt.Sprintf(thread_post_dc_sets, post.ThreadId)
+
+	if s.Actioned(postId, post.ThreadId, uid, action) && action == POST_ACTION_DING {
+		return fmt.Errorf("已顶过此评论")
+	}
+
+	ckey := fmt.Sprintf(thread_post_ding_sets, post.ThreadId)
 	var i int64 = 0
 	switch action {
-	case POST_ACTION_DING, POST_ACTION_CANCEL_CAI:
+	case POST_ACTION_DING:
 		i = 1
 		break
-	case POST_ACTION_CAI, POST_ACTION_CANCEL_DING:
+	case POST_ACTION_CANCEL_DING:
 		i = -1
 		break
 	default:
 	}
 	cclient := ssdb.New(use_ssdb_group_db)
-	cclient.Zincrby(ckey, post.Id, i)
+	_c, err := cclient.Zincrby(ckey, post.Id, i)
+	if err == nil && _c < 0 {
+		cclient.Zincrby(ckey, post.Id, -_c)
+	}
 
-	//用户顶踩记录
-	user_action_key := fmt.Sprintf(thread_post_user_dc_hashtbl, post.ThreadId, uid)
+	//用户顶记录
+	user_action_key := fmt.Sprintf(thread_post_user_ding_hashtbl, post.ThreadId, uid)
 	switch action {
 	case POST_ACTION_DING:
 		cclient.Hset(user_action_key, post.Id, int64(POST_ACTIONTAG_DING))
 		break
-	case POST_ACTION_CAI:
-		cclient.Hset(user_action_key, post.Id, int64(POST_ACTIONTAG_CAI))
-		break
-	case POST_ACTION_CANCEL_DING, POST_ACTION_CANCEL_CAI:
+	case POST_ACTION_CANCEL_DING:
 		cclient.Hdel(user_action_key, post.Id)
 		break
 	default:
 	}
+	return nil
+}
+
+func (s *PostService) Actioned(postId string, threadId int64, uid int64, action POST_ACTION) bool {
+	user_action_key := fmt.Sprintf(thread_post_user_ding_hashtbl, threadId, uid)
+	cclient := ssdb.New(use_ssdb_group_db)
+	has, _ := cclient.Hexists(user_action_key, postId)
+	return has
+}
+
+func (s *PostService) GetPostActionCounts(threadId int64, postIds []string, action POST_ACTIONTAG) map[string]int {
+	ckey := fmt.Sprintf(thread_post_ding_sets, threadId)
+	cclient := ssdb.New(use_ssdb_group_db)
+	vals := make([]interface{}, len(postIds), len(postIds))
+	for i, id := range postIds {
+		vals[i] = id
+	}
+	result := make(map[string]int)
+	maps, err := cclient.MultiZget(ckey, vals, reflect.TypeOf(""))
+	if err != nil {
+		return result
+	}
+	for k, v := range maps {
+		id := *(k.(*string))
+		result[id] = int(v)
+	}
+	return result
 }
 
 func (s *PostService) GetTops(threadId int64, tops int, pt POST_ACTIONTAG) []*Post {
-	ckey := fmt.Sprintf(thread_post_dc_sets, threadId)
+	ckey := fmt.Sprintf(thread_post_ding_sets, threadId)
 	var objs []interface{}
 	cclient := ssdb.New(use_ssdb_group_db)
 	switch pt {
 	case POST_ACTIONTAG_DING:
 		objs, _ = cclient.Zrscan(ckey, 1<<32, -1<<32, tops, reflect.TypeOf(""))
-	case POST_ACTIONTAG_CAI:
-		objs, _ = cclient.Zscan(ckey, -1<<32, 1<<32, tops, reflect.TypeOf(""))
 	}
 	posts := []*Post{}
 	if len(objs) == 0 {
@@ -1419,9 +1615,9 @@ func (s *PostService) GetTops(threadId int64, tops int, pt POST_ACTIONTAG) []*Po
 	}
 	post_keys := []string{}
 	for _, obj := range objs {
-		id, ok := obj.(string)
+		id, ok := obj.(*string)
 		if ok {
-			post_keys = append(post_keys, s.getCacheKey(id))
+			post_keys = append(post_keys, s.getCacheKey(*id))
 		}
 	}
 	post_objs := cclient.MultiGet(post_keys, reflect.TypeOf(Post{}))
@@ -1433,7 +1629,10 @@ func (s *PostService) GetTops(threadId int64, tops int, pt POST_ACTIONTAG) []*Po
 
 func (s *PostService) MemberThreadPostActionTags(threadId int64, uid int64) map[string]POST_ACTIONTAG {
 	maps := make(map[string]POST_ACTIONTAG)
-	user_action_key := fmt.Sprintf(thread_post_user_dc_hashtbl, threadId, uid)
+	if uid <= 0 {
+		return maps
+	}
+	user_action_key := fmt.Sprintf(thread_post_user_ding_hashtbl, threadId, uid)
 	kvs, err := ssdb.New(use_ssdb_group_db).Hgetall(user_action_key)
 	if err != nil {
 		return maps
@@ -1516,13 +1715,13 @@ func (s *PostService) imgToRes(imgId int64, picSizes []libs.PIC_SIZE) *ImgRes {
 	return ir
 }
 
-func (s *PostService) GetResToImgs(resource string) []*ImgRes {
+func (s *PostService) GetSrcToRes(resource string) *PostRes {
 	var pr *PostRes
 	err := json.Unmarshal([]byte(resource), &pr)
 	if err == nil {
-		return pr.ImgResource
+		return pr
 	}
-	return []*ImgRes{}
+	return nil
 }
 
 func (s *PostService) MaxPosition(threadId int64) int {
@@ -1542,6 +1741,7 @@ func (s *PostService) Create(post *Post) error {
 	if thread == nil {
 		return fmt.Errorf("帖子不存在")
 	}
+
 	if len(post.ReplyId) > 0 {
 		reply := s.Get(post.ReplyId)
 		if reply == nil {
@@ -1558,8 +1758,8 @@ func (s *PostService) Create(post *Post) error {
 		var wait sync.WaitGroup
 		for _, imgid := range post.ImgIds {
 			_id := imgid
+			wait.Add(1)
 			go func() {
-				wait.Add(1)
 				defer wait.Done()
 				file := file_storage.GetFile(_id)
 				if file == nil {
@@ -1579,7 +1779,17 @@ func (s *PostService) Create(post *Post) error {
 			}()
 		}
 		wait.Wait()
-		pr.ImgResource = irs
+		//原始顺序排列
+		imgrs := []*ImgRes{}
+		for _, imgid := range post.ImgIds {
+			for _, ir := range irs {
+				if ir.OriginalImgId == imgid {
+					imgrs = append(imgrs, ir)
+					break
+				}
+			}
+		}
+		pr.ImgResource = imgrs
 	}
 	//处理视频数据
 
@@ -1598,9 +1808,9 @@ func (s *PostService) Create(post *Post) error {
 
 	tbl := fmt.Sprintf(group_post_table_fmt, thread.PostTableId)
 	o := dbs.NewOrm(db_aliasname)
-	sql := fmt.Sprintf(`insert %s(id,tid,authorid,subject,dateline,message,ip,invisible,position,
+	sql := fmt.Sprintf(`insert %s(id,tid,authorid,subject,dateline,message,ip,invisible,ding,cai,position,
 		replyid,replyuid,replyposition,img,resources,longitude,latitude,fromdev)
-		values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, tbl)
+		values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, tbl)
 	_, err = o.Raw(sql, post.Id,
 		post.ThreadId,
 		post.AuthorId,
@@ -1609,6 +1819,8 @@ func (s *PostService) Create(post *Post) error {
 		post.Message,
 		post.Ip,
 		post.Invisible,
+		post.Ding,
+		post.Cai,
 		post.Position,
 		post.ReplyId,
 		post.ReplyUid,
@@ -1623,10 +1835,11 @@ func (s *PostService) Create(post *Post) error {
 	}
 	cclient := ssdb.New(use_ssdb_group_db)
 	cclient.Zadd(fmt.Sprintf(thread_post_sets, post.ThreadId), post.Id, int64(post.Position))
-	cclient.Set(s.getCacheKey(post.Id), *post)
+	cclient.Set(s.getCacheKey(post.Id), post)
 
 	if post.Position > 1 {
-		go tservice.ActionProperty([]TH_PROPERTY{TH_PROPERTY_REPLIES, TH_PROPERTY_LASTPOST}, []int64{1, post.DateLine}, post.ThreadId)
+		go tservice.ActionProperty([]TH_PROPERTY{TH_PROPERTY_REPLIES}, []int64{1}, post.ThreadId)
+		go tservice.SetLastPost(post)
 	}
 
 	return nil
@@ -1646,6 +1859,7 @@ func (s *PostService) Gets(threadId int64, page int, size int, orderby POST_ORDE
 
 	tbl := fmt.Sprintf(group_post_table_fmt, thread.PostTableId)
 	o := dbs.NewOrm(db_aliasname)
+	total := 0
 	if onlylz {
 		var rs []Result
 		sql := fmt.Sprintf("SELECT id FROM %s where tid=? and authorid=%d and position > 1 order by position %s limit %d,%d", tbl, thread.AuthorId, orderby, offset, size)
@@ -1653,9 +1867,19 @@ func (s *PostService) Gets(threadId int64, page int, size int, orderby POST_ORDE
 		if err != nil {
 			return 0, posts
 		}
+
+		//总数
+		sql = fmt.Sprintf("SELECT count(id) as counts FROM %s where tid=? and authorid=%d and position > 1", tbl, thread.AuthorId)
+		type TotalResult struct {
+			Counts int
+		}
+		var tr TotalResult
+		o.Raw(sql, threadId).QueryRow(&tr)
+		total = tr.Counts
+
 		keys := make([]string, len(rs), len(rs))
 		for i, r := range rs {
-			keys[i] = r.Id
+			keys[i] = s.getCacheKey(r.Id)
 		}
 		objs := ssdb.New(use_ssdb_group_db).MultiGet(keys, reflect.TypeOf(Post{}))
 		for _, t := range objs {
@@ -1668,14 +1892,17 @@ func (s *PostService) Gets(threadId int64, page int, size int, orderby POST_ORDE
 		if err != nil {
 			return 0, posts
 		}
+
+		total, _ = ssdb.New(use_ssdb_group_db).Zcard(fmt.Sprintf(thread_post_sets, threadId))
+
 		keys := make([]string, len(rs), len(rs))
 		for i, r := range rs {
-			keys[i] = r.Id
+			keys[i] = s.getCacheKey(r.Id)
 		}
 		objs := ssdb.New(use_ssdb_group_db).MultiGet(keys, reflect.TypeOf(Post{}))
 		for _, t := range objs {
 			posts = append(posts, t.(*Post))
 		}
 	}
-	return thread.Replies, posts
+	return total, posts
 }
