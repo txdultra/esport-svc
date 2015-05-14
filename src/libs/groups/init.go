@@ -9,9 +9,13 @@ import (
 )
 
 var group_setting_id int
+var update_group_limit_seconds int64
 var db_aliasname, db_name string
 var use_ssdb_group_db, credit_service_host string
 var group_pic_thumbnail_w, group_pic_middle_w int
+var search_server, group_timerjob_host string
+var search_port, search_timeout int
+var app_task_run bool
 
 func init() {
 	//ssdb tag
@@ -21,6 +25,7 @@ func init() {
 
 	//setting id
 	group_setting_id, _ = beego.AppConfig.Int("group.setting.id")
+	update_group_limit_seconds = beego.AppConfig.DefaultInt64("group.update.limit.seconds", 20)
 
 	group_pic_thumbnail_w, _ = beego.AppConfig.Int("group.pic.thumbnail.w")
 	if group_pic_thumbnail_w <= 0 {
@@ -31,6 +36,14 @@ func init() {
 		group_pic_middle_w = 148 * 2
 	}
 
+	app_task_run = beego.AppConfig.DefaultBool("app.task.run.group", false)
+	group_timerjob_host = beego.AppConfig.String("group.timerjob.host")
+
+	//search
+	search_server = beego.AppConfig.String("search.group.server")
+	search_port, _ = beego.AppConfig.Int("search.group.port")
+	search_timeout, _ = beego.AppConfig.Int("search.group.timeout")
+
 	orm.RegisterModel(new(GroupCfg), new(Group), new(Thread), new(Post),
 		new(Report), new(MemberCount),
 		new(GroupMemberTable), new(MemberGroupTable), new(PostTable))
@@ -39,6 +52,10 @@ func init() {
 	//启动前加载
 	beego.AddAPPStartHook(func() error {
 		load_tbls() //加载分表数据
+		if app_task_run {
+			//定时工作
+			tjInit()
+		}
 		return nil
 	})
 }

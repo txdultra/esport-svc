@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bytes"
 	_ "controllers"
-	"database/sql"
 	_ "docs"
+	"errors"
 	"fmt"
+	"log"
+	"net"
 	//"strings"
 
 	"github.com/astaxie/beego"
 	_ "github.com/astaxie/beego/toolbox"
+	"github.com/glycerine/go-capnproto"
 	//"github.com/golang/groupcache"
 	//"github.com/astaxie/beego/orm"
 	"libs"
@@ -51,7 +55,6 @@ import (
 	//"strings"
 
 	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/go-sql-driver/sphinxql"
 	"github.com/yunge/sphinx"
 	//"math/rand"
 	//"logs"
@@ -61,6 +64,10 @@ import (
 	//加载钩子程序
 
 	_ "libs/utask/hook"
+
+	cmd "github.com/Lupino/periodic/cmd/periodic/subcmd"
+	pd "github.com/Lupino/periodic/driver"
+	"github.com/Lupino/periodic/protocol"
 )
 
 func main() {
@@ -189,15 +196,135 @@ func main() {
 	//		return
 	//	}
 	//	fmt.Println(res.TotalFound)
-	//sphsql := sphinxql.
-	mySql, err := sql.Open("sphinxql", "tcp(192.168.0.79:9317)/gotest")
-	if err != nil {
-		fmt.Println(err)
+	var jobName = ""
+	if true {
+		if true {
+			go func() {
+				i := 0
+				for {
+					var s = capn.NewBuffer(nil)
+					var job = pd.NewRootJob(s)
+					jobName = utils.RandomStrings(5)
+					job.SetName(jobName)
+					job.SetFunc("test_func")
+					job.SetArgs("")
+					job.SetTimeout(1000)
+
+					delay := 100
+					job.SetSchedAt(int64(time.Now().Unix()) + int64(delay))
+					cmd.SubmitJob("tcp://192.168.0.79:5000", job)
+					i++
+					if i > 5 {
+						return
+					}
+				}
+			}()
+
+			time.Sleep(2 * time.Second)
+			//return
+		}
+
+		//删除
+		conn, err := net.Dial("tcp", "192.168.0.79:5000")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		aconn := protocol.NewClientConn(conn)
+		defer aconn.Close()
+		err = aconn.Send(protocol.TYPE_CLIENT.Bytes())
+		if err != nil {
+			return
+		}
+		var s = capn.NewBuffer(nil)
+		var job = pd.NewRootJob(s)
+		job.SetName(jobName)
+		job.SetFunc("test_func")
+		buf := bytes.NewBuffer(nil)
+		buf.Write([]byte(""))
+		buf.Write(protocol.NULL_CHAR)
+		buf.WriteByte(byte(protocol.REMOVE_JOB))
+		buf.Write(protocol.NULL_CHAR)
+		job.Segment.WriteTo(buf)
+		err = aconn.Send(buf.Bytes())
+		if err != nil {
+			log.Fatal(err)
+		}
+		payload, err := aconn.Receive()
+		if err != nil {
+			log.Fatal(err)
+		}
+		_, cmd, _ := protocol.ParseCommand(payload)
+		rlt := cmd.String()
+		fmt.Println("jobName:", jobName, ":", rlt)
+		//return
+
+		//接收
+		extraJob := func(payload []byte) (job pd.Job, jobHandle []byte, err error) {
+			parts := bytes.SplitN(payload, protocol.NULL_CHAR, 4)
+			if len(parts) != 4 {
+				err = errors.New("Invalid payload " + string(payload))
+				return
+			}
+			job, err = pd.ReadJob(parts[3])
+			jobHandle = parts[2]
+			return
+		}
+
+		conn, err = net.Dial("tcp", "192.168.0.79:5000")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		pconn := protocol.NewClientConn(conn)
+		defer pconn.Close()
+		err = pconn.Send(protocol.TYPE_WORKER.Bytes())
+		if err != nil {
+			return
+		}
+		//var msgId = []byte(fmt.Sprintf("%d", time.Now().Unix()))
+		buf = bytes.NewBuffer(nil)
+		buf.Write([]byte(""))
+		buf.Write(protocol.NULL_CHAR)
+		buf.WriteByte(byte(protocol.CAN_DO))
+		buf.Write(protocol.NULL_CHAR)
+		buf.WriteString("test_func")
+		err = pconn.Send(buf.Bytes())
+		if err != nil {
+			return
+		}
+
+		for {
+			buf := bytes.NewBuffer(nil)
+			buf.Write([]byte(""))
+			buf.Write(protocol.NULL_CHAR)
+			buf.Write(protocol.GRAB_JOB.Bytes())
+			err = pconn.Send(buf.Bytes())
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			rdata, _ := pconn.Receive()
+			fmt.Println("1_", rdata)
+
+			job, jobHandle, _ := extraJob(rdata)
+			fmt.Println("job name:", job.Name(), job.Id(), job.Args())
+
+			buf = bytes.NewBuffer(nil)
+			buf.Write([]byte(""))
+			buf.Write(protocol.NULL_CHAR)
+			buf.WriteByte(byte(protocol.WORK_DONE))
+			buf.Write(protocol.NULL_CHAR)
+			buf.Write(jobHandle)
+			err = pconn.Send(buf.Bytes())
+			if err != nil {
+				return
+			}
+			fmt.Println(time.Now())
+		}
 		return
 	}
-	defer mySql.Close()
-	fmt.Println(mySql.Exec("select * from group_rt"))
-	return
 
 	//	rep := reptile.NewYoukuReptileV2()
 	//	fmt.Println(rep.Reptile("http://v.youku.com/v_show/id_XOTEzMzUxOTk2.html"))

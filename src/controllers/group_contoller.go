@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"libs"
 	"libs/groups"
+	"libs/search"
 	"outobjs"
 	"strconv"
 	"strings"
@@ -90,7 +91,61 @@ func (c *GroupController) GetGroup() {
 // @Success 200 {object} outobjs.OutGroupPagedList
 // @router /group/list [get]
 func (c *GroupController) GetGroups() {
+	current_uid := c.CurrentUid()
+	words, _ := utils.UrlDecode(c.GetString("words"))
+	gameids := c.GetString("game_ids")
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("size")
+	orderby := c.GetString("orderby")
+	var sortBy groups.GP_SEARCH_SORT
+	switch orderby {
+	case "hot":
+		sortBy = groups.GP_SEARCH_SORT_VITALITY
+		break
+	case "fans":
+		sortBy = groups.GP_SEARCH_SORT_USERS
+		break
+	case "official":
+		sortBy = groups.GP_SEARCH_SORT_OFFICIAL
+	default:
+		sortBy = groups.GP_SEARCH_SORT_DEFAULT
+	}
+	fgameids := []uint64{}
+	_strids := strings.Split(gameids, ",")
+	for _, _id := range _strids {
+		gid, _ := strconv.ParseUint(_id, 10, 64)
+		fgameids = append(fgameids, gid)
+	}
+	var filters []search.SearchFilter
+	if len(fgameids) > 0 {
+		filters = append(filters, search.SearchFilter{
+			Attr:    "gameids",
+			Values:  fgameids,
+			Exclude: false,
+		})
+	}
+	filters = append(filters, search.SearchFilter{
+		Attr:    "status",
+		Values:  []uint64{uint64(groups.GROUP_STATUS_OPENING), uint64(groups.GROUP_STATUS_LOWMEMBER)},
+		Exclude: false,
+	})
 
+	match_mode := "any"
+	if len(words) == 0 {
+		match_mode = "all"
+	}
+	cfg := groups.GetDefaultCfg()
+	gs := groups.NewGroupService(cfg)
+	total, groups := gs.Search(words, page, size, match_mode, sortBy, filters, nil)
+	out_groups := outobjs.GetOutGroups(groups, current_uid)
+	out_p := &outobjs.OutGroupPagedList{
+		CurrentPage: page,
+		PageSize:    size,
+		TotalPages:  utils.TotalPages(total, size),
+		Groups:      out_groups,
+		Total:       total,
+	}
+	c.Json(out_p)
 }
 
 // @Title 获取招募中的组列表
@@ -98,10 +153,46 @@ func (c *GroupController) GetGroups() {
 // @Param   access_token  path  string  false  "access_token"
 // @Param   game_ids   path  string  false  "游戏ids(逗号,分隔)"
 // @Param   page   path  int  false  "页"
+// @Param   size   path  int  false  "页数"
 // @Success 200 {object} outobjs.OutGroupPagedList
 // @router /group/recruiting [get]
 func (c *GroupController) GetRecruitingGroups() {
+	current_uid := c.CurrentUid()
+	gameids := c.GetString("game_ids")
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("size")
+	fgameids := []uint64{}
+	_strids := strings.Split(gameids, ",")
+	for _, _id := range _strids {
+		gid, _ := strconv.ParseUint(_id, 10, 64)
+		fgameids = append(fgameids, gid)
+	}
+	var filters []search.SearchFilter
+	if len(fgameids) > 0 {
+		filters = append(filters, search.SearchFilter{
+			Attr:    "gameids",
+			Values:  fgameids,
+			Exclude: false,
+		})
+	}
+	filters = append(filters, search.SearchFilter{
+		Attr:    "status",
+		Values:  []uint64{uint64(groups.GROUP_STATUS_RECRUITING)},
+		Exclude: false,
+	})
 
+	cfg := groups.GetDefaultCfg()
+	gs := groups.NewGroupService(cfg)
+	total, groups := gs.Search("", page, size, "all", groups.GP_SEARCH_SORT_ENDTIME, filters, nil)
+	out_groups := outobjs.GetOutGroups(groups, current_uid)
+
+	out_p := &outobjs.OutGroupPagedList{
+		CurrentPage: page,
+		PageSize:    size,
+		TotalPages:  utils.TotalPages(total, size),
+		Groups:      out_groups,
+	}
+	c.Json(out_p)
 }
 
 // @Title 用户创建的组列表
@@ -119,7 +210,7 @@ func (c *GroupController) GetMyGroups() {
 	gs := groups.NewGroupService(cfg)
 	mygroups := gs.MyGroups(current_uid)
 	out_mygroups := &outobjs.OutMyGroups{
-		MaxAllowGroupCount: cfg.CreateGroupMaxCount,
+		MaxAllowGroupCount: gs.AllowMaxCreateLimits(current_uid),
 	}
 	out_groups := []*outobjs.OutGroup{}
 	for _, gp := range mygroups {

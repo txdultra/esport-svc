@@ -10,6 +10,7 @@ import (
 	credit_client "libs/credits/client"
 	credit_proxy "libs/credits/proxy"
 	"libs/passport"
+	"libs/search"
 	"logs"
 	"reflect"
 	"strconv"
@@ -172,6 +173,16 @@ const (
 	GP_PROPERTY_THREADS GP_PROPERTY = "threads"
 )
 
+type GP_SEARCH_SORT int
+
+const (
+	GP_SEARCH_SORT_DEFAULT  GP_SEARCH_SORT = 1
+	GP_SEARCH_SORT_USERS    GP_SEARCH_SORT = 2
+	GP_SEARCH_SORT_VITALITY GP_SEARCH_SORT = 3
+	GP_SEARCH_SORT_OFFICIAL GP_SEARCH_SORT = 4
+	GP_SEARCH_SORT_ENDTIME  GP_SEARCH_SORT = 5
+)
+
 var tbl_mutex *sync.Mutex = new(sync.Mutex)
 var mgTbls map[int]string = make(map[int]string)
 var gmTbls map[int]string = make(map[int]string)
@@ -190,20 +201,24 @@ func (s *GroupService) getCacheKey(id int64) string {
 	return fmt.Sprintf("group_model_%d", id)
 }
 
-func (s *GroupService) CheckMemberNewGroupPass(uid int64, belong GROUP_BELONG) error {
-	//认证用户创建个数不同
+func (s *GroupService) AllowMaxCreateLimits(uid int64) int {
 	ps := passport.NewMemberProvider()
 	member := ps.Get(uid)
 	if member == nil {
-		return fmt.Errorf("组创建人不存在")
+		return 0
 	}
 	max_limit := s.cfg.CreateGroupMaxCount
 	if member.Certified {
 		max_limit = s.cfg.CreateGroupCertifiedMaxCount
 	}
+	return max_limit
+}
+
+func (s *GroupService) CheckMemberNewGroupPass(uid int64, belong GROUP_BELONG) error {
+	max_limit := s.AllowMaxCreateLimits(uid)
 	//验证创建个数限制
 	o := dbs.NewOrm(db_aliasname)
-	nums, _ := o.QueryTable(&Group{}).Exclude("status", GROUP_STATUS_CLOSED).Count()
+	nums, _ := o.QueryTable(&Group{}).Filter("uid", uid).Exclude("status", GROUP_STATUS_CLOSED).Count()
 	if int(nums) >= max_limit {
 		return fmt.Errorf("已超过可以创建小组的数量限制")
 	}
@@ -263,18 +278,10 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	}
 
 	//认证用户创建个数不同
-	ps := passport.NewMemberProvider()
-	member := ps.Get(group.Uid)
-	if member == nil {
-		return fmt.Errorf("组创建人不存在")
-	}
-	max_limit := s.cfg.CreateGroupMaxCount
-	if member.Certified {
-		max_limit = s.cfg.CreateGroupCertifiedMaxCount
-	}
+	max_limit := s.AllowMaxCreateLimits(group.Uid)
 	//验证创建个数限制
 	o := dbs.NewOrm(db_aliasname)
-	nums, _ := o.QueryTable(&Group{}).Exclude("status", GROUP_STATUS_CLOSED).Count()
+	nums, _ := o.QueryTable(&Group{}).Filter("uid", group.Uid).Exclude("status", GROUP_STATUS_CLOSED).Count()
 	if int(nums) >= max_limit {
 		return fmt.Errorf("已超过可以创建小组的数量限制")
 	}
@@ -586,6 +593,10 @@ func (s *GroupService) Update(group *Group) error {
 	if group.BgImg == 0 {
 		return fmt.Errorf("未设置背景图")
 	}
+	//新建后更新间隔
+	if group.CreateTime+update_group_limit_seconds > time.Now().Unix() {
+		return fmt.Errorf(fmt.Sprintf("新建小组%d秒内不允许修改", update_group_limit_seconds))
+	}
 
 	//图片压缩
 	src_group := s.Get(group.Id)
@@ -776,6 +787,18 @@ func (s *GroupService) MyJoins(uid int64, page int, size int) (int, []*Group) {
 	return count, groups
 }
 
+func (s *GroupService) MyAllJoinGroupIds(uid int64) map[int64]int64 {
+	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid) //用户加入小组的集合key
+	client := ssdb.New(use_ssdb_group_db)
+	vals, _ := client.Zscan(mjoined_key, 0, time.Now().Unix(), 1<<10, reflect.TypeOf(int64(0)))
+	ids := make(map[int64]int64)
+	for _, val := range vals {
+		id := *(val.(*int64))
+		ids[id] = 0
+	}
+	return ids
+}
+
 func (s *GroupService) IsJoined(uid int64, groupId int64) bool {
 	if uid <= 0 {
 		return false
@@ -849,9 +872,53 @@ func (s *GroupService) MyGroups(uid int64) []*Group {
 	return groups
 }
 
-func (s *GroupService) Search() (int, []*Group) {
+func (s *GroupService) Search(words string, page int, size int, match_mode string, sort GP_SEARCH_SORT,
+	filters []search.SearchFilter, filterRanges []search.FilterRangeInt) (int, []*Group) {
+	search_config := &search.SearchOptions{
+		Host:    search_server,
+		Port:    search_port,
+		Timeout: search_timeout,
+	}
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
+	offset := (page - 1) * size
+	search_config.Offset = offset
+	search_config.Limit = size
+	search_config.Filters = filters
+	search_config.FilterRangeInt = filterRanges
+	search_config.MaxMatches = 500
 
-	return 0, nil
+	sorts := []string{"@weight DESC"}
+	switch sort {
+	case GP_SEARCH_SORT_USERS:
+		sorts = append(sorts, "members DESC")
+		break
+	case GP_SEARCH_SORT_OFFICIAL:
+		sorts = append(sorts, "belong DESC")
+		sorts = append(sorts, "vitality DESC")
+		break
+	case GP_SEARCH_SORT_VITALITY:
+		sorts = append(sorts, "vitality DESC")
+		break
+	case GP_SEARCH_SORT_ENDTIME:
+		sorts = append(sorts, "endtime ASC")
+		break
+	default:
+		sorts = append(sorts, "displayorder DESC")
+		sorts = append(sorts, "vitality DESC")
+	}
+
+	sph := search.NewSearcher(search_config)
+	ids, total, err := sph.Query(words, sorts, "group_idx", match_mode)
+	if err != nil {
+		return 0, []*Group{}
+	}
+	groups := s.multiGets(ids)
+	return total, groups
 }
 
 func (s *GroupService) CheckCompletedInvited(group *Group) (bool, error) {

@@ -62,6 +62,7 @@ type OutGroupPagedList struct {
 	CurrentPage int         `json:"current_page"`
 	PageSize    int         `json:"page_size"`
 	TotalPages  int         `json:"total_pages"`
+	Total       int         `json:"total"`
 	Groups      []*OutGroup `json:"groups"`
 }
 
@@ -148,7 +149,12 @@ func GetOutGroup(group *groups.Group, concernUid int64) *OutGroup {
 	if time.Now().Unix() < group.EndTime {
 		remain_seconds = group.EndTime - time.Now().Unix()
 	}
-	gs := groups.NewGroupService(groups.GetDefaultCfg())
+	isJoined := false
+	if concernUid > 0 {
+		gs := groups.NewGroupService(groups.GetDefaultCfg())
+		isJoined = gs.IsJoined(concernUid, group.Id)
+	}
+
 	return &OutGroup{
 		Id:               group.Id,
 		Name:             group.Name,
@@ -176,8 +182,25 @@ func GetOutGroup(group *groups.Group, concernUid int64) *OutGroup {
 		EndTime:          time.Unix(group.EndTime, 0),
 		RemainSeconds:    remain_seconds,
 		MinUsers:         group.MinUsers,
-		IsJoined:         gs.IsJoined(concernUid, group.Id),
+		IsJoined:         isJoined,
 	}
+}
+
+func GetOutGroups(gps []*groups.Group, concernUid int64) []*OutGroup {
+	outgroups := make([]*OutGroup, len(gps), len(gps))
+	for i, _g := range gps {
+		outgroups[i] = GetOutGroup(_g, 0)
+	}
+	if concernUid > 0 {
+		gs := groups.NewGroupService(groups.GetDefaultCfg())
+		joineds := gs.MyAllJoinGroupIds(concernUid)
+		for _, outg := range outgroups {
+			if _, ok := joineds[outg.Id]; ok {
+				outg.IsJoined = true
+			}
+		}
+	}
+	return outgroups
 }
 
 func GetOutThread(thread *groups.Thread) *OutThread {

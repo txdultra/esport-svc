@@ -246,3 +246,48 @@ func (f *Searcher) ProgramQuery(words string, match_mode string) ([]int64, int, 
 	}
 	return ids, res.TotalFound, nil
 }
+
+func (f *Searcher) UpdateAttributes(index string, attrs []string, values [][]interface{}) (ndocs int, err error) {
+	sc := sphinx.NewClient(f.sphinxOptions())
+	if err := sc.Error(); err != nil {
+		return 0, errors.New("connect error:" + err.Error())
+	}
+	ndocs, err = sc.UpdateAttributes(index, attrs, values, false)
+	return
+}
+
+func (f *Searcher) Query(words string, sorts []string, index string, match_mode string) ([]int64, int, error) {
+	sc := sphinx.NewClient(f.sphinxOptions())
+	if err := sc.Error(); err != nil {
+		return nil, 0, errors.New("connect error:" + err.Error())
+	}
+	sph_match := f.sph_match_mode(match_mode)
+	sc.SetMatchMode(sph_match)
+	sc.SetRankingMode(sphinx.SPH_RANK_SPH04)
+	if len(sorts) > 0 {
+		sc.SetSortMode(sphinx.SPH_SORT_EXTENDED, strings.Join(sorts, ","))
+	} else {
+		sc.SetSortMode(sphinx.SPH_SORT_EXTENDED, "@weight DESC")
+	}
+	if len(f.options.Filters) > 0 {
+		for _, filter := range f.options.Filters {
+			sc.SetFilter(filter.Attr, filter.Values, filter.Exclude)
+		}
+	}
+	if len(f.options.FilterRangeInt) > 0 {
+		for _, filter := range f.options.FilterRangeInt {
+			sc.SetFilterRange(filter.Attr, filter.Min, filter.Max, filter.Exclude)
+		}
+	}
+	words = strings.ToUpper(words) //统一转成大写
+	sego_words := words            //f.Segment(words)
+	res, err := sc.Query(sego_words, index, "")
+	if err != nil {
+		return nil, 0, errors.New("query fail:" + err.Error())
+	}
+	var ids []int64
+	for _, r := range res.Matches {
+		ids = append(ids, int64(r.DocId))
+	}
+	return ids, res.TotalFound, nil
+}
