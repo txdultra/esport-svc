@@ -574,7 +574,6 @@ func (c *Cluster) Zscan(key string, min int64, max int64, limit int, valType ref
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(resp)
 	if resp[0] == "ok" {
 		lst := []interface{}{}
 		for i := 1; i < len(resp); i += 2 {

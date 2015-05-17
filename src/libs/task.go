@@ -182,12 +182,12 @@ func (t *TimerJobSys) handleWorker(conn protocol.Conn, kind string, jobFunc Time
 		}
 		job, jobHandle, err = t.extraJob(payload)
 		//运行任务
-		schedLater, jobRlt := jobFunc(job.Name(), job.Args(), job.Status())
+		schedLater, err := jobFunc(job.Name(), job.Args(), job.Status())
 
 		buf = bytes.NewBuffer(nil)
 		buf.Write(msgId)
 		buf.Write(protocol.NULL_CHAR)
-		if err != nil || jobRlt != nil {
+		if err != nil {
 			buf.WriteByte(byte(protocol.WORK_FAIL))
 		} else if schedLater > 0 {
 			buf.WriteByte(byte(protocol.SCHED_LATER))
@@ -203,7 +203,6 @@ func (t *TimerJobSys) handleWorker(conn protocol.Conn, kind string, jobFunc Time
 		err = conn.Send(buf.Bytes())
 		if err != nil {
 			log.Fatal(err)
-			return
 		}
 	}
 }

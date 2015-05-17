@@ -74,6 +74,16 @@ func RegisterShareRevokeEvent(eventName string, eventHandler ShareRevokeEvent) {
 
 type Shares struct{}
 
+//重置新消息列表 IEventCounter interface
+func (n Shares) ResetEventCount(uid int64) bool {
+	return message.ResetEventCount(uid, MSG_TYPE_TEXT)
+}
+
+//IEventCounter interface
+func (n Shares) NewEventCount(uid int64) int {
+	return message.NewEventCount(uid, MSG_TYPE_TEXT)
+}
+
 //share库分表
 func (n *Shares) Sel_tbl(id int64, pfx_table string) string {
 	idstr := strconv.FormatInt(id, 10)
@@ -316,7 +326,7 @@ func (n *Shares) TranformResource(share_type SHARE_KIND, id string, args ...stri
 	}
 }
 
-func (n *Shares) saveToCacheAndMsgEvent(s *Share, atuids map[int64]int64, msg_notice bool) {
+func (n *Shares) saveToCacheAndMsgEvent(s *Share, atuids map[int64]int64, msgNotice bool) {
 	cache := utils.GetCache()
 	cache.Set(fmt.Sprintf(SHARE_CACHE_KEY_FMT, s.Id), *s, 96*time.Hour)
 
@@ -333,7 +343,7 @@ func (n *Shares) saveToCacheAndMsgEvent(s *Share, atuids map[int64]int64, msg_no
 	}
 
 	//触发事件
-	if msg_notice {
+	if msgNotice {
 		msg_type := n.getMsgType(s)
 		for _, to_uid := range atuids {
 			go message.SendMsgV2(s.Uid, to_uid, msg_type, "提到了你", strconv.FormatInt(s.Id, 10), nil)
@@ -343,11 +353,11 @@ func (n *Shares) saveToCacheAndMsgEvent(s *Share, atuids map[int64]int64, msg_no
 
 func (n *Shares) getMsgType(s *Share) message.MSG_TYPE {
 	if s.ShareType&int(SHARE_KIND_VOD) == int(SHARE_KIND_VOD) {
-		return message.MSG_TYPE_VOD
+		return MSG_TYPE_VOD
 	} else if s.ShareType&int(SHARE_KIND_PIC) == int(SHARE_KIND_PIC) {
-		return message.MSG_TYPE_PICS
+		return MSG_TYPE_PICS
 	} else {
-		return message.MSG_TYPE_TEXT
+		return MSG_TYPE_TEXT
 	}
 }
 

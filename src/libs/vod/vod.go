@@ -2,12 +2,17 @@ package vod
 
 import (
 	"libs"
+	"libs/message"
 	"libs/reptile"
 	"strings"
 	"time"
 	"utils"
 
 	"labix.org/v2/mgo/bson"
+)
+
+const (
+	MSG_TYPE_COMMENT message.MSG_TYPE = "vod:comment"
 )
 
 type Video struct {

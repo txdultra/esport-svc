@@ -12,85 +12,97 @@ import (
 	"labix.org/v2/mgo/bson"
 )
 
-const (
-	member_atmsg_box_count = "member_atmsg_box_count:%d"
-	member_atmsg_newalert  = "member_atmsg_newalert:%d"
-)
-
-func CreateMsg(from_uid int64, to_uid int64, msg_type MSG_TYPE, content string, ref_id string) *MsgData {
+func CreateMsg(fromUid int64, toUid int64, msgType MSG_TYPE, content string, refId string) *MsgData {
 	return &MsgData{
 		Id:        bson.NewObjectId(),
-		FromUid:   from_uid,
-		ToUid:     to_uid,
-		MsgType:   msg_type,
+		FromUid:   fromUid,
+		ToUid:     toUid,
+		MsgType:   msgType,
 		Text:      content,
-		RefId:     ref_id,
+		RefId:     refId,
 		PostTime:  time.Now(),
 		Timestamp: utils.TimeMillisecond(time.Now()),
 	}
 }
 
-func SendMsgV2(from_uid int64, to_uid int64, msg_type MSG_TYPE, content string, rel_id string, completed_callback func(string)) error {
-	msg := CreateMsg(from_uid, to_uid, msg_type, content, rel_id)
-	return SendMsg(msg, completed_callback)
-}
-
-func SendMsg(msg *MsgData, completed_callback func(string)) error {
-	session, col := dbs.MgoC(sns_atmsg_db, sns_atmsg_collection)
+func SendMsg(msg *MsgData, completedCallback func(string)) error {
+	config := getMsgStorageConfig(msg.MsgType)
+	session, col := dbs.MgoC(config.DbName, config.TableName)
 	defer session.Close()
 	err := col.Insert(msg)
 	if err != nil {
 		logs.Error(err.Error())
 		return fmt.Errorf("发送失败:%s", err)
 	}
-	atboxcs := fmt.Sprintf(member_atmsg_box_count, msg.ToUid)
+	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, msg.ToUid)
 
-	ssdb.New(use_ssdb_message_db).Incr(atboxcs) //@消息计数
-	go incrAtMsgAlerts(msg.ToUid)               //用户新消息
-	if completed_callback != nil {
-		go completed_callback(msg.Id.Hex())
+	ssdb.New(config.CacheDb).Incr(atboxcs) //@消息计数
+	go incrAtMsgAlerts(msg.ToUid, config)  //用户新消息
+	if completedCallback != nil {
+		go completedCallback(msg.Id.Hex())
 	}
 	return nil
 }
 
-func incrAtMsgAlerts(uid int64) int {
-	new_alert_box := fmt.Sprintf(member_atmsg_newalert, uid)
-	c, _ := ssdb.New(use_ssdb_message_db).Incr(new_alert_box)
+func SendMsgV2(fromUid int64, toUid int64, msgType MSG_TYPE, content string, relId string, completedCallback func(string)) error {
+	msg := CreateMsg(fromUid, toUid, msgType, content, relId)
+	return SendMsg(msg, completedCallback)
+}
+
+func incrAtMsgAlerts(uid int64, msc *MsgStorageConfig) int {
+	new_alert_box := fmt.Sprintf(msc.NewMsgCountCacheName, uid)
+	c, _ := ssdb.New(msc.CacheDb).Incr(new_alert_box)
 	return int(c)
 }
 
-func NewEventCount(uid int64) int {
+func NewEventCount(uid int64, msgType MSG_TYPE) int {
+	config := getMsgStorageConfig(msgType)
 	c := 0
-	new_alert_box := fmt.Sprintf(member_atmsg_newalert, uid)
-	err := ssdb.New(use_ssdb_message_db).Get(new_alert_box, &c)
+	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
+	err := ssdb.New(config.CacheDb).Get(new_alert_box, &c)
 	if err != nil {
 		return 0
 	}
 	return c
 }
 
-func ResetEventCount(uid int64) bool {
-	new_alert_box := fmt.Sprintf(member_atmsg_newalert, uid)
-	ok, _ := ssdb.New(use_ssdb_message_db).Del(new_alert_box)
+func ResetEventCount(uid int64, msgType MSG_TYPE) bool {
+	config := getMsgStorageConfig(msgType)
+	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
+	ok, _ := ssdb.New(config.CacheDb).Del(new_alert_box)
 	return ok
 }
 
-func SendMsgs(msgs []MsgData) {
-	session, col := dbs.MgoC(sns_atmsg_db, sns_atmsg_collection)
+func SendMsgs2(msgs []MsgData) error {
+	if len(msgs) == 0 {
+		return nil
+	}
+	mt := msgs[0].MsgType
+	config := getMsgStorageConfig(mt)
+	tblName := config.TableName
+	for _, msg := range msgs {
+		_mt := getMsgStorageConfig(msg.MsgType)
+		if tblName != _mt.TableName {
+			return fmt.Errorf("批量发送的消息类型对应的表必须一致")
+		}
+	}
+	session, col := dbs.MgoC(config.DbName, config.TableName)
 	defer session.Close()
 	for _, msg := range msgs {
 		err := col.Insert(msg)
 		if err != nil {
 			continue
 		}
-		atboxcs := fmt.Sprintf(member_atmsg_box_count, msg.ToUid)
-		ssdb.New(use_ssdb_message_db).Incr(atboxcs) //@消息计数
-		go incrAtMsgAlerts(msg.ToUid)               //用户新消息数
+		atboxcs := fmt.Sprintf(config.MailboxCountCacheName, msg.ToUid)
+		ssdb.New(config.CacheDb).Incr(atboxcs) //@消息计数
+		go incrAtMsgAlerts(msg.ToUid, config)  //用户新消息数
 	}
+	return nil
 }
 
-func EmptyMsgBox(uid int64) error {
-	session, col := dbs.MgoC(sns_atmsg_db, sns_atmsg_collection)
+func EmptyMsgBox(uid int64, msgType MSG_TYPE) error {
+	config := getMsgStorageConfig(msgType)
+	session, col := dbs.MgoC(config.DbName, config.TableName)
 	defer session.Close()
 	fm := bson.M{}
 	fm["to_uid"] = uid
@@ -99,18 +111,19 @@ func EmptyMsgBox(uid int64) error {
 		logs.Error(err.Error())
 		return fmt.Errorf("清空失败:MSG_EMB")
 	}
-	atboxcs := fmt.Sprintf(member_atmsg_box_count, uid)
-	new_alert_box := fmt.Sprintf(member_atmsg_newalert, uid)
-	ssdb.New(use_ssdb_message_db).Del(atboxcs)
-	ssdb.New(use_ssdb_message_db).Del(new_alert_box)
+	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, uid)
+	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
+	ssdb.New(config.CacheDb).Del(atboxcs)
+	ssdb.New(config.CacheDb).Del(new_alert_box)
 	return nil
 }
 
-func DelMsg(uid int64, msg_id string) error {
+func DelMsg(uid int64, msg_id string, msgType MSG_TYPE) error {
+	config := getMsgStorageConfig(msgType)
 	if !bson.IsObjectIdHex(msg_id) {
 		return fmt.Errorf("msg_id格式错误")
 	}
-	session, col := dbs.MgoC(sns_atmsg_db, sns_atmsg_collection)
+	session, col := dbs.MgoC(config.DbName, config.TableName)
 	defer session.Close()
 
 	msg := MsgData{}
@@ -118,8 +131,8 @@ func DelMsg(uid int64, msg_id string) error {
 	if err != nil {
 		return fmt.Errorf("消息不存在")
 	}
-	atboxcs := fmt.Sprintf(member_atmsg_box_count, msg.ToUid)
-	ssdb.New(use_ssdb_message_db).Decr(atboxcs)
+	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, msg.ToUid)
+	ssdb.New(config.CacheDb).Decr(atboxcs)
 
 	err = col.RemoveId(bson.ObjectIdHex(msg_id))
 	if err != nil {
@@ -129,19 +142,20 @@ func DelMsg(uid int64, msg_id string) error {
 	return nil
 }
 
-func GetMsgs(uid int64, page int, size int, ts time.Time) (int, []*MsgData) {
+func GetMsgs(uid int64, page int, size int, ts time.Time, msgType MSG_TYPE) (int, []*MsgData) {
 	msgs := []*MsgData{}
 	if uid <= 0 {
 		return 0, msgs
 	}
+	config := getMsgStorageConfig(msgType)
 	//start := (page - 1) * size
 	//end := page * size
 	//获取消息总数
-	atboxcs := fmt.Sprintf(member_atmsg_box_count, uid)
+	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, uid)
 	msg_totals := 0
-	mt_err := ssdb.New(use_ssdb_message_db).Get(atboxcs, &msg_totals)
+	mt_err := ssdb.New(config.CacheDb).Get(atboxcs, &msg_totals)
 
-	session, col := dbs.MgoC(sns_atmsg_db, sns_atmsg_collection)
+	session, col := dbs.MgoC(config.DbName, config.TableName)
 	defer session.Close()
 	fm := bson.M{}
 	fm["to_uid"] = uid
@@ -149,7 +163,7 @@ func GetMsgs(uid int64, page int, size int, ts time.Time) (int, []*MsgData) {
 	//ssdb 查询失败
 	if mt_err != nil {
 		msg_totals, _ = qs.Count()
-		ssdb.New(use_ssdb_message_db).Set(atboxcs, msg_totals) //重置总数
+		ssdb.New(config.CacheDb).Set(atboxcs, msg_totals) //重置总数
 	}
 	fm["post_time"] = bson.M{"$lt": ts}
 	qs = col.Find(fm)

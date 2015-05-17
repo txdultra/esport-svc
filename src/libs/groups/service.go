@@ -9,6 +9,7 @@ import (
 	"libs"
 	credit_client "libs/credits/client"
 	credit_proxy "libs/credits/proxy"
+	"libs/message"
 	"libs/passport"
 	"libs/search"
 	"logs"
@@ -164,6 +165,7 @@ const (
 	group_member_joined_sortset = "group.member_%d_joined"
 	group_joined_member_sortset = "group.joined_%d_uids"
 	group_invited_set           = "group.invited_%d_%d_uids"
+	group_index_name            = "group_idx"
 )
 
 type GP_PROPERTY string
@@ -505,6 +507,11 @@ func (s *GroupService) Create(group *Group) error {
 	}
 	group.Id = id
 
+	//加入定时任务
+	if group.Belong == GROUP_BELONG_MEMBER {
+		go tjSetJob(group)
+	}
+
 	//加入组名hash集合
 	ssdb.New(use_ssdb_group_db).Hset(group_name_sets, group.Name, group.Id)
 
@@ -527,11 +534,6 @@ func (s *GroupService) Delete(groupId int64) error {
 	if group == nil {
 		return fmt.Errorf("组已被删除")
 	}
-	o := dbs.NewOrm(db_aliasname)
-	_, err := o.Delete(group)
-	if err != nil {
-		return fmt.Errorf("删除失败:001")
-	}
 
 	gjmkey := fmt.Sprintf(group_joined_member_sortset, groupId)
 	//清理用户加入组的记录
@@ -543,8 +545,17 @@ func (s *GroupService) Delete(groupId int64) error {
 		}
 		s.Exit(uid, groupId) //强制用户离开
 	}
+
+	o := dbs.NewOrm(db_aliasname)
+	_, err := o.Delete(group)
+	if err != nil {
+		return fmt.Errorf("删除失败:001")
+	}
+
 	cache := utils.GetCache()
 	cache.Delete(s.getCacheKey(groupId))
+	cache.Delete(s.getMyGroupIdsCacheKey(group.Uid))
+
 	//删除计数
 	NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_GROUPS}, []COUNT_ACTION{COUNT_ACTION_DECR}, group.Uid)
 	return nil
@@ -560,9 +571,12 @@ func (s *GroupService) Close(groupId int64) error {
 	}
 	o := dbs.NewOrm(db_aliasname)
 	group.Status = GROUP_STATUS_CLOSED
+	group.StartTime = 0
+	group.EndTime = 0
 	o.Update(group)
 	cache := utils.GetCache()
 	cache.Replace(s.getCacheKey(groupId), *group, 1*time.Hour)
+	cache.Delete(s.getMyGroupIdsCacheKey(group.Uid))
 	//减少计数
 	NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_GROUPS}, []COUNT_ACTION{COUNT_ACTION_INCR}, group.Uid)
 	return nil
@@ -635,7 +649,7 @@ func (s *GroupService) Get(groupId int64) *Group {
 	return &group
 }
 
-func (s *GroupService) ActionCount(groupId int64, gps []GP_PROPERTY, incrs []int) {
+func (s *GroupService) AsyncActionCount(groupId int64, gps []GP_PROPERTY, incrs []int) {
 	group := s.Get(groupId)
 	if group == nil {
 		return
@@ -664,6 +678,9 @@ func (s *GroupService) ActionCount(groupId int64, gps []GP_PROPERTY, incrs []int
 	}
 	cache := utils.GetCache()
 	cache.Replace(s.getCacheKey(group.Id), *group, 1*time.Hour)
+
+	//更新搜索引擎文档属性
+	s.UpdateSearchEngineAttr([]*Group{group})
 }
 
 func (s *GroupService) Join(uid int64, groupId int64) error {
@@ -713,12 +730,12 @@ func (s *GroupService) Join(uid int64, groupId int64) error {
 		ssdb_client.Zrem(gjoined_key, uid)
 	}
 
-	s.ActionCount(groupId, []GP_PROPERTY{GP_PROPERTY_MEMBERS}, []int{1})
+	s.AsyncActionCount(groupId, []GP_PROPERTY{GP_PROPERTY_MEMBERS}, []int{1})
 
 	//计数
 	go NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_JOINS}, []COUNT_ACTION{COUNT_ACTION_INCR}, group.Uid)
 	//检查是否完成招募
-	go s.CheckCompletedInvited(group)
+	go s.CompletedInvited(group, true)
 
 	return nil
 }
@@ -751,26 +768,29 @@ func (s *GroupService) Exit(uid int64, groupId int64) error {
 	//小组中去除用户
 	ssdb_client.Zrem(gjoined_key, uid)
 
-	s.ActionCount(groupId, []GP_PROPERTY{GP_PROPERTY_MEMBERS}, []int{-1})
+	s.AsyncActionCount(groupId, []GP_PROPERTY{GP_PROPERTY_MEMBERS}, []int{-1})
 
 	//计数
 	go NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_JOINS}, []COUNT_ACTION{COUNT_ACTION_DECR}, group.Uid)
 
+	//检查是否到达人数预警线
+	go s.LessThanLimitUsers(group)
+
 	return nil
 }
 
-func (s *GroupService) UpdateMemberLastAction(groupId int64, uid int64, t time.Time) {
-	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid) //用户加入小组的集合key
-	ts, err := ssdb.New(use_ssdb_group_db).Zscore(mjoined_key, groupId)
-	if ts == 0 || err != nil {
-		return
-	}
-	if ts > t.Unix() {
-		return
-	}
-	gap := t.Unix() - ts
-	ssdb.New(use_ssdb_group_db).Zincrby(mjoined_key, groupId, gap)
-}
+//func (s *GroupService) UpdateMemberLastAction(groupId int64, uid int64, t time.Time) {
+//	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid) //用户加入小组的集合key
+//	ts, err := ssdb.New(use_ssdb_group_db).Zscore(mjoined_key, groupId)
+//	if ts == 0 || err != nil {
+//		return
+//	}
+//	if ts > t.Unix() {
+//		return
+//	}
+//	gap := t.Unix() - ts
+//	ssdb.New(use_ssdb_group_db).Zincrby(mjoined_key, groupId, gap)
+//}
 
 func (s *GroupService) MyJoins(uid int64, page int, size int) (int, []*Group) {
 	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid) //用户加入小组的集合key
@@ -913,7 +933,7 @@ func (s *GroupService) Search(words string, page int, size int, match_mode strin
 	}
 
 	sph := search.NewSearcher(search_config)
-	ids, total, err := sph.Query(words, sorts, "group_idx", match_mode)
+	ids, total, err := sph.Query(words, sorts, group_index_name, match_mode)
 	if err != nil {
 		return 0, []*Group{}
 	}
@@ -921,27 +941,71 @@ func (s *GroupService) Search(words string, page int, size int, match_mode strin
 	return total, groups
 }
 
-func (s *GroupService) CheckCompletedInvited(group *Group) (bool, error) {
-	if group == nil || group.Status == GROUP_STATUS_OPENING || group.Status == GROUP_STATUS_CLOSED {
-		return true, nil
-	}
-	gjoined_key := fmt.Sprintf(group_joined_member_sortset, group.Id)
+func (s *GroupService) GroupUserCount(groupId int64) int {
+	gjoined_key := fmt.Sprintf(group_joined_member_sortset, groupId)
 	count, _ := ssdb.New(use_ssdb_group_db).Zcard(gjoined_key)
-	if count >= group.MinUsers {
-		o := dbs.NewOrm(db_aliasname)
-		o.Begin()
-		group.Status = GROUP_STATUS_OPENING
-		_, err := o.Update(group, "status")
+	return int(count)
+}
+
+func (s *GroupService) ChangeStatus(group *Group) error {
+	o := dbs.NewOrm(db_aliasname)
+	_, err := o.Update(group, "status")
+	if err != nil {
+		return fmt.Errorf("更新状态失败")
+	}
+	cache := utils.GetCache()
+	cache.Delete(s.getCacheKey(group.Id))
+	return nil
+}
+
+func (s *GroupService) LessThanLimitUsers(group *Group) error {
+	//警示和关闭中不检查，官方账号不检查
+	if group == nil ||
+		group.Status == GROUP_STATUS_LOWMEMBER ||
+		group.Status == GROUP_STATUS_CLOSED ||
+		group.Belong == GROUP_BELONG_OFFICIAL {
+		return fmt.Errorf("未在需要检查的状态中")
+	}
+	count := s.GroupUserCount(group.Id)
+	if count < group.MinUsers {
+
+		group.Status = GROUP_STATUS_LOWMEMBER
+		group.StartTime = time.Now().Unix()
+		addHours := time.Duration(s.cfg.CreateGroupRecruitDay * 24)
+		group.EndTime = time.Now().Add(addHours * time.Hour).Unix()
+		err := s.ChangeStatus(group)
 		if err != nil {
-			o.Rollback()
-			return false, fmt.Errorf("更新状态失败")
+			return err
 		}
-		cache := utils.GetCache()
-		cache.Delete(s.getCacheKey(group.Id))
+
+		//设置定时任务
+		go tjSetJob(group)
+	}
+	return nil
+}
+
+func (s *GroupService) CompletedInvited(group *Group, doTj bool) (bool, error) {
+	//开放和关闭中不检查，官方账号不检查
+	if group == nil ||
+		group.Status == GROUP_STATUS_OPENING ||
+		group.Status == GROUP_STATUS_CLOSED ||
+		group.Belong == GROUP_BELONG_OFFICIAL {
+		return false, fmt.Errorf("未在需要检查的状态中")
+	}
+	count := s.GroupUserCount(group.Id)
+	if count >= group.MinUsers {
+
+		group.Status = GROUP_STATUS_OPENING
+		group.StartTime = 0
+		group.EndTime = 0
+		err := s.ChangeStatus(group)
+		if err != nil {
+			return false, err
+		}
 		//正式扣除积分
 		client, transport, err := credit_client.NewClient(credit_service_host)
 		if err != nil {
-			o.Rollback()
+			go tjRemoveJob(group)
 			return false, fmt.Errorf("扣除正式积分失败")
 		}
 		defer func() {
@@ -953,7 +1017,11 @@ func (s *GroupService) CheckCompletedInvited(group *Group) (bool, error) {
 			No:     group.OrderNo,
 			Action: credit_proxy.OPERATION_ACTOIN_UNLOCK,
 		})
-		o.Commit()
+
+		//删除定时任务
+		if doTj {
+			go tjRemoveJob(group)
+		}
 	}
 	return true, nil
 }
@@ -1019,39 +1087,90 @@ func (s *GroupService) Invite(uid int64, groupId int64, inviteUids []int64) {
 		scores[i] = time.Now().UnixNano() / 1000
 	}
 	ssdb.New(use_ssdb_group_db).MultiZadd(ckey, vals, scores)
+
+	go func() {
+		ps := passport.NewMemberProvider()
+		author := ps.Get(uid)
+		if author == nil {
+			return
+		}
+		group := s.Get(groupId)
+		if group == nil {
+			return
+		}
+		for _, iUid := range inviteUids {
+			invMsg := fmt.Sprintf("%s邀请你加入%s小组", author.NickName, group.Name)
+			message.SendMsgV2(uid, iUid, MSG_TYPE_INVITED, invMsg, strconv.FormatInt(groupId, 10), nil)
+		}
+	}()
 }
 
-//搜索引擎数据
-type rtGroupData struct {
-	Pid           int64
-	Groupname     string
-	Createtime    int64
-	Members       int
-	Threads       int
-	Gameids       string
-	Displayorder  int
-	Status        int
-	Belong        int
-	Type          int
-	Vitality      int
-	Searchkeyword string
-	Longitude     float32
-	Latitude      float32
-	Recommend     int
-	Starttime     int64
-	Endtime       int64
-}
+func (s *GroupService) UpdateSearchEngineAttr(groups []*Group) error {
+	if len(groups) == 0 {
+		return nil
+	}
+	search_config := &search.SearchOptions{
+		Host:    search_server,
+		Port:    search_port,
+		Timeout: search_timeout,
+	}
+	attrsA := []string{"members", "threads", "displayorder", "status", "belong",
+		"type", "vitality", "recommend", "starttime", "endtime"}
+	valuesA := [][]interface{}{}
+	for _, group := range groups {
+		recommend := 0
+		if group.Recommend {
+			recommend = 1
+		}
+		valuesA = append(valuesA, []interface{}{
+			uint64(group.Id),
+			group.Members,
+			group.Threads,
+			group.DisplarOrder,
+			int(group.Status),
+			int(group.Belong),
+			int(group.Type),
+			group.Vitality,
+			recommend,
+			int(group.StartTime),
+			int(group.EndTime),
+		})
+	}
 
-func (s *GroupService) AddToSearchEngine(group *Group) error {
-	return nil
-}
+	sph := search.NewSearcher(search_config)
+	_, err := sph.UpdateAttributes(group_index_name, attrsA, valuesA)
+	if err != nil {
+		logs.Errorf("group update search's attribute normal fail:%v", err)
+		return err
+	}
+	_, err = sph.FlushAttributes()
+	if err != nil {
+		logs.Errorf("group flush search's attribute fail:%v", err)
+		return err
+	}
 
-func (s *GroupService) UpdateToSearchEngine(group *Group) error {
-	return nil
-}
+	//	//有bug
+	//	if mva {
+	//		attrsB := []string{"gameids"}
+	//		valuesB := [][]interface{}{}
+	//		for _, group := range groups {
+	//			valuesB = append(valuesB, []interface{}{
+	//				uint64(group.Id),
+	//				group.GameIDs(),
+	//			})
+	//		}
+	//		_, err = sph.UpdateAttributes(group_index_name, attrsB, valuesB)
+	//		if err != nil {
+	//			logs.Errorf("group update search's attribute mva fail:%v", err)
+	//			return err
+	//		}
+	//	}
 
-func (s *GroupService) DeleteToSearchEngine(groupId int64) error {
-	return nil
+	//	_, err = sph.FlushAttributes()
+	//	if err != nil {
+	//		logs.Errorf("group flush search's attribute fail:%v", err)
+	//	}
+	return err
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1390,7 +1509,7 @@ func (c *ThreadService) Create(thread *Thread, post *Post) error {
 	go NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_THREADS}, []COUNT_ACTION{COUNT_ACTION_INCR}, thread.AuthorId)
 	go func() {
 		gs := NewGroupService(c.cfg)
-		gs.ActionCount(thread.GroupId, []GP_PROPERTY{GP_PROPERTY_THREADS}, []int{1})
+		gs.AsyncActionCount(thread.GroupId, []GP_PROPERTY{GP_PROPERTY_THREADS}, []int{1})
 	}()
 	return err
 }
@@ -1517,7 +1636,6 @@ func (c *ThreadService) SetLastPost(post *Post) {
 
 	o := dbs.NewOrm(db_aliasname)
 	o.Update(thread, "lastpost", "lastposter", "lastpostuid", "lastid")
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1903,6 +2021,20 @@ func (s *PostService) Create(post *Post) error {
 	cclient := ssdb.New(use_ssdb_group_db)
 	cclient.Zadd(fmt.Sprintf(thread_post_sets, post.ThreadId), post.Id, int64(post.Position))
 	cclient.Set(s.getCacheKey(post.Id), post)
+
+	//@消息
+	atNames := utils.ExtractAts(post.Message)
+	if len(atNames) > 0 {
+		go func() {
+			ps := passport.NewMemberProvider()
+			for _, atName := range atNames {
+				atuid := ps.GetUidByNickname(atName)
+				if atuid > 0 {
+					message.SendMsgV2(post.AuthorId, atuid, MSG_TYPE_MESSAGE, post.Message, post.Id, nil)
+				}
+			}
+		}()
+	}
 
 	if post.Position > 1 {
 		go tservice.ActionProperty([]TH_PROPERTY{TH_PROPERTY_REPLIES}, []int64{1}, post.ThreadId)

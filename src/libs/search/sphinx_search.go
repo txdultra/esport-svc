@@ -256,6 +256,14 @@ func (f *Searcher) UpdateAttributes(index string, attrs []string, values [][]int
 	return
 }
 
+func (f *Searcher) FlushAttributes() (iFlushTag int, err error) {
+	sc := sphinx.NewClient(f.sphinxOptions())
+	if err := sc.Error(); err != nil {
+		return -1, errors.New("connect error:" + err.Error())
+	}
+	return sc.FlushAttributes()
+}
+
 func (f *Searcher) Query(words string, sorts []string, index string, match_mode string) ([]int64, int, error) {
 	sc := sphinx.NewClient(f.sphinxOptions())
 	if err := sc.Error(); err != nil {

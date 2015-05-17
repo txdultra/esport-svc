@@ -1,18 +1,25 @@
 package message
 
 import (
-	"labix.org/v2/mgo/bson"
 	"time"
+
+	"labix.org/v2/mgo/bson"
 )
 
 type MSG_TYPE string
 
 const (
-	MSG_TYPE_COMMENT MSG_TYPE = "vod:comment"
-	MSG_TYPE_VOD     MSG_TYPE = "share:vod"
-	MSG_TYPE_TEXT    MSG_TYPE = "share:text"
-	MSG_TYPE_PICS    MSG_TYPE = "share:pics"
+	MSG_TYPE_SYS MSG_TYPE = "system:msg"
 )
+
+type MsgStorageConfig struct {
+	DbName                string
+	TableName             string
+	CacheDb               string
+	MailboxSize           int
+	MailboxCountCacheName string
+	NewMsgCountCacheName  string
+}
 
 type MsgData struct {
 	Id        bson.ObjectId `bson:"_id"`
@@ -24,16 +31,3 @@ type MsgData struct {
 	PostTime  time.Time     `bson:"post_time"`
 	Timestamp int64         `bson:"timstamp"`
 }
-
-//type MsgTypeConvert interface {
-//	MTConvert(obj interface{}) MSG_TYPE
-//}
-
-//var convertors map[string]MsgTypeConvert = make(map[string]MsgTypeConvert)
-
-//func RegisterConverter(mod_name string, convertor MsgTypeConvert) {
-//	if ok, _ := convertors[mod_name]; ok {
-//		return
-//	}
-//	converters[mod_name] = converter
-//}

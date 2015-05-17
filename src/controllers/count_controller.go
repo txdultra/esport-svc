@@ -3,9 +3,9 @@ package controllers
 import (
 	"libs"
 	"libs/lives"
-	"libs/message"
 	"libs/passport"
 	"libs/share"
+	"libs/vod"
 	"outobjs"
 )
 
@@ -27,6 +27,8 @@ var sc libs.IEventCounter = &share.ShareVodSubcurs{}
 var pmc libs.IEventCounter = lives.NewProgramNoticeService()
 var sn libs.IEventCounter = share.NewShareNoticeService()
 var sm libs.IEventCounter = share.NewShareMsgService()
+var sharec libs.IEventCounter = &share.Shares{}
+var vc libs.IEventCounter = &vod.Vods{}
 
 // @Title 用户所有计数器
 // @Description 用户所有计数器
@@ -41,7 +43,9 @@ func (c *CountController) MemberCounts() {
 	}
 	follwers := fsc.NewEventCount(uid)
 	scs := sc.NewEventCount(uid)
-	msgs := message.NewEventCount(uid)
+	//需要修改
+	msgs := sharec.NewEventCount(uid)
+	vods := vc.NewEventCount(uid)
 	pms := pmc.NewEventCount(uid)
 	sns := sn.NewEventCount(uid)
 	lsm := sm.NewEventCount(uid)
@@ -54,6 +58,9 @@ func (c *CountController) MemberCounts() {
 	}
 	if msgs > 99 {
 		msgs = 99
+	}
+	if vods > 99 {
+		vods = 99
 	}
 	if pms > 99 {
 		pms = 99
@@ -68,7 +75,9 @@ func (c *CountController) MemberCounts() {
 	cs := &outobjs.OutMemberNewCount{
 		NewFollowers:     follwers,
 		NewSubscrs:       scs,
-		NewMsg:           msgs,
+		NewMsgs:          msgs,
+		ShareMsgs:        msgs,
+		VodMsgs:          vods,
 		NewLiveSubscrs:   pms,
 		NewShareNotices:  sns,
 		LastNewShareMsgs: lsm,

@@ -24,6 +24,7 @@ import (
 
 	//"libs/credits/proxy"
 
+	"libs/search"
 	_ "libs/version"
 	//"outobjs"
 	//"modules/jobs"
@@ -71,6 +72,34 @@ import (
 )
 
 func main() {
+
+	search_config := &search.SearchOptions{
+		Host:    "192.168.0.79",
+		Port:    9316,
+		Timeout: 1000,
+	}
+	attrs := []string{"members", "threads"}
+	val := []interface{}{uint64(1), 11, 13}
+	values := [][]interface{}{
+		val,
+	}
+	sph := search.NewSearcher(search_config)
+	fmt.Println(sph.UpdateAttributes("group_idx", attrs, values))
+
+	var filterRanges []search.FilterRangeInt
+	filterRanges = append(filterRanges, search.FilterRangeInt{
+		Attr:    "members",
+		Min:     10,
+		Max:     100,
+		Exclude: false,
+	})
+	search_config.FilterRangeInt = filterRanges
+	search_config.MaxMatches = 500
+	search_config.Limit = 100
+	sph2 := search.NewSearcher(search_config)
+	fmt.Println(sph2.Query("", []string{"@weight DESC"}, "group_idx", "all"))
+	return
+
 	//	//	o := dbs.NewOrm("group_db")
 	//	//	nums, _ := o.QueryTable("group").Exclude("status", 4).Count()
 	//	//	fmt.Println(nums)
@@ -197,7 +226,7 @@ func main() {
 	//	}
 	//	fmt.Println(res.TotalFound)
 	var jobName = ""
-	if true {
+	if false {
 		if true {
 			go func() {
 				i := 0

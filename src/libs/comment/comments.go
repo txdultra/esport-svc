@@ -37,7 +37,7 @@ func NewCommentor(mod string) *Commentor {
 	return c
 }
 
-func (c *Commentor) Create(data map[string]interface{}, atId func(string) int64, atName func(int64) string, msg_notice bool) (error, string) {
+func (c *Commentor) Create(data map[string]interface{}, atId func(string) int64, atName func(int64) string, msgNotice bool, msgType message.MSG_TYPE) (error, string) {
 	comment := c.dataToComment(data)
 	if comment.RefId <= 0 {
 		return fmt.Errorf("RefId 属性不能为0"), ""
@@ -140,12 +140,12 @@ func (c *Commentor) Create(data map[string]interface{}, atId func(string) int64,
 		logs.Error(err.Error())
 		return fmt.Errorf("插入错误:%s", err), ""
 	}
-	if msg_notice {
+	if msgNotice {
 		//处理@通知
 		go func() {
 			for _, atuid := range msgAtUids {
 				if atuid != comment.FromId {
-					message.SendMsgV2(comment.FromId, atuid, message.MSG_TYPE_COMMENT, comment.Text, comment.ID.Hex(), nil)
+					message.SendMsgV2(comment.FromId, atuid, msgType, comment.Text, comment.ID.Hex(), nil)
 				}
 			}
 		}()

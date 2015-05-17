@@ -5,6 +5,7 @@ import (
 	"libs"
 	"libs/comment"
 	"libs/passport"
+	"libs/vod"
 	"outobjs"
 	"time"
 	"utils"
@@ -93,11 +94,13 @@ func (c *CommentController) Publish() {
 		"title":       title,
 		"allow_reply": true,
 	}
+	var msgType = vod.MSG_TYPE_COMMENT
 	ms := passport.NewMemberProvider()
 	err, _id := commentor.Create(data,
 		ms.GetUidByNickname,
 		ms.GetNicknameByUid,
-		is_msg)
+		is_msg,
+		msgType)
 	if err == nil {
 		cache.Set(intervalKey, 1, comment.CommentPulishInterval())
 		c.Json(libs.NewError("comment_mod_publish_succ", RESPONSE_SUCCESS, _id, ""))

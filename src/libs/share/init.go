@@ -2,6 +2,7 @@ package share
 
 import (
 	"dbs"
+	"libs/message"
 	"libs/passport"
 	"strconv"
 
@@ -9,11 +10,13 @@ import (
 )
 
 var sns_share_db, sns_share_collection, use_ssdb_share_db, use_ssdb_cmt_db, use_ssdb_notice_db string
-var mbox_share_length, mbox_subscription_length int
+var use_ssdb_message_db, sns_msg_db, sns_msg_collection string //消息配置参数
+var mbox_share_length, mbox_subscription_length, mbox_atmsg_length int
 var sns_atcount_cache_length int
 var sns_share_pic_thumbnail_w, sns_share_pic_thumbnail_h, sns_share_pic_middle_w, sns_share_pic_middle_h int
 var sns_notice_db_insert_queue_open, sns_msg_db_insert_queue_open bool
 var msq_db_batch_queue_name string
+var msgStorageConfig *message.MsgStorageConfig
 
 const (
 	share_db  = "user_share"
@@ -36,8 +39,6 @@ func init() {
 	//orm.RegisterModel(
 	//	new(ShareViewPicture),
 	//)
-	//sns_share_db = beego.AppConfig.String("sns.share.db")
-	//sns_share_collection = beego.AppConfig.String("sns.share.collection")
 	mbox_share_length, _ = beego.AppConfig.Int("mbox.share.length")
 	sns_atcount_cache_length, _ = beego.AppConfig.Int("sns.atcount.cache.length")
 	if mbox_share_length <= 0 {
@@ -66,6 +67,7 @@ func init() {
 	sns_notice_db_insert_queue_open, _ = beego.AppConfig.Bool("sns.notice.db_insert_queue.open")
 	sns_msg_db_insert_queue_open, _ = beego.AppConfig.Bool("sns.msg.db_insert_queue.open")
 	msq_db_batch_queue_name = beego.AppConfig.String("msq.db_batch.queue_name")
+
 	//注册关注事件
 	passport.RegisterFriendEvent("friend_share_msg_event", &ShareMsgs{})
 	passport.RegisterFriendEvent("friend_share_subcur_event", &ShareVodSubcurs{})
@@ -82,6 +84,13 @@ func init() {
 	register_share_cmt_db()
 	register_share_notice_db()
 
+	//初始化消息模块配置
+	sns_msg_db = beego.AppConfig.String("sns.share.db")
+	sns_msg_collection = beego.AppConfig.String("sns.atmsg.collection")
+	use_ssdb_message_db = beego.AppConfig.String("ssdb.message.db")
+	mbox_atmsg_length = beego.AppConfig.DefaultInt("mbox.atmsg.length", 200)
+	initMsgSysConfig()
+
 	//register share events
 	RegisterShareNotifyEvent("share_msg", &ShareMsgs{})
 	RegisterShareNotifyEvent("share_vod_subcur", &ShareVodSubcurs{})
@@ -90,6 +99,31 @@ func init() {
 	RegisterShareSaveEvent("share_msg_save", &ShareMsgs{})
 	RegisterShareSaveEvent("share_notice_event", &ShareNotices{})
 	RegisterShareRevokeEvent("share_msg_revoke", &ShareMsgs{})
+}
+
+func initMsgSysConfig() {
+	if len(sns_msg_db) == 0 {
+		panic("未配置参数:sns.share.db")
+	}
+	if len(sns_msg_collection) == 0 {
+		panic("未配置参数:sns.atmsg.collection")
+	}
+	msgStorageConfig = &message.MsgStorageConfig{
+		DbName:                sns_msg_db,
+		TableName:             sns_msg_collection,
+		CacheDb:               use_ssdb_message_db,
+		MailboxSize:           mbox_atmsg_length,
+		MailboxCountCacheName: "member_atmsg_box_count:%d",
+		NewMsgCountCacheName:  "member_atmsg_newalert:%d",
+	}
+
+	message.RegisterMsgTypeMaps(MSG_TYPE_VOD, msgStorageConfig)
+	message.RegisterMsgTypeMaps(MSG_TYPE_TEXT, msgStorageConfig)
+	message.RegisterMsgTypeMaps(MSG_TYPE_PICS, msgStorageConfig)
+}
+
+func GetMsgConfig() *message.MsgStorageConfig {
+	return msgStorageConfig
 }
 
 func register_share_notice_db() {

@@ -118,7 +118,7 @@ func (s *ShareViewPics) Get(fid int64) map[libs.PIC_SIZE]ShareViewPicture {
 	}
 	err := cache.Get(key, &csps)
 	if err != nil {
-		logs.Errorf("share pic get pictures cache fail:%s", err.Error())
+		//logs.Errorf("share pic get pictures cache fail:%s", err.Error())
 	} else {
 		return toMap(csps)
 	}

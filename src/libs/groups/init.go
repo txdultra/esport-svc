@@ -2,6 +2,7 @@ package groups
 
 import (
 	"dbs"
+	"libs/message"
 	"strconv"
 
 	"github.com/astaxie/beego"
@@ -16,6 +17,9 @@ var group_pic_thumbnail_w, group_pic_middle_w int
 var search_server, group_timerjob_host string
 var search_port, search_timeout int
 var app_task_run bool
+var use_ssdb_message_db, group_msg_db, group_msg_collection string //消息配置参数
+var mbox_atmsg_length int
+var msgStorageConfig *message.MsgStorageConfig
 
 func init() {
 	//ssdb tag
@@ -44,6 +48,13 @@ func init() {
 	search_port, _ = beego.AppConfig.Int("search.group.port")
 	search_timeout, _ = beego.AppConfig.Int("search.group.timeout")
 
+	//初始化消息模块配置
+	group_msg_db = beego.AppConfig.String("group.message.db")
+	group_msg_collection = beego.AppConfig.String("group.msg.collection")
+	use_ssdb_message_db = beego.AppConfig.String("group.ssdb.db") //独立缓存库
+	mbox_atmsg_length = beego.AppConfig.DefaultInt("mbox.atmsg.length", 200)
+	initMsgSysConfig()
+
 	orm.RegisterModel(new(GroupCfg), new(Group), new(Thread), new(Post),
 		new(Report), new(MemberCount),
 		new(GroupMemberTable), new(MemberGroupTable), new(PostTable))
@@ -58,6 +69,26 @@ func init() {
 		}
 		return nil
 	})
+}
+
+func initMsgSysConfig() {
+	if len(group_msg_db) == 0 {
+		panic("未配置参数:group.message.db")
+	}
+	if len(group_msg_collection) == 0 {
+		panic("未配置参数:group.msg.collection")
+	}
+	msgStorageConfig = &message.MsgStorageConfig{
+		DbName:                group_msg_db,
+		TableName:             group_msg_collection,
+		CacheDb:               use_ssdb_message_db,
+		MailboxSize:           mbox_atmsg_length,
+		MailboxCountCacheName: "group_msg_box_count:%d",
+		NewMsgCountCacheName:  "group_msg_newalert:%d",
+	}
+
+	message.RegisterMsgTypeMaps(MSG_TYPE_MESSAGE, msgStorageConfig)
+	message.RegisterMsgTypeMaps(MSG_TYPE_INVITED, msgStorageConfig)
 }
 
 func register_db() {

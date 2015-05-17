@@ -1,12 +1,19 @@
 package share
 
 import (
+	"libs/message"
 	"strconv"
 	"strings"
 	//"labix.org/v2/mgo/bson"
 	"libs"
 	"logs"
 	"time"
+)
+
+const (
+	MSG_TYPE_VOD  message.MSG_TYPE = "share:vod"
+	MSG_TYPE_TEXT message.MSG_TYPE = "share:text"
+	MSG_TYPE_PICS message.MSG_TYPE = "share:pics"
 )
 
 ///前端数据输出时进行特定数据装配

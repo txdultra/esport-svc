@@ -11,6 +11,7 @@ import (
 	//"github.com/yunge/sphinx"
 	"libs"
 	"libs/collect"
+	"libs/message"
 	"libs/passport"
 	"libs/reptile"
 	"libs/search"
@@ -31,6 +32,16 @@ var vod_view_counter_seed int
 var vod_comment_counts_fmt string = "vod_comment_counts:%d"
 
 type Vods struct{}
+
+//重置新消息列表 IEventCounter interface
+func (v Vods) ResetEventCount(uid int64) bool {
+	return message.ResetEventCount(uid, MSG_TYPE_COMMENT)
+}
+
+//IEventCounter interface
+func (v Vods) NewEventCount(uid int64) int {
+	return message.NewEventCount(uid, MSG_TYPE_COMMENT)
+}
 
 func (v *Vods) Create(vod *Video, doRep bool) (int64, error) {
 	if len(vod.Url) == 0 {

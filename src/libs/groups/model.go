@@ -1,8 +1,14 @@
 package groups
 
 import (
+	"libs/message"
 	"strconv"
 	"strings"
+)
+
+const (
+	MSG_TYPE_INVITED message.MSG_TYPE = "group:invite"
+	MSG_TYPE_MESSAGE message.MSG_TYPE = "group:msg"
 )
 
 type GroupCfg struct {
