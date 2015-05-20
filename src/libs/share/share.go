@@ -16,16 +16,6 @@ const (
 	MSG_TYPE_PICS message.MSG_TYPE = "share:pics"
 )
 
-///前端数据输出时进行特定数据装配
-
-const (
-	share_tag_vod_regex = `\[vod:(\d+)\]` //不带缩略图
-	share_tag_pic_regex = `\[pic:(\d+)\]` //
-
-	share_tag_vod_fmt = `[vod:%s]`
-	share_tag_pic_fmt = `[pic:%s]`
-)
-
 type SHARE_KIND int
 
 const (

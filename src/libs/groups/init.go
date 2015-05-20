@@ -2,7 +2,10 @@ package groups
 
 import (
 	"dbs"
+	"fmt"
 	"libs/message"
+	"libs/share"
+	"regexp"
 	"strconv"
 
 	"github.com/astaxie/beego"
@@ -20,6 +23,8 @@ var app_task_run bool
 var use_ssdb_message_db, group_msg_db, group_msg_collection string //消息配置参数
 var mbox_atmsg_length int
 var msgStorageConfig *message.MsgStorageConfig
+
+//电竞圈分享配置
 
 func init() {
 	//ssdb tag
@@ -48,6 +53,11 @@ func init() {
 	search_port, _ = beego.AppConfig.Int("search.group.port")
 	search_timeout, _ = beego.AppConfig.Int("search.group.timeout")
 
+	orm.RegisterModel(new(GroupCfg), new(Group), new(Thread), new(Post),
+		new(Report), new(MemberCount),
+		new(GroupMemberTable), new(MemberGroupTable), new(PostTable))
+	register_db()
+
 	//初始化消息模块配置
 	group_msg_db = beego.AppConfig.String("group.message.db")
 	group_msg_collection = beego.AppConfig.String("group.msg.collection")
@@ -55,10 +65,8 @@ func init() {
 	mbox_atmsg_length = beego.AppConfig.DefaultInt("mbox.atmsg.length", 200)
 	initMsgSysConfig()
 
-	orm.RegisterModel(new(GroupCfg), new(Group), new(Thread), new(Post),
-		new(Report), new(MemberCount),
-		new(GroupMemberTable), new(MemberGroupTable), new(PostTable))
-	register_db()
+	//注册分享模块功能
+	register_share_mod()
 
 	//启动前加载
 	beego.AddAPPStartHook(func() error {
@@ -66,8 +74,47 @@ func init() {
 		if app_task_run {
 			//定时工作
 			tjInit()
+			runGroupCountUpdateService()
 		}
 		return nil
+	})
+}
+
+func register_share_mod() {
+	ts := NewThreadService(GetDefaultCfg())
+	//注册资源转换方法s
+	share.RegisterShareTransformResourceFuncs(SHARE_KIND_GROUP, func(id string, args ...string) string {
+		return fmt.Sprintf("[gpt:%s]", id)
+	})
+	share.RegisterShareResourceTransformFuncs(SHARE_KIND_GROUP, func(resource string) (share.SHARE_KIND, string, error) {
+		if ok, _ := regexp.MatchString(`\[gpt:(\d+)\]`, resource); ok {
+			rep := regexp.MustCompile(`\[gpt:(\d+)\]`)
+			arr := rep.FindStringSubmatch(resource)
+			return SHARE_KIND_GROUP, arr[1], nil
+		}
+		return share.SHARE_KIND_EMPTY, "", fmt.Errorf("未匹配GROUP_KIND")
+	})
+	share.RegisterResPicFileIdFuncs(SHARE_KIND_GROUP, func(res *share.ShareResource) int64 {
+		_id, _ := strconv.ParseInt(res.Id, 10, 64)
+		thread := ts.Get(_id)
+		if thread == nil {
+			return 0
+		}
+		return thread.Img
+	})
+	share.RegisterResToOutputProxyObjectFuncs(SHARE_KIND_GROUP, func(res *share.ShareResource) *share.ResOutputProxyObject {
+		_id, _ := strconv.ParseInt(res.Id, 10, 64)
+		thread := ts.Get(_id)
+		if thread == nil {
+			return nil
+		}
+		return &share.ResOutputProxyObject{
+			Id:           res.Id,
+			Title:        thread.Subject,
+			Content:      "",
+			ThumbnailPic: thread.Img,
+			Uid:          thread.AuthorId,
+		}
 	})
 }
 
@@ -89,6 +136,7 @@ func initMsgSysConfig() {
 
 	message.RegisterMsgTypeMaps(MSG_TYPE_MESSAGE, msgStorageConfig)
 	message.RegisterMsgTypeMaps(MSG_TYPE_INVITED, msgStorageConfig)
+	message.RegisterMsgTypeMaps(MSG_TYPE_REPLY, msgStorageConfig)
 }
 
 func register_db() {

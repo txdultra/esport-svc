@@ -377,12 +377,18 @@ func (c *VideoController) FlvsCallback() {
 }
 
 // @Title 获取视频模块大眼睛推存列表
-// @Description 推荐列表(返回数组)
+// @Description 推荐列表(返回数组,game_id不填为全局模式)
+// @Param   game_id     path   int  true  "游戏id"
 // @Success 200 {object} outobjs.OutVodRecommend
 // @router /recommends [get]
 func (c *VideoController) Recommends() {
 	service := libs.NewRecommendService()
-	recommends := service.Gets(vod.VOD_RECOMMEND_CATEGORTY_NAME)
+	gameid, _ := c.GetInt("game_id")
+	category := vod.VOD_RECOMMEND_CATEGORTY_NAME
+	if gameid > 0 {
+		category = fmt.Sprintf(vod.VOD_RECOMMEND_CATEGORTY_GAME, gameid)
+	}
+	recommends := service.Gets(category)
 	ens := []*outobjs.OutVodRecommend{}
 	for _, recommend := range recommends {
 		if recommend.Enabled {

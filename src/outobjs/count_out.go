@@ -9,4 +9,5 @@ type OutMemberNewCount struct {
 	NewLiveSubscrs   int `json:"program_subscrs"`
 	NewShareNotices  int `json:"share_notices"`
 	LastNewShareMsgs int `json:"share_new_msgs"`
+	NewGroupMsgs     int `json:"group_msgs"`
 }

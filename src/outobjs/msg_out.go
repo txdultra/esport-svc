@@ -13,6 +13,7 @@ type OutAtMsg struct {
 	Text       string           `json:"text"`
 	RefId      string           `json:"ref_id"`
 	PostTime   time.Time        `json:"post_time"`
+	FriendTime string           `json:"friend_time"`
 	Comment    *OutComment      `json:"comment"`
 }
 

@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"libs"
+	"libs/groups"
 	"libs/lives"
+	"libs/message"
 	"libs/passport"
 	"libs/share"
 	"libs/vod"
@@ -29,6 +31,7 @@ var sn libs.IEventCounter = share.NewShareNoticeService()
 var sm libs.IEventCounter = share.NewShareMsgService()
 var sharec libs.IEventCounter = &share.Shares{}
 var vc libs.IEventCounter = &vod.Vods{}
+var gms libs.IEventCounter = groups.NewGroupService(groups.GetDefaultCfg())
 
 // @Title 用户所有计数器
 // @Description 用户所有计数器
@@ -49,6 +52,8 @@ func (c *CountController) MemberCounts() {
 	pms := pmc.NewEventCount(uid)
 	sns := sn.NewEventCount(uid)
 	lsm := sm.NewEventCount(uid)
+	gcm := gms.NewEventCount(uid)
+	sysm := message.NewEventCount(uid, message.MSG_TYPE_SYS)
 
 	if follwers > 99 {
 		follwers = 99
@@ -71,16 +76,20 @@ func (c *CountController) MemberCounts() {
 	if lsm > 99 {
 		lsm = 99
 	}
+	if gcm > 99 {
+		gcm = 99
+	}
 
 	cs := &outobjs.OutMemberNewCount{
 		NewFollowers:     follwers,
 		NewSubscrs:       scs,
-		NewMsgs:          msgs,
+		NewMsgs:          sysm,
 		ShareMsgs:        msgs,
 		VodMsgs:          vods,
 		NewLiveSubscrs:   pms,
 		NewShareNotices:  sns,
 		LastNewShareMsgs: lsm,
+		NewGroupMsgs:     gcm,
 	}
 	c.Json(cs)
 }

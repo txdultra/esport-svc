@@ -34,11 +34,12 @@ var mbox_atmsg_length int
 var msgStorageConfig *message.MsgStorageConfig
 
 const (
-	MOD_NAME                     string = "vod"
-	VOD_FLVS_COLLECTION_NAME     string = "flvs"
-	VOD_RECOMMEND_CATEGORTY_NAME string = "vod_home"
-	collect_vod_mod                     = "vod"
-	msg_type                            = "vod:comment"
+	MOD_NAME                     = "vod"
+	VOD_FLVS_COLLECTION_NAME     = "flvs"
+	VOD_RECOMMEND_CATEGORTY_NAME = "vod_home"
+	VOD_RECOMMEND_CATEGORTY_GAME = "vod_game_%d"
+	collect_vod_mod              = "vod"
+	msg_type                     = "vod:comment"
 )
 
 func init() {

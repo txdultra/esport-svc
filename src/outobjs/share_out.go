@@ -20,6 +20,7 @@ type OutShare struct {
 	AttitudesCount   int                 `json:"attitudes_count"`
 	Vods             []*OutShareVod      `json:"vods"`
 	Pics             []*OutSharePic      `json:"pics"`
+	Objs             []*OutShareObj      `json:"objs"`
 	Ats              []*OutScreenNameUid `json:"at_users"`
 	Member           *OutMember          `json:"member"`
 	Comments         []*OutShareComment  `json:"comments"`
@@ -52,6 +53,15 @@ type OutShareNotice struct {
 	T          share.SHARE_NOTICE_TYPE `json:"t"`
 	ST         int                     `json:"st"`
 	FriendTime string                  `json:"friend_time"`
+}
+
+type OutShareObj struct {
+	Id           string     `json:"id"`
+	Title        string     `json:"title"`
+	Content      string     `json:"content"`
+	ThumbnailPic string     `json:"thumbnail_pic"`
+	Uid          int64      `json:"uid"`
+	Member       *OutMember `json:"member"`
 }
 
 type OutShareVod struct {

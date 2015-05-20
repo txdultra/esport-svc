@@ -10,7 +10,6 @@ import (
 	"libs/stat"
 	"logs"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -302,28 +301,41 @@ func (n *Shares) UpdateCommentCount(id int64, c int) {
 }
 
 func (n *Shares) ResourceTranform(resource string) (SHARE_KIND, string) {
-	if ok, _ := regexp.MatchString(share_tag_vod_regex, resource); ok {
-		rep := regexp.MustCompile(share_tag_vod_regex)
-		arr := rep.FindStringSubmatch(resource)
-		return SHARE_KIND_VOD, arr[1]
+	funcMaps := ShareResourceTransformFuncs()
+	for _, _f := range funcMaps {
+		kind, id, err := _f(resource)
+		if err == nil {
+			return kind, id
+		}
 	}
-	if ok, _ := regexp.MatchString(share_tag_pic_regex, resource); ok {
-		rep := regexp.MustCompile(share_tag_pic_regex)
-		arr := rep.FindStringSubmatch(resource)
-		return SHARE_KIND_PIC, arr[1]
-	}
+
+	//	if ok, _ := regexp.MatchString(share_tag_vod_regex, resource); ok {
+	//		rep := regexp.MustCompile(share_tag_vod_regex)
+	//		arr := rep.FindStringSubmatch(resource)
+	//		return SHARE_KIND_VOD, arr[1]
+	//	}
+	//	if ok, _ := regexp.MatchString(share_tag_pic_regex, resource); ok {
+	//		rep := regexp.MustCompile(share_tag_pic_regex)
+	//		arr := rep.FindStringSubmatch(resource)
+	//		return SHARE_KIND_PIC, arr[1]
+	//	}
 	return SHARE_KIND_EMPTY, ""
 }
 
-func (n *Shares) TranformResource(share_type SHARE_KIND, id string, args ...string) string {
-	switch share_type {
-	case SHARE_KIND_VOD:
-		return fmt.Sprintf(share_tag_vod_fmt, id)
-	case SHARE_KIND_PIC:
-		return fmt.Sprintf(share_tag_pic_fmt, id)
-	default:
+func (n *Shares) TranformResource(shareKind SHARE_KIND, id string, args ...string) string {
+	_f := ShareTransformResourceFunc(shareKind)
+	if _f == nil {
 		return ""
 	}
+	return _f(id)
+	//	switch shareKind {
+	//	case SHARE_KIND_VOD:
+	//		return fmt.Sprintf(share_tag_vod_fmt, id)
+	//	case SHARE_KIND_PIC:
+	//		return fmt.Sprintf(share_tag_pic_fmt, id)
+	//	default:
+	//		return ""
+	//	}
 }
 
 func (n *Shares) saveToCacheAndMsgEvent(s *Share, atuids map[int64]int64, msgNotice bool) {

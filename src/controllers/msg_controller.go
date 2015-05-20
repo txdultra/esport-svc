@@ -77,6 +77,7 @@ func (c *MessageController) Mentions() {
 			Text:       m.Text,
 			RefId:      m.RefId,
 			PostTime:   m.PostTime,
+			FriendTime: utils.FriendTime(m.PostTime),
 		}
 		c.transformObj(m.RefId, m.MsgType, out_m)
 		out_msgs = append(out_msgs, out_m)
@@ -105,10 +106,8 @@ func (c *MessageController) transformMsgType(submitName string) message.MSG_TYPE
 		return share.MSG_TYPE_TEXT
 	case "group":
 		return groups.MSG_TYPE_MESSAGE
-	case "sys":
-		return message.MSG_TYPE_SYS
 	default:
-		return ""
+		return message.MSG_TYPE_SYS
 	}
 }
 

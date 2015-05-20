@@ -2,13 +2,19 @@ package groups
 
 import (
 	"libs/message"
+	"libs/share"
 	"strconv"
 	"strings"
 )
 
 const (
+	SHARE_KIND_GROUP share.SHARE_KIND = 32
+)
+
+const (
 	MSG_TYPE_INVITED message.MSG_TYPE = "group:invite"
 	MSG_TYPE_MESSAGE message.MSG_TYPE = "group:msg"
+	MSG_TYPE_REPLY   message.MSG_TYPE = "group:reply"
 )
 
 type GroupCfg struct {
@@ -273,8 +279,9 @@ func (self *Post) TableEngine() string {
 type REPORT_CATEGORY int
 
 const (
-	REPORT_CATEGORY_POST  REPORT_CATEGORY = 1
-	REPORT_CATEGORY_GROUP REPORT_CATEGORY = 2
+	REPORT_CATEGORY_POST   REPORT_CATEGORY = 1
+	REPORT_CATEGORY_GROUP  REPORT_CATEGORY = 2
+	REPORT_CATEGORY_THREAD REPORT_CATEGORY = 3
 )
 
 type Report struct {

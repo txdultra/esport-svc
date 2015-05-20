@@ -9,6 +9,7 @@ import (
 	"libs"
 	credit_client "libs/credits/client"
 	credit_proxy "libs/credits/proxy"
+	//"libs/dlock"
 	"libs/message"
 	"libs/passport"
 	"libs/search"
@@ -166,6 +167,7 @@ const (
 	group_joined_member_sortset = "group.joined_%d_uids"
 	group_invited_set           = "group.invited_%d_%d_uids"
 	group_index_name            = "group_idx"
+	count_action_set            = "group_count_incr_%s"
 )
 
 type GP_PROPERTY string
@@ -174,6 +176,11 @@ const (
 	GP_PROPERTY_MEMBERS GP_PROPERTY = "members"
 	GP_PROPERTY_THREADS GP_PROPERTY = "threads"
 )
+
+var GP_PROPERTY_ALL = []GP_PROPERTY{
+	GP_PROPERTY_MEMBERS,
+	GP_PROPERTY_THREADS,
+}
 
 type GP_SEARCH_SORT int
 
@@ -199,7 +206,17 @@ type GroupService struct {
 	BaseService
 }
 
-func (s *GroupService) getCacheKey(id int64) string {
+//重置新消息列表 IEventCounter interface
+func (s GroupService) ResetEventCount(uid int64) bool {
+	return message.ResetEventCount(uid, MSG_TYPE_MESSAGE)
+}
+
+//IEventCounter interface
+func (s GroupService) NewEventCount(uid int64) int {
+	return message.NewEventCount(uid, MSG_TYPE_MESSAGE)
+}
+
+func (s *GroupService) GetCacheKey(id int64) string {
 	return fmt.Sprintf("group_model_%d", id)
 }
 
@@ -256,6 +273,10 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	nameRunes := []rune(group.Name)
 	if len(nameRunes) > s.cfg.GroupNameLen {
 		return fmt.Errorf(fmt.Sprintf("组名称不能大于%d个字符", s.cfg.GroupNameLen))
+	}
+	_name := utils.CensorWords(group.Name)
+	if _name != group.Name {
+		return fmt.Errorf("小组名称包含屏蔽字")
 	}
 	descRunes := []rune(group.Description)
 	if len(descRunes) > s.cfg.GroupDescMaxLen {
@@ -516,7 +537,7 @@ func (s *GroupService) Create(group *Group) error {
 	ssdb.New(use_ssdb_group_db).Hset(group_name_sets, group.Name, group.Id)
 
 	cache := utils.GetCache()
-	cache.Add(s.getCacheKey(id), *group, 1*time.Hour)
+	cache.Add(s.GetCacheKey(id), *group, 1*time.Hour)
 
 	//更新我的缓存
 	cache.Delete(s.getMyGroupIdsCacheKey(group.Uid))
@@ -553,7 +574,7 @@ func (s *GroupService) Delete(groupId int64) error {
 	}
 
 	cache := utils.GetCache()
-	cache.Delete(s.getCacheKey(groupId))
+	cache.Delete(s.GetCacheKey(groupId))
 	cache.Delete(s.getMyGroupIdsCacheKey(group.Uid))
 
 	//删除计数
@@ -575,10 +596,11 @@ func (s *GroupService) Close(groupId int64) error {
 	group.EndTime = 0
 	o.Update(group)
 	cache := utils.GetCache()
-	cache.Replace(s.getCacheKey(groupId), *group, 1*time.Hour)
+	cache.Replace(s.GetCacheKey(groupId), *group, 1*time.Hour)
 	cache.Delete(s.getMyGroupIdsCacheKey(group.Uid))
 	//减少计数
 	NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_GROUPS}, []COUNT_ACTION{COUNT_ACTION_INCR}, group.Uid)
+	go s.UpdateSearchEngineAttr([]*Group{group})
 	return nil
 }
 
@@ -587,16 +609,20 @@ func (s *GroupService) Update(group *Group) error {
 		return fmt.Errorf("未设置配置对象")
 	}
 	if group.Status == GROUP_STATUS_CLOSED {
-		return fmt.Errorf("组已被关闭")
+		return fmt.Errorf("小组已被关闭")
 	}
 	if len(group.Name) > s.cfg.GroupNameLen {
-		return fmt.Errorf(fmt.Sprintf("组名称不能大于%d个字符", s.cfg.GroupNameLen))
+		return fmt.Errorf(fmt.Sprintf("小组名称不能大于%d个字符", s.cfg.GroupNameLen))
+	}
+	_name := utils.CensorWords(group.Name)
+	if _name != group.Name {
+		return fmt.Errorf("小组名称包含屏蔽字")
 	}
 	if len(group.Description) > s.cfg.GroupDescMaxLen {
-		return fmt.Errorf(fmt.Sprintf("组描述内容不能大于%d个字符", s.cfg.GroupDescMaxLen))
+		return fmt.Errorf(fmt.Sprintf("小组描述内容不能大于%d个字符", s.cfg.GroupDescMaxLen))
 	}
 	if len(group.Description) < s.cfg.GroupDescMinLen {
-		return fmt.Errorf(fmt.Sprintf("组描述内容不能小于%d个字符", s.cfg.GroupDescMinLen))
+		return fmt.Errorf(fmt.Sprintf("小组描述内容不能小于%d个字符", s.cfg.GroupDescMinLen))
 	}
 	if group.Uid <= 0 {
 		return fmt.Errorf("未设置创建人")
@@ -628,14 +654,14 @@ func (s *GroupService) Update(group *Group) error {
 		return err
 	}
 	cache := utils.GetCache()
-	cache.Replace(s.getCacheKey(group.Id), *group, 1*time.Hour)
+	cache.Replace(s.GetCacheKey(group.Id), *group, 1*time.Hour)
 	return nil
 }
 
 func (s *GroupService) Get(groupId int64) *Group {
 	cache := utils.GetCache()
 	group := Group{}
-	err := cache.Get(s.getCacheKey(groupId), &group)
+	err := cache.Get(s.GetCacheKey(groupId), &group)
 	if err == nil {
 		return &group
 	}
@@ -645,7 +671,7 @@ func (s *GroupService) Get(groupId int64) *Group {
 	if err != nil {
 		return nil
 	}
-	cache.Add(s.getCacheKey(groupId), group, 1*time.Hour)
+	cache.Add(s.GetCacheKey(groupId), group, 1*time.Hour)
 	return &group
 }
 
@@ -657,6 +683,23 @@ func (s *GroupService) AsyncActionCount(groupId int64, gps []GP_PROPERTY, incrs 
 	if len(gps) != len(incrs) {
 		panic("fields和incrs的数量必须一致")
 	}
+
+	cclient := ssdb.New(use_ssdb_group_db)
+	for i, field := range gps {
+		_key := fmt.Sprintf(count_action_set, string(field))
+		cclient.Zincrby(_key, groupId, int64(incrs[i]))
+	}
+}
+
+func (s *GroupService) ActionCount(groupId int64, gps []GP_PROPERTY, incrs []int) {
+	group := s.Get(groupId)
+	if group == nil {
+		return
+	}
+	if len(gps) != len(incrs) {
+		panic("fields和incrs的数量必须一致")
+	}
+
 	params := make(orm.Params)
 	for i, field := range gps {
 		switch field {
@@ -677,7 +720,7 @@ func (s *GroupService) AsyncActionCount(groupId int64, gps []GP_PROPERTY, incrs 
 		return
 	}
 	cache := utils.GetCache()
-	cache.Replace(s.getCacheKey(group.Id), *group, 1*time.Hour)
+	cache.Replace(s.GetCacheKey(group.Id), *group, 1*time.Hour)
 
 	//更新搜索引擎文档属性
 	s.UpdateSearchEngineAttr([]*Group{group})
@@ -842,7 +885,7 @@ func (s *GroupService) multiGets(groupIds []int64) []*Group {
 	}
 	gkeys := make([]string, len(groupIds), len(groupIds))
 	for i, id := range groupIds {
-		gkeys[i] = s.getCacheKey(id)
+		gkeys[i] = s.GetCacheKey(id)
 	}
 	cache := utils.GetCache()
 	getter, _ := cache.GetMulti(gkeys...)
@@ -850,7 +893,7 @@ func (s *GroupService) multiGets(groupIds []int64) []*Group {
 	groups := []*Group{}
 	for _, id := range groupIds {
 		var _group Group
-		err := getter.Get(s.getCacheKey(id), &_group)
+		err := getter.Get(s.GetCacheKey(id), &_group)
 		if err == nil {
 			groups = append(groups, &_group)
 			continue
@@ -954,13 +997,14 @@ func (s *GroupService) ChangeStatus(group *Group) error {
 		return fmt.Errorf("更新状态失败")
 	}
 	cache := utils.GetCache()
-	cache.Delete(s.getCacheKey(group.Id))
+	cache.Delete(s.GetCacheKey(group.Id))
 	return nil
 }
 
 func (s *GroupService) LessThanLimitUsers(group *Group) error {
 	//警示和关闭中不检查，官方账号不检查
 	if group == nil ||
+		group.Status == GROUP_STATUS_RECRUITING ||
 		group.Status == GROUP_STATUS_LOWMEMBER ||
 		group.Status == GROUP_STATUS_CLOSED ||
 		group.Belong == GROUP_BELONG_OFFICIAL {
@@ -1351,6 +1395,8 @@ const (
 var postTbls map[int]string = make(map[int]string)
 var thcQs map[int64]*time.Timer = make(map[int64]*time.Timer)
 var thcQmutex *sync.Mutex = new(sync.Mutex)
+var thcLastQs map[int64]*time.Timer = make(map[int64]*time.Timer)
+var thcLastQmutex *sync.Mutex = new(sync.Mutex)
 
 const (
 	group_post_table_fmt = "post_%d"
@@ -1616,26 +1662,66 @@ func (c *ThreadService) Gets(groupId int64, page int, size int, uid int64) (int,
 }
 
 func (c *ThreadService) SetLastPost(post *Post) {
-	thread := c.Get(post.ThreadId)
-	if thread == nil {
+
+	type LastInfo struct {
+		LastId      string
+		LastPost    int64
+		LastPostUid int64
+	}
+
+	ckey := fmt.Sprintf("group_thread_%d_last", post.ThreadId)
+	ssdb.New(use_ssdb_group_db).Set(ckey, LastInfo{
+		LastId:      post.Id,
+		LastPost:    post.DateLine,
+		LastPostUid: post.AuthorId,
+	})
+
+	if _, ok := thcLastQs[post.ThreadId]; ok {
 		return
 	}
-	mp := passport.NewMemberProvider()
-	member := mp.Get(post.AuthorId)
-	if member == nil {
+
+	thcLastQmutex.Lock()
+	defer thcLastQmutex.Unlock()
+	if _, ok := thcLastQs[post.ThreadId]; ok {
 		return
 	}
-	thread.LastId = post.Id
-	thread.LastPost = post.DateLine
-	thread.LastPoster = member.NickName
-	thread.LastPostUid = post.AuthorId
 
-	cclient := ssdb.New(use_ssdb_group_db)
-	ckey := c.getCacheKey(post.ThreadId)
-	cclient.Set(ckey, thread)
+	refId := post.ThreadId
+	thcLastQs[refId] = time.AfterFunc(10*time.Second, func() {
+		ckey := fmt.Sprintf("group_thread_%d_last", refId)
+		var lastInfo LastInfo
+		cclient := ssdb.New(use_ssdb_group_db)
+		err := cclient.Get(ckey, &lastInfo)
+		if err != nil {
+			return
+		}
 
-	o := dbs.NewOrm(db_aliasname)
-	o.Update(thread, "lastpost", "lastposter", "lastpostuid", "lastid")
+		mp := passport.NewMemberProvider()
+		member := mp.Get(lastInfo.LastPostUid)
+		if member == nil {
+			return
+		}
+		_t := c.Get(refId)
+		if _t == nil {
+			return
+		}
+
+		_t.LastId = lastInfo.LastId
+		_t.LastPost = lastInfo.LastPost
+		_t.LastPoster = member.NickName
+		_t.LastPostUid = lastInfo.LastPostUid
+
+		thread_ckey := c.getCacheKey(post.ThreadId)
+		cclient.Set(thread_ckey, _t)
+
+		o := dbs.NewOrm(db_aliasname)
+		o.Update(_t, "lastpost", "lastposter", "lastpostuid", "lastid")
+
+		thcLastQmutex.Lock()
+		defer thcLastQmutex.Unlock()
+		delete(thcLastQs, refId)
+		cclient.Del(ckey)
+	})
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1927,8 +2013,9 @@ func (s *PostService) Create(post *Post) error {
 		return fmt.Errorf("帖子不存在")
 	}
 
+	var reply *Post = nil
 	if len(post.ReplyId) > 0 {
-		reply := s.Get(post.ReplyId)
+		reply = s.Get(post.ReplyId)
 		if reply == nil {
 			return fmt.Errorf("回复的评论不存在")
 		}
@@ -2022,6 +2109,13 @@ func (s *PostService) Create(post *Post) error {
 	cclient.Zadd(fmt.Sprintf(thread_post_sets, post.ThreadId), post.Id, int64(post.Position))
 	cclient.Set(s.getCacheKey(post.Id), post)
 
+	//回复
+	if reply != nil {
+		go func() {
+			message.SendMsgV2(post.AuthorId, reply.AuthorId, MSG_TYPE_REPLY, post.Message, post.Id, nil)
+		}()
+	}
+
 	//@消息
 	atNames := utils.ExtractAts(post.Message)
 	if len(atNames) > 0 {
@@ -2030,7 +2124,7 @@ func (s *PostService) Create(post *Post) error {
 			for _, atName := range atNames {
 				atuid := ps.GetUidByNickname(atName)
 				if atuid > 0 {
-					message.SendMsgV2(post.AuthorId, atuid, MSG_TYPE_MESSAGE, post.Message, post.Id, nil)
+					message.SendMsgV2(post.AuthorId, atuid, MSG_TYPE_MESSAGE, thread.Subject, post.Id, nil)
 				}
 			}
 		}()
@@ -2104,4 +2198,32 @@ func (s *PostService) Gets(threadId int64, page int, size int, orderby POST_ORDE
 		}
 	}
 	return total, posts
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// 举报
+////////////////////////////////////////////////////////////////////////////////
+type ReportService struct{}
+
+func NewReportService() *ReportService {
+	return &ReportService{}
+}
+
+func (r *ReportService) Create(report *Report) error {
+	o := dbs.NewOrm(db_aliasname)
+	_, err := o.Insert(report)
+	return err
+}
+
+func (r *ReportService) Gets(page int, size int, c REPORT_CATEGORY) ([]*Report, int) {
+	o := dbs.NewOrm(db_aliasname)
+	query := o.QueryTable(&Report{})
+	if int(c) > 0 {
+		query.Filter("c", int(c))
+	}
+	total, _ := query.Count()
+	offset := (page - 1) * size
+	var lst []*Report
+	query.OrderBy("-ts").Limit(size, offset).All(&lst)
+	return lst, int(total)
 }

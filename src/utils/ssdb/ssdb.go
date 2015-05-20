@@ -31,6 +31,11 @@ type endPoint struct {
 	Port int
 }
 
+type KeyScore struct {
+	Key   interface{}
+	Score interface{}
+}
+
 type Cluster struct {
 	consistent *hash.Consistent
 	clients    map[string]*ssdbClient
@@ -589,6 +594,39 @@ func (c *Cluster) Zscan(key string, min int64, max int64, limit int, valType ref
 	return nil, fmt.Errorf("resp fail:", resp)
 }
 
+func (c *Cluster) ZscanKS(key string, min int64, max int64, limit int, keyType reflect.Type, scoreType reflect.Type) ([]*KeyScore, error) {
+	client := c.GetSrv(key)
+	db, err := ssdb.Connect(client.conn_addr, client.conn_port)
+	defer db.Close()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := db.Do("zscan", key, "", min, max, limit)
+	if err != nil {
+		return nil, err
+	}
+	if resp[0] == "ok" {
+		lst := []*KeyScore{}
+		for i := 1; i < len(resp); i += 2 {
+			key := reflect.New(keyType).Interface()
+			val := reflect.New(scoreType).Interface()
+			b1 := []byte(resp[i])
+			err1 := Deserialize(b1, key)
+			b2 := []byte(resp[i+1])
+			err2 := Deserialize(b2, val)
+			fmt.Println(err1, "     ", err2)
+			if err1 == nil && err2 == nil {
+				lst = append(lst, &KeyScore{
+					key,
+					val,
+				})
+			}
+		}
+		return lst, nil
+	}
+	return nil, fmt.Errorf("resp fail:", resp)
+}
+
 func (c *Cluster) Zrscan(key string, max int64, min int64, limit int, valType reflect.Type) ([]interface{}, error) {
 	client := c.GetSrv(key)
 	db, err := ssdb.Connect(client.conn_addr, client.conn_port)
@@ -608,6 +646,38 @@ func (c *Cluster) Zrscan(key string, max int64, min int64, limit int, valType re
 			err = Deserialize(byts, obj)
 			if err == nil {
 				lst = append(lst, obj)
+			}
+		}
+		return lst, nil
+	}
+	return nil, fmt.Errorf("resp fail:", resp)
+}
+
+func (c *Cluster) ZrscanKS(key string, max int64, min int64, limit int, keyType reflect.Type, scoreType reflect.Type) ([]*KeyScore, error) {
+	client := c.GetSrv(key)
+	db, err := ssdb.Connect(client.conn_addr, client.conn_port)
+	defer db.Close()
+	if err != nil {
+		return nil, err
+	}
+	resp, err := db.Do("zrscan", key, "", min, max, limit)
+	if err != nil {
+		return nil, err
+	}
+	if resp[0] == "ok" {
+		lst := []*KeyScore{}
+		for i := 1; i < len(resp); i += 2 {
+			key := reflect.New(keyType).Interface()
+			val := reflect.New(scoreType).Interface()
+			b1 := []byte(resp[i])
+			err1 := Deserialize(b1, key)
+			b2 := []byte(resp[i+1])
+			err2 := Deserialize(b2, val)
+			if err1 == nil && err2 == nil {
+				lst = append(lst, &KeyScore{
+					key,
+					val,
+				})
 			}
 		}
 		return lst, nil

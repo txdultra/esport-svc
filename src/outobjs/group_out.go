@@ -115,6 +115,12 @@ type OutPostPagedList struct {
 	LordPost    *OutPost   `json:"lord_post"`
 }
 
+type OutSinglePost struct {
+	Thread      *OutThread `json:"thread"`
+	JoinedGroup bool       `json:"joined_group"`
+	Post        *OutPost   `json:"post"`
+}
+
 type OutPost struct {
 	Id               string           `json:"id"`
 	ThreadId         int64            `json:"thread_id"`
@@ -243,6 +249,11 @@ func GetOutPost(post *groups.Post, res *groups.PostRes) *OutPost {
 			})
 		}
 	}
+	message := post.Message
+	if post.Invisible {
+		message = ""
+		pics = []*OutPicture{}
+	}
 	return &OutPost{
 		Id:               post.Id,
 		ThreadId:         post.ThreadId,
@@ -251,7 +262,7 @@ func GetOutPost(post *groups.Post, res *groups.PostRes) *OutPost {
 		Subject:          post.Subject,
 		CreateTime:       time.Unix(post.DateLine, 0),
 		CreateFriendTime: utils.FriendTime(time.Unix(post.DateLine, 0)),
-		Message:          post.Message,
+		Message:          message,
 		Ip:               post.Ip,
 		Invisible:        post.Invisible,
 		Ding:             post.Ding,

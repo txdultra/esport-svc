@@ -8,12 +8,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/astaxie/beego/orm"
 	"hash/crc32"
 	"io"
 	"libs"
 	"libs/passport"
-	"libs/vod"
 	"logs"
 	"os"
 	"reflect"
@@ -25,6 +23,8 @@ import (
 	"utils"
 	"utils/redis"
 	"utils/ssdb"
+
+	"github.com/astaxie/beego/orm"
 )
 
 const (
@@ -143,19 +143,23 @@ func (n ShareNotices) getSharePic(s *Share) int64 {
 	nts := &Shares{}
 	ress := nts.GetResources(s.Resources)
 	for _, res := range ress {
-		if res.Kind == SHARE_KIND_VOD {
-			_id, _ := strconv.ParseInt(res.Id, 10, 64)
-			vods := &vod.Vods{}
-			v := vods.Get(_id, false)
-			if v == nil {
-				return 0
-			}
-			return v.Img
+		f := ShareResPicFileIdFunc(res.Kind)
+		if f != nil {
+			return f(res)
 		}
-		if res.Kind == SHARE_KIND_PIC {
-			_id, _ := strconv.ParseInt(res.Id, 10, 64)
-			return _id
-		}
+		//		if res.Kind == SHARE_KIND_VOD {
+		//			_id, _ := strconv.ParseInt(res.Id, 10, 64)
+		//			vods := &vod.Vods{}
+		//			v := vods.Get(_id, false)
+		//			if v == nil {
+		//				return 0
+		//			}
+		//			return v.Img
+		//		}
+		//		if res.Kind == SHARE_KIND_PIC {
+		//			_id, _ := strconv.ParseInt(res.Id, 10, 64)
+		//			return _id
+		//		}
 	}
 	return 0
 }

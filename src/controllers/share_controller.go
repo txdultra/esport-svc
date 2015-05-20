@@ -406,6 +406,7 @@ func (c *ShareController) tranfromOutShare(s *share.Share, suid int64, showComme
 	//out_share.Ats = ats
 	out_share.Vods = []*outobjs.OutShareVod{}
 	out_share.Pics = []*outobjs.OutSharePic{}
+	out_share.Objs = []*outobjs.OutShareObj{}
 	nts := &share.Shares{}
 	vs := &vod.Vods{}
 	pics := share.NewShareViewPics()
@@ -430,8 +431,7 @@ func (c *ShareController) tranfromOutShare(s *share.Share, suid int64, showComme
 					Member:       outobjs.GetOutMember(vod.Uid, suid),
 				})
 			}
-		}
-		if res.Kind == share.SHARE_KIND_PIC {
+		} else if res.Kind == share.SHARE_KIND_PIC {
 			picid, _ := strconv.ParseInt(res.Id, 10, 64)
 			viewPics := pics.Get(picid)
 			if len(viewPics) > 0 {
@@ -449,6 +449,22 @@ func (c *ShareController) tranfromOutShare(s *share.Share, suid int64, showComme
 					}
 				}
 				out_share.Pics = append(out_share.Pics, outpic)
+			}
+		} else {
+			proxyFunc := share.ShareResToOutputProxyObjectFunc(res.Kind)
+			if proxyFunc != nil {
+				proxyObj := proxyFunc(res)
+				if proxyObj == nil {
+					continue
+				}
+				out_share.Objs = append(out_share.Objs, &outobjs.OutShareObj{
+					Id:           proxyObj.Id,
+					Title:        proxyObj.Title,
+					Content:      proxyObj.Content,
+					ThumbnailPic: file_storage.GetFileUrl(proxyObj.ThumbnailPic),
+					Uid:          proxyObj.Uid,
+					Member:       outobjs.GetOutMember(proxyObj.Uid, suid),
+				})
 			}
 		}
 	}

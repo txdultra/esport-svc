@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"reflect"
 	//"strings"
 
 	"github.com/astaxie/beego"
@@ -49,10 +50,9 @@ import (
 	//"path/filepath"
 	//"encoding/base64"
 	"flag"
+	"libs/pushapi"
 	"os"
 	"os/exec"
-	//"reflect"
-	"libs/pushapi"
 	//"strings"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -61,6 +61,7 @@ import (
 	//"logs"
 	//"encoding/json"
 	//"github.com/huichen/sego"
+	"utils/ssdb"
 
 	//加载钩子程序
 
@@ -72,6 +73,11 @@ import (
 )
 
 func main() {
+	objs1, _ := ssdb.New("f").Zscan2("group.thread_39_post_ding_set", -1<<32, 1<<32, 10, reflect.TypeOf(""), reflect.TypeOf(int64(0)))
+	for _, obj := range objs1 {
+		fmt.Println(obj.Key, "___", obj.Score)
+	}
+	return
 
 	search_config := &search.SearchOptions{
 		Host:    "192.168.0.79",

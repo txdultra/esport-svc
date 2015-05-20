@@ -84,6 +84,9 @@ func init() {
 	register_share_cmt_db()
 	register_share_notice_db()
 
+	//初始化分享中的资源处理方法
+	initShareKindFuncs()
+
 	//初始化消息模块配置
 	sns_msg_db = beego.AppConfig.String("sns.share.db")
 	sns_msg_collection = beego.AppConfig.String("sns.atmsg.collection")

@@ -5,9 +5,11 @@ import (
 	"libs"
 	"libs/groups"
 	"libs/search"
+	"libs/share"
 	"outobjs"
 	"strconv"
 	"strings"
+	"time"
 	"utils"
 )
 
@@ -34,11 +36,14 @@ func (c *GroupController) URLMapping() {
 	c.Mapping("Invite", c.Invite)
 	c.Mapping("GetThreads", c.GetThreads)
 	c.Mapping("GetThreads", c.GetThreads)
+	c.Mapping("GetPost", c.GetPost)
 	c.Mapping("GetPosts", c.GetPosts)
 	c.Mapping("CreatePost", c.CreatePost)
 	c.Mapping("ActionPost", c.ActionPost)
 	c.Mapping("ReportOptions", c.ReportOptions)
 	c.Mapping("Report", c.Report)
+	c.Mapping("Share", c.Share)
+	c.Mapping("MsgCount", c.MsgCount)
 }
 
 // @Title 申请组的设定值
@@ -591,6 +596,57 @@ func (c *GroupController) CreateThread() {
 	c.Json(libs.NewError("group_newthread_success", RESPONSE_SUCCESS, "新建帖子成功", ""))
 }
 
+// @Title 获取单个评论
+// @Description 获取单个评论
+// @Param   access_token  path  string  false  "access_token"
+// @Param   post_id   path  string  true  "评论id"
+// @Success 200 {object} outobjs.OutSinglePost
+// @router /post/get [get]
+func (c *GroupController) GetPost() {
+	current_uid := c.CurrentUid()
+	postid := c.GetString("post_id")
+	cfg := groups.GetDefaultCfg()
+	ps := groups.NewPostService(cfg)
+	post := ps.Get(postid)
+	if post == nil {
+		c.Json(libs.NewError("group_getpost_fail", "GP1400", "评论不存在", ""))
+		return
+	}
+	res := ps.GetSrcToRes(post.Resources)
+	outp := outobjs.GetOutPost(post, res)
+	outsp := outobjs.OutSinglePost{
+		JoinedGroup: false,
+		Post:        outp,
+	}
+
+	//顶记录
+	dingCs := ps.GetPostActionCounts(post.ThreadId, []string{post.Id}, groups.POST_ACTIONTAG_DING)
+	if cs, ok := dingCs[outp.Id]; ok {
+		outp.Ding = cs
+	}
+
+	if current_uid > 0 {
+		//用户顶踩记录
+		actionTags := ps.MemberThreadPostActionTags(post.ThreadId, current_uid)
+		if dc, ok := actionTags[outp.Id]; ok {
+			if dc == groups.POST_ACTIONTAG_DING {
+				outp.Dinged = true
+			}
+			if dc == groups.POST_ACTIONTAG_CAI {
+				outp.Caied = true
+			}
+		}
+		ts := groups.NewThreadService(cfg)
+		thread := ts.Get(post.ThreadId)
+		if thread != nil {
+			gs := groups.NewGroupService(cfg)
+			outsp.Thread = outobjs.GetOutThread(thread)
+			outsp.JoinedGroup = gs.IsJoined(current_uid, thread.GroupId)
+		}
+	}
+	c.Json(outsp)
+}
+
 // @Title 帖子评论列表
 // @Description 帖子评论列表(返回数组)
 // @Param   access_token  path  string  false  "access_token"
@@ -621,7 +677,7 @@ func (c *GroupController) GetPosts() {
 	gs := groups.NewGroupService(cfg)
 	thread := ths.Get(threadid)
 	if thread == nil || thread.Closed {
-		c.Json(libs.NewError("group_getpost_fail", "GP1400", "帖子不存在", ""))
+		c.Json(libs.NewError("group_getpost_fail", "GP1410", "帖子不存在", ""))
 		return
 	}
 	//用户顶踩记录
@@ -648,6 +704,7 @@ func (c *GroupController) GetPosts() {
 			maxding = outobjs.GetOutPost(md, ps.GetSrcToRes(md.Resources))
 			dcTag(maxding)
 			postids = append(postids, maxding.Id)
+			break
 		}
 	}
 	//楼主post
@@ -734,7 +791,7 @@ func (c *GroupController) CreatePost() {
 		}
 	}
 	if len(img_ids) > 9 {
-		c.Json(libs.NewError("group_newpost_fail", "GP1400", "图片数量不能大于9张", ""))
+		c.Json(libs.NewError("group_newpost_fail", "GP1430", "图片数量不能大于9张", ""))
 		return
 	}
 	post := &groups.Post{
@@ -751,7 +808,7 @@ func (c *GroupController) CreatePost() {
 	}
 	err := ps.Create(post)
 	if err != nil {
-		c.Json(libs.NewError("group_newpost_fail", "GP1401", err.Error(), ""))
+		c.Json(libs.NewError("group_newpost_fail", "GP1431", err.Error(), ""))
 		return
 	}
 	c.Json(libs.NewError("group_newpost_success", RESPONSE_SUCCESS, "评论成功", ""))
@@ -815,5 +872,99 @@ func (c *GroupController) ReportOptions() {
 // @Success 200 {object} libs.Error
 // @router /report [post]
 func (c *GroupController) Report() {
+	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_report_premission_denied", UNAUTHORIZED_CODE, "必须登录后才能操作", ""))
+		return
+	}
+	refid := c.GetString("refid")
+	cc, _ := c.GetInt("c")
+	msg, _ := utils.UrlDecode(c.GetString("msg"))
+	if cc != int(groups.REPORT_CATEGORY_POST) ||
+		cc != int(groups.REPORT_CATEGORY_THREAD) ||
+		cc != int(groups.REPORT_CATEGORY_GROUP) {
+		c.Json(libs.NewError("group_report_fail", "GP1551", "举报类型不存在", ""))
+		return
+	}
+	report := &groups.Report{
+		RefId:   refid,
+		C:       groups.REPORT_CATEGORY(cc),
+		Ts:      time.Now().Unix(),
+		RefTxt:  "",
+		PostUid: current_uid,
+		Msg:     msg,
+	}
+	rs := groups.NewReportService()
+	err := rs.Create(report)
+	if err != nil {
+		c.Json(libs.NewError("group_report_fail", "GP1552", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("group_report_success", RESPONSE_SUCCESS, "提交成功", ""))
+}
 
+// @Title 分享
+// @Description 分享
+// @Param   access_token  path   string  true  "access_token"
+// @Param   thread_id     path   int  false  "帖子id"
+// @Param   text     path   string  false  "文本内容"
+// @Param   ref_uids     path   string  false  "提到了哪些好友uid(示例:1001,1002,1023))"
+// @Success 200 成功返回error_code:REP000
+// @router /thread/share [post]
+func (c *GroupController) Share() {
+	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_share_premission_denied", UNAUTHORIZED_CODE, "请登陆后重新尝试", ""))
+		return
+	}
+	thread_id, _ := c.GetInt64("thread_id")
+	text, _ := utils.UrlDecode(c.GetString("text"))
+	ref_uids := c.GetString("ref_uids")
+
+	if thread_id <= 0 {
+		c.Json(libs.NewError("group_share_fail", "GP1600", "必须提供帖子id", ""))
+		return
+	}
+	ts := groups.NewThreadService(groups.GetDefaultCfg())
+	thread := ts.Get(thread_id)
+	if thread == nil {
+		c.Json(libs.NewError("group_share_fail", "GP1601", "帖子不存在", ""))
+		return
+	}
+	nts := &share.Shares{}
+	_share_res := []string{}
+	_share_res = append(_share_res, nts.TranformResource(groups.SHARE_KIND_GROUP, fmt.Sprintf("%d", thread_id)))
+	_s := share.Share{
+		Uid:       current_uid,
+		Source:    "",
+		Text:      text,
+		ShareType: int(groups.SHARE_KIND_GROUP),
+		Type:      share.SHARE_TYPE_ORIGINAL, //默认是原创
+		Resources: nts.CombinResources(_share_res),
+		RefUids:   ref_uids,
+	}
+	err, _id := nts.Create(&_s, false)
+	if err != nil {
+		c.Json(libs.NewError("group_share_create", "GP1602", "发布分享失败", ""))
+		return
+	}
+	c.Json(libs.NewError("group_share_succ", RESPONSE_SUCCESS, "分享成功", strconv.FormatInt(_id, 10)))
+}
+
+// @Title 组消息计数
+// @Description 组消息计数
+// @Param   access_token  path   string  true  "access_token"
+// @Success 200 成功返回error_code:REP000,error_description=数量
+// @router /msg/c [get]
+func (c *GroupController) MsgCount() {
+	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_msgcount_premission_denied", UNAUTHORIZED_CODE, "请登陆后重新尝试", ""))
+		return
+	}
+	gcm := gms.NewEventCount(current_uid)
+	if gcm > 99 {
+		gcm = 99
+	}
+	c.Json(libs.NewError("group_msgcount_succ", RESPONSE_SUCCESS, fmt.Sprintf("%d", gcm), ""))
 }
