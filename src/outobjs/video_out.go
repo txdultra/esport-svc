@@ -162,6 +162,26 @@ type OutVodUcenterForAdmin struct {
 	CreateTime time.Time          `json:"create_time"`
 }
 
+type OutVodPlaylistPagedListForAdmin struct {
+	CurrentPage int               `json:"current_page"`
+	Total       int               `json:"total"`
+	Pages       int               `json:"pages"`
+	Size        int               `json:"size"`
+	Lists       []*OutVodPlaylist `json:"lists"`
+}
+
+type OutVodPlaylist struct {
+	Id       int64            `json:"id"`
+	Title    string           `json:"title"`
+	Des      string           `json:"des"`
+	PostTime time.Time        `json:"post_time"`
+	Vods     int              `json:"vods"`
+	Img      int64            `json:"img"`
+	ImgUrl   string           `json:"img_url"`
+	Uid      int64            `json:"uid"`
+	Member   *OutSimpleMember `json:"member"`
+}
+
 func GetOutVodForAdmin(video *vod.Video) *OutVodForAdmin {
 	return &OutVodForAdmin{
 		Id:             video.Id,
@@ -181,5 +201,19 @@ func GetOutVodForAdmin(video *vod.Video) *OutVodForAdmin {
 		GameId:         video.GameId,
 		Game:           GetOutGameById(video.GameId),
 		NoIndex:        video.NoIndex,
+	}
+}
+
+func GetOutVodPlaylist(pl *vod.VideoPlaylist) *OutVodPlaylist {
+	return &OutVodPlaylist{
+		Id:       pl.Id,
+		Title:    pl.Title,
+		Des:      pl.Des,
+		PostTime: pl.PostTime,
+		Vods:     pl.Vods,
+		Img:      pl.Img,
+		ImgUrl:   file.GetFileUrl(pl.Img),
+		Uid:      pl.Uid,
+		Member:   GetOutSimpleMember(pl.Uid),
 	}
 }

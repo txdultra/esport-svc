@@ -90,6 +90,7 @@ const (
 	GROUP_STATUS_RECRUITING GROUP_STATUS = 2
 	GROUP_STATUS_LOWMEMBER  GROUP_STATUS = 3
 	GROUP_STATUS_CLOSED     GROUP_STATUS = 4
+	GROUP_STATUS_DELETED    GROUP_STATUS = 99 //只在搜索引擎使用
 )
 
 type GROUP_BELONG int
@@ -134,6 +135,7 @@ type Group struct {
 	MinUsers       int          `orm:"column(min_users)"`
 	OrderNo        string       `orm:"column(orderno)"`
 	InviteUids     []int64      `orm:"-"`
+	IsDeleted      bool         `orm:"-"`
 }
 
 func (self *Group) TableName() string {

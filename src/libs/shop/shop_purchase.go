@@ -5,6 +5,7 @@ import (
 	credit_client "libs/credits/client"
 	credit_proxy "libs/credits/proxy"
 	"libs/dlock"
+	"libs/message"
 	"logs"
 	"time"
 )
@@ -111,6 +112,9 @@ func (sp *ShopPurchaser) ChangeOrderStatus(orderNo string, status ORDER_STATUS, 
 				logs.Errorf("订单:%s积分返还失败", orderNo)
 			}
 		}
+		go func() {
+			message.SendMsgV2(0, order.Uid, message.MSG_TYPE_SYS, "恭喜您！您在商城提交的订单已发货。", order.OrderNo, nil)
+		}()
 		return err
 	default:
 		return nil

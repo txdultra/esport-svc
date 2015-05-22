@@ -8,6 +8,7 @@ import (
 	"libs/vod"
 	"outobjs"
 	"strconv"
+	"strings"
 	"time"
 	"utils"
 )
@@ -391,4 +392,193 @@ func (c *VodCPController) UserVodCenterChangeUser() {
 		return
 	}
 	c.Json(libs.NewError("admincp_vod_uc_change_user_fail", "GM010_079", "参数错误:"+err.Error(), ""))
+}
+
+// @Title 合集列表
+// @Description 合集列表
+// @Param   page  path int false  "page"
+// @Param   size  path int false  "size"
+// @Success 200 {object} outobjs.OutVodPlaylistPagedListForAdmin
+// @router /uc/playlists [get]
+func (c *VodCPController) VodPlayLists() {
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("size")
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
+	ups := &vod.Vods{}
+	total, list := ups.GetPlaylistsForAdmin(page, size)
+	outp := []*outobjs.OutVodPlaylist{}
+	for _, p := range list {
+		outp = append(outp, outobjs.GetOutVodPlaylist(p))
+	}
+	outpl := &outobjs.OutVodPlaylistPagedListForAdmin{
+		CurrentPage: page,
+		Total:       total,
+		Pages:       utils.TotalPages(total, size),
+		Size:        size,
+		Lists:       outp,
+	}
+	c.Json(outpl)
+}
+
+// @Title 合集
+// @Description 合集
+// @Param   plid  path int true  "合集id"
+// @Success 200 {object} outobjs.OutVodPlaylist
+// @router /uc/playlist [get]
+func (c *VodCPController) VodPlayListGet() {
+	plid, _ := c.GetInt64("plid")
+	if plid <= 0 {
+		c.Json(libs.NewError("admincp_vod_playlist_get_fail", "GM010_080", "参数错误", ""))
+		return
+	}
+	ups := &vod.Vods{}
+	pl := ups.GetPlaylist(plid)
+	if pl == nil {
+		c.Json(libs.NewError("admincp_vod_playlist_get_fail", "GM010_081", "合集不存在", ""))
+		return
+	}
+	outp := outobjs.GetOutVodPlaylist(pl)
+	c.Json(outp)
+}
+
+// @Title 创建合集
+// @Description 创建合集
+// @Param   title  path string true  "标题"
+// @Param   dscriptioin  path string false  "描述"
+// @Param   img  path int false  "图片"
+// @Success 200  {object} libs.Error
+// @router /uc/playlist/create [post]
+func (c *VodCPController) CreatePlaylist() {
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	des, _ := utils.UrlDecode(c.GetString("dscriptioin"))
+	img, _ := c.GetInt64("img")
+	current_uid := c.CurrentUid()
+	if len(title) == 0 {
+		c.Json(libs.NewError("admincp_vod_playlist_create_fail", "GM010_090", "标题不能为空", ""))
+		return
+	}
+
+	ups := &vod.Vods{}
+	pl := &vod.VideoPlaylist{
+		Title:    title,
+		Des:      des,
+		PostTime: time.Now(),
+		Vods:     0,
+		Img:      img,
+		Uid:      current_uid,
+	}
+	_, err := ups.CreatePlaylist(pl, nil)
+	if err != nil {
+		c.Json(libs.NewError("admincp_vod_playlist_create_fail", "GM010_092", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_vod_playlist_create_success", controllers.RESPONSE_SUCCESS, "创建成功", ""))
+}
+
+// @Title 合集中添加视频
+// @Description 合集中添加视频
+// @Param   plid  path int true  "合集id"
+// @Param   vids  path string false  "视频ids(1|2 1表示视频id,2表示排序no)"
+// @Success 200  {object} libs.Error
+// @router /uc/playlist/append_vods [post]
+func (c *VodCPController) AppendPlaylistVods() {
+	plid, _ := c.GetInt64("plid")
+	vidstrs := c.GetString("vids")
+	vids := make(map[int64]int)
+	vidss := strings.Split(vidstrs, ",")
+	for _, vstr := range vidss {
+		vd := strings.Split(vstr, "|")
+		if len(vd) != 2 {
+			continue
+		}
+		_id, _ := strconv.ParseInt(vd[0], 10, 64)
+		_no, _ := strconv.ParseInt(vd[1], 10, 64)
+		if _id > 0 {
+			vids[_id] = int(_no)
+		}
+	}
+	if len(vids) == 0 {
+		c.Json(libs.NewError("admincp_vod_playlist_append_fail", "GM010_1001", "添加视频编号数不能为0", ""))
+		return
+	}
+	ups := &vod.Vods{}
+	err := ups.AppenedPlsVods(plid, vids)
+	if err != nil {
+		c.Json(libs.NewError("admincp_vod_playlist_append_fail", "GM010_1002", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_vod_playlist_append_success", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+}
+
+// @Title 删除合集中视频
+// @Description 删除合集中视频
+// @Param   plid  path int true  "合集id"
+// @Param   vid  path int true  "视频id"
+// @Success 200  {object} libs.Error
+// @router /uc/playlist/remove_vod [post]
+func (c *VodCPController) RemovePlaylostVods() {
+	plid, _ := c.GetInt64("plid")
+	vid, _ := c.GetInt64("vid")
+	if plid <= 0 {
+		c.Json(libs.NewError("admincp_vod_playlist_remove_fail", "GM010_1010", "合集id错误", ""))
+		return
+	}
+	if vid <= 0 {
+		c.Json(libs.NewError("admincp_vod_playlist_remove_fail", "GM010_1011", "视频id错误", ""))
+		return
+	}
+	ups := &vod.Vods{}
+	err := ups.RemovePlsVod(plid, vid)
+	if err != nil {
+		c.Json(libs.NewError("admincp_vod_playlist_remove_fail", "GM010_1012", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_vod_playlist_remove_success", controllers.RESPONSE_SUCCESS, "删除成功", ""))
+}
+
+// @Title 合集中视频
+// @Description 合集中视频
+// @Param   plid  path int true  "合集id"
+// @Param   page  path int false  "页"
+// @Param   size  path int false  "页数"
+// @Success 200  {object} outobjs.OutVodPageForAdmin
+// @router /uc/playlist/vods [get]
+func (c *VodCPController) PlaylistVods() {
+	plid, _ := c.GetInt64("plid")
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("size")
+	if plid <= 0 {
+		c.Json(libs.NewError("admincp_vod_playlist_vods_fail", "GM010_1020", "合集id错误", ""))
+		return
+	}
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
+	ups := &vod.Vods{}
+	pl, _ := ups.GetPlaylistVods(plid, page, size)
+	outp := []*outobjs.OutVodForAdmin{}
+	vods, ok := pl.List.([]*vod.Video)
+	if !ok {
+		c.Json(libs.NewError("admincp_vod_playlist_vods_fail", "GM010_1021", "类型转换失败", ""))
+		return
+	}
+	for _, vod := range vods {
+		outp = append(outp, outobjs.GetOutVodForAdmin(vod))
+	}
+	outpl := &outobjs.OutVodPageForAdmin{
+		CurrentPage: page,
+		Total:       pl.Total,
+		Pages:       utils.TotalPages(pl.Total, size),
+		Size:        size,
+		Lists:       outp,
+	}
+	c.Json(outpl)
 }

@@ -195,13 +195,13 @@ func (self *VodUcenter) TableUnique() [][]string {
 
 //视频专辑
 type VideoPlaylist struct {
-	Id       int64
-	Title    string
-	Des      string
-	PostTime time.Time
-	Vods     int
-	Img      int
-	Uid      int
+	Id       int64     `orm:"column(id);pk"`
+	Title    string    `orm:"column(title)"`
+	Des      string    `orm:"column(des)"`
+	PostTime time.Time `orm:"column(post_time)"`
+	Vods     int       `orm:"column(vods)"`
+	Img      int64     `orm:"column(img)"`
+	Uid      int64     `orm:"column(uid)"`
 }
 
 func (self *VideoPlaylist) TableName() string {

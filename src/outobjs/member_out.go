@@ -7,6 +7,9 @@ import (
 )
 
 func GetOutSimpleMember(uid int64) *OutSimpleMember {
+	if uid <= 0 {
+		return nil
+	}
 	pst := passport.NewMemberProvider()
 	member := pst.Get(uid)
 	if member == nil {
@@ -23,6 +26,9 @@ func GetOutSimpleMember(uid int64) *OutSimpleMember {
 }
 
 func GetOutMember(uid int64, sourceUid int64) *OutMember {
+	if uid <= 0 {
+		return nil
+	}
 	pst := passport.NewMemberProvider()
 	member := pst.Get(uid)
 	state := pst.GetState(uid)

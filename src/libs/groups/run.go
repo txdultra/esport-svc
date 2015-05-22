@@ -71,7 +71,7 @@ func gpService() {
 				updates = append(updates, group)
 			}
 			p.Close()
-			gs.UpdateSearchEngineAttr(updates)
+			gs.UpdateBaseSearchEngineAttrs(updates)
 			cache := utils.GetCache()
 			for _, g = range updates {
 				cache.Replace(gs.GetCacheKey(g.Id), *g, 1*time.Hour)
@@ -80,6 +80,6 @@ func gpService() {
 		//解锁
 		locker.Unlock()
 		//15秒间隔
-		time.Sleep(15 * time.Second)
+		time.Sleep(10 * time.Second)
 	}
 }

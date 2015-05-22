@@ -34,6 +34,8 @@ type BaseService struct {
 ////////////////////////////////////////////////////////////////////////////////
 //组设定配置
 ////////////////////////////////////////////////////////////////////////////////
+var cfgLock *sync.RWMutex = new(sync.RWMutex)
+
 var default_cfg *GroupCfg
 
 func getCfgCacheKey(id int64) string {
@@ -59,11 +61,18 @@ func GetGroupCfg(id int64) *GroupCfg {
 }
 
 func GetDefaultCfg() *GroupCfg {
-	//需要zookeeper控制cfg更换
+	cfgLock.RLock()
+	defer cfgLock.RUnlock()
 	if default_cfg == nil {
 		default_cfg = GetGroupCfg(int64(group_setting_id))
 	}
 	return default_cfg
+}
+
+func ResetDefaultCfg() {
+	cfgLock.Lock()
+	defer cfgLock.Unlock()
+	default_cfg = nil
 }
 
 func UpdateGroupCfg(cfg *GroupCfg) error {
@@ -71,6 +80,10 @@ func UpdateGroupCfg(cfg *GroupCfg) error {
 	_, err := o.Update(cfg)
 	if err != nil {
 		return err
+	}
+	data, err := json.Marshal(cfg)
+	if err == nil {
+		watcher.Write(watcher_path, data)
 	}
 	cache.Replace(getCfgCacheKey(cfg.Id), *cfg, 24*time.Hour)
 	return nil
@@ -291,20 +304,21 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	if len(group.GameIds) == 0 {
 		return fmt.Errorf("未选择游戏分类")
 	}
-	//	if group.BgImg == 0 {
-	//		return fmt.Errorf("未设置背景图")
-	//	}
 	//验证是否同名
 	has, _ := ssdb.New(use_ssdb_group_db).Hexists(group_name_sets, group.Name)
 	if has {
+		return fmt.Errorf("组名称已存在")
+	}
+	o := dbs.NewOrm(db_aliasname)
+	nums, _ := o.QueryTable(&Group{}).Filter("groupname", group.Name).Count()
+	if int(nums) > 0 {
 		return fmt.Errorf("组名称已存在")
 	}
 
 	//认证用户创建个数不同
 	max_limit := s.AllowMaxCreateLimits(group.Uid)
 	//验证创建个数限制
-	o := dbs.NewOrm(db_aliasname)
-	nums, _ := o.QueryTable(&Group{}).Filter("uid", group.Uid).Exclude("status", GROUP_STATUS_CLOSED).Count()
+	nums, _ = o.QueryTable(&Group{}).Filter("uid", group.Uid).Exclude("status", GROUP_STATUS_CLOSED).Count()
 	if int(nums) >= max_limit {
 		return fmt.Errorf("已超过可以创建小组的数量限制")
 	}
@@ -524,6 +538,7 @@ func (s *GroupService) Create(group *Group) error {
 			No:     cr.No,
 			Action: credit_proxy.OPERATION_ACTOIN_UNLOCK,
 		})
+		logs.Errorf("建组失败:%+v", err)
 		return fmt.Errorf("建组失败:002")
 	}
 	group.Id = id
@@ -574,11 +589,16 @@ func (s *GroupService) Delete(groupId int64) error {
 	}
 
 	cache := utils.GetCache()
-	cache.Delete(s.GetCacheKey(groupId))
+	group.IsDeleted = true
+	cache.Set(s.GetCacheKey(groupId), *group, 24*time.Hour)
 	cache.Delete(s.getMyGroupIdsCacheKey(group.Uid))
 
 	//删除计数
 	NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_GROUPS}, []COUNT_ACTION{COUNT_ACTION_DECR}, group.Uid)
+
+	group.Status = GROUP_STATUS_CLOSED
+	go s.UpdateSearchEngineAttrs([]*Group{group}, []string{"status"})
+
 	return nil
 }
 
@@ -600,7 +620,7 @@ func (s *GroupService) Close(groupId int64) error {
 	cache.Delete(s.getMyGroupIdsCacheKey(group.Uid))
 	//减少计数
 	NewMemberCountService().ActionCountProperty([]MC_PROPERTY{MC_PROPERTY_GROUPS}, []COUNT_ACTION{COUNT_ACTION_INCR}, group.Uid)
-	go s.UpdateSearchEngineAttr([]*Group{group})
+	go s.UpdateBaseSearchEngineAttrs([]*Group{group})
 	return nil
 }
 
@@ -663,12 +683,17 @@ func (s *GroupService) Get(groupId int64) *Group {
 	group := Group{}
 	err := cache.Get(s.GetCacheKey(groupId), &group)
 	if err == nil {
+		if group.IsDeleted {
+			return nil
+		}
 		return &group
 	}
 	group.Id = groupId
 	o := dbs.NewOrm(db_aliasname)
 	err = o.Read(&group)
 	if err != nil {
+		group.IsDeleted = true
+		cache.Add(s.GetCacheKey(groupId), group, 24*time.Hour)
 		return nil
 	}
 	cache.Add(s.GetCacheKey(groupId), group, 1*time.Hour)
@@ -723,7 +748,7 @@ func (s *GroupService) ActionCount(groupId int64, gps []GP_PROPERTY, incrs []int
 	cache.Replace(s.GetCacheKey(group.Id), *group, 1*time.Hour)
 
 	//更新搜索引擎文档属性
-	s.UpdateSearchEngineAttr([]*Group{group})
+	s.UpdateBaseSearchEngineAttrs([]*Group{group})
 }
 
 func (s *GroupService) Join(uid int64, groupId int64) error {
@@ -894,7 +919,7 @@ func (s *GroupService) multiGets(groupIds []int64) []*Group {
 	for _, id := range groupIds {
 		var _group Group
 		err := getter.Get(s.GetCacheKey(id), &_group)
-		if err == nil {
+		if err == nil && !_group.IsDeleted {
 			groups = append(groups, &_group)
 			continue
 		}
@@ -1149,40 +1174,62 @@ func (s *GroupService) Invite(uid int64, groupId int64, inviteUids []int64) {
 	}()
 }
 
-func (s *GroupService) UpdateSearchEngineAttr(groups []*Group) error {
-	if len(groups) == 0 {
+func (s *GroupService) UpdateSearchEngineAttrs(groups []*Group, attrs []string) error {
+	if len(groups) == 0 || len(attrs) == 0 {
 		return nil
+	}
+
+	valuesA := [][]interface{}{}
+	for _, group := range groups {
+		vals := []interface{}{}
+		vals = append(vals, uint64(group.Id))
+		for _, attr := range attrs {
+			switch attr {
+			case "members":
+				vals = append(vals, group.Members)
+				break
+			case "threads":
+				vals = append(vals, group.Threads)
+				break
+			case "displayorder":
+				vals = append(vals, group.DisplarOrder)
+				break
+			case "status":
+				vals = append(vals, int(group.Status))
+				break
+			case "belong":
+				vals = append(vals, int(group.Belong))
+				break
+			case "type":
+				vals = append(vals, int(group.Type))
+				break
+			case "vitality":
+				vals = append(vals, group.Vitality)
+				break
+			case "recommend":
+				recommend := 0
+				if group.Recommend {
+					recommend = 1
+				}
+				vals = append(vals, recommend)
+				break
+			case "starttime":
+				vals = append(vals, int(group.StartTime))
+				break
+			case "endtime":
+				vals = append(vals, int(group.EndTime))
+				break
+			}
+		}
+		valuesA = append(valuesA, vals)
 	}
 	search_config := &search.SearchOptions{
 		Host:    search_server,
 		Port:    search_port,
 		Timeout: search_timeout,
 	}
-	attrsA := []string{"members", "threads", "displayorder", "status", "belong",
-		"type", "vitality", "recommend", "starttime", "endtime"}
-	valuesA := [][]interface{}{}
-	for _, group := range groups {
-		recommend := 0
-		if group.Recommend {
-			recommend = 1
-		}
-		valuesA = append(valuesA, []interface{}{
-			uint64(group.Id),
-			group.Members,
-			group.Threads,
-			group.DisplarOrder,
-			int(group.Status),
-			int(group.Belong),
-			int(group.Type),
-			group.Vitality,
-			recommend,
-			int(group.StartTime),
-			int(group.EndTime),
-		})
-	}
-
 	sph := search.NewSearcher(search_config)
-	_, err := sph.UpdateAttributes(group_index_name, attrsA, valuesA)
+	_, err := sph.UpdateAttributes(group_index_name, attrs, valuesA)
 	if err != nil {
 		logs.Errorf("group update search's attribute normal fail:%v", err)
 		return err
@@ -1214,7 +1261,13 @@ func (s *GroupService) UpdateSearchEngineAttr(groups []*Group) error {
 	//	if err != nil {
 	//		logs.Errorf("group flush search's attribute fail:%v", err)
 	//	}
-	return err
+	return nil
+}
+
+func (s *GroupService) UpdateBaseSearchEngineAttrs(groups []*Group) error {
+	attrs := []string{"members", "threads", "displayorder", "status", "belong",
+		"type", "recommend", "starttime", "endtime"}
+	return s.UpdateSearchEngineAttrs(groups, attrs)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2110,7 +2163,7 @@ func (s *PostService) Create(post *Post) error {
 	cclient.Set(s.getCacheKey(post.Id), post)
 
 	//回复
-	if reply != nil {
+	if reply != nil && reply.AuthorId != post.AuthorId {
 		go func() {
 			message.SendMsgV2(post.AuthorId, reply.AuthorId, MSG_TYPE_REPLY, post.Message, post.Id, nil)
 		}()

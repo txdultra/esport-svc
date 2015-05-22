@@ -529,7 +529,7 @@ func (v Vods) CompleCollectible(c *collect.Collectible) error {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //专辑 vodIds->id,no
-func (v *Vods) CreatePlaylist(p VideoPlaylist, vodIds map[int64]int) (int64, error) {
+func (v *Vods) CreatePlaylist(p *VideoPlaylist, vodIds map[int64]int) (int64, error) {
 	if p.Uid <= 0 {
 		return 0, errors.New("专辑必须设置归属主播")
 	}
@@ -550,11 +550,12 @@ func (v *Vods) CreatePlaylist(p VideoPlaylist, vodIds map[int64]int) (int64, err
 	}
 	o := dbs.NewDefaultOrm()
 	o.Begin()
-	id, err := o.Insert(&p)
+	id, err := o.Insert(p)
 	if err != nil {
 		o.Rollback()
 		return 0, errors.New("创建视频专辑失败，请联系管理员")
 	}
+	p.Id = id
 	qs := o.QueryTable(&VideoPlaylistVod{})
 	pi, _ := qs.PrepareInsert()
 	for vid, no := range vodIds {
@@ -604,6 +605,22 @@ func (v *Vods) GetPlaylist(id int64) *VideoPlaylist {
 	}
 	cache.Set(vkey, vpl, 5*time.Hour)
 	return vpl
+}
+
+func (v *Vods) GetPlaylistsForAdmin(p int, s int) (int, []*VideoPlaylist) {
+	if p <= 0 {
+		p = 1
+	}
+	if s <= 0 {
+		s = 20
+	}
+	offset := (p - 1) * s
+	var lst []*VideoPlaylist
+	o := dbs.NewDefaultOrm()
+	query := o.QueryTable(&VideoPlaylist{})
+	total, _ := query.Count()
+	query.OrderBy("-post_time").Limit(s, offset).All(&lst)
+	return int(total), lst
 }
 
 func (v *Vods) vplvodsCacheKey(plsId int64) string {

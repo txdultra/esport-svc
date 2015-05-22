@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"reflect"
 	//"strings"
 
 	"github.com/astaxie/beego"
@@ -25,6 +24,7 @@ import (
 
 	//"libs/credits/proxy"
 
+	"libs/dlock"
 	"libs/search"
 	_ "libs/version"
 	//"outobjs"
@@ -61,7 +61,6 @@ import (
 	//"logs"
 	//"encoding/json"
 	//"github.com/huichen/sego"
-	"utils/ssdb"
 
 	//加载钩子程序
 
@@ -73,10 +72,26 @@ import (
 )
 
 func main() {
-	objs1, _ := ssdb.New("f").Zscan2("group.thread_39_post_ding_set", -1<<32, 1<<32, 10, reflect.TypeOf(""), reflect.TypeOf(int64(0)))
-	for _, obj := range objs1 {
-		fmt.Println(obj.Key, "___", obj.Score)
-	}
+
+	return
+
+	watcherpath := "/watcher-test"
+	watcher := dlock.NewWatcher()
+	watcher.Write(watcherpath, []byte(fmt.Sprintf("new_%d", time.Now().Unix())))
+
+	watcher.RegisterWatcher(watcherpath, func(data []byte) {
+		fmt.Println("get rev :" + string(data))
+	})
+
+	go func() {
+		for {
+			time.Sleep(3 * time.Second)
+			watcher.Write(watcherpath, []byte(fmt.Sprintf("new_%d", time.Now().Unix())))
+		}
+	}()
+
+	time.Sleep(2 * time.Hour)
+
 	return
 
 	search_config := &search.SearchOptions{

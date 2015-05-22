@@ -26,7 +26,7 @@ type OutPersonalLive struct {
 	Uid       int64               `json:"uid"`
 	StreamUrl string              `json:"stream_url"`
 	Status    reptile.LIVE_STATUS `json:"status"`
-	SortField int                 `json:"-"`
+	SortField int                 `json:"sort_field"`
 	Member    *OutMember          `json:"member"`
 	Onlines   int                 `json:"onlines"`
 	OfGames   []*OutGame          `json:"games"`

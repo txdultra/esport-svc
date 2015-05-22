@@ -72,7 +72,7 @@ func (c *MessageController) Mentions() {
 		out_m := &outobjs.OutAtMsg{
 			FromUid:    m.FromUid,
 			ToUid:      m.ToUid,
-			FromMember: outobjs.GetOutMember(m.FromUid, uid),
+			FromMember: outobjs.GetOutSimpleMember(m.FromUid),
 			MsgType:    m.MsgType,
 			Text:       m.Text,
 			RefId:      m.RefId,

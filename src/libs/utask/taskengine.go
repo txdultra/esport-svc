@@ -372,6 +372,11 @@ func (t *MissionEngine) missionDoneReward(uid int64, reward *MissionReward, reco
 		return err
 	}
 
+	//发送系统消息
+	//	go func() {
+	//		message.
+	//	}()
+
 	tbl := hash_task_records_tbl(uid)
 	o := dbs.NewOrm(db_aliasname)
 	//现在只支持credit币种=> rewardno1

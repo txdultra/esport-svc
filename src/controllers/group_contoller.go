@@ -139,6 +139,9 @@ func (c *GroupController) GetGroups() {
 	if len(words) == 0 {
 		match_mode = "all"
 	}
+	if size <= 0 {
+		size = 20
+	}
 	cfg := groups.GetDefaultCfg()
 	gs := groups.NewGroupService(cfg)
 	total, groups := gs.Search(words, page, size, match_mode, sortBy, filters, nil)
@@ -185,6 +188,9 @@ func (c *GroupController) GetRecruitingGroups() {
 		Values:  []uint64{uint64(groups.GROUP_STATUS_RECRUITING)},
 		Exclude: false,
 	})
+	if size <= 0 {
+		size = 20
+	}
 
 	cfg := groups.GetDefaultCfg()
 	gs := groups.NewGroupService(cfg)
@@ -880,8 +886,8 @@ func (c *GroupController) Report() {
 	refid := c.GetString("refid")
 	cc, _ := c.GetInt("c")
 	msg, _ := utils.UrlDecode(c.GetString("msg"))
-	if cc != int(groups.REPORT_CATEGORY_POST) ||
-		cc != int(groups.REPORT_CATEGORY_THREAD) ||
+	if cc != int(groups.REPORT_CATEGORY_POST) &&
+		cc != int(groups.REPORT_CATEGORY_THREAD) &&
 		cc != int(groups.REPORT_CATEGORY_GROUP) {
 		c.Json(libs.NewError("group_report_fail", "GP1551", "举报类型不存在", ""))
 		return

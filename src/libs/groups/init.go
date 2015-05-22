@@ -3,6 +3,7 @@ package groups
 import (
 	"dbs"
 	"fmt"
+	"libs/dlock"
 	"libs/message"
 	"libs/share"
 	"regexp"
@@ -24,7 +25,12 @@ var use_ssdb_message_db, group_msg_db, group_msg_collection string //消息配�
 var mbox_atmsg_length int
 var msgStorageConfig *message.MsgStorageConfig
 
-//电竞圈分享配置
+//分布式监视者
+var watcher = dlock.NewWatcher()
+
+const (
+	watcher_path = "/group_config"
+)
 
 func init() {
 	//ssdb tag
@@ -75,6 +81,10 @@ func init() {
 			//定时工作
 			tjInit()
 			runGroupCountUpdateService()
+			//注册监视者通知
+			watcher.RegisterWatcher(watcher_path, func(data []byte) {
+				ResetDefaultCfg()
+			})
 		}
 		return nil
 	})
