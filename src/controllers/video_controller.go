@@ -32,6 +32,7 @@ func (c *VideoController) URLMapping() {
 	c.Mapping("ListByGames", c.ListByGames)
 	c.Mapping("FlvsCallback", c.FlvsCallback)
 	c.Mapping("Download", c.Download)
+	c.Mapping("PlaylistVods", c.PlaylistVods)
 }
 
 // @Title 获取所有清晰度格式
@@ -246,7 +247,7 @@ func (c *VideoController) List() {
 
 	out := outobjs.OutVideoPageList{
 		Total:       total,
-		TotalPage:   utils.TotalPages(int(total), int(size)),
+		Pages:       utils.TotalPages(int(total), int(size)),
 		CurrentPage: int(page),
 		Size:        int(size),
 		Vods:        vod_infos,
@@ -527,63 +528,38 @@ func (c *VideoController) DownloadClarities() {
 	c.Json(clars)
 }
 
-/*
-func (c *VideoController) PlayList() {
-	pptv := &reptile.PPTVLive{}
-	pp_live, _ := pptv.Reptile("300355")
-	r17173 := &reptile.R17173Live{}
-	r17173_live, _ := r17173.Reptile("http://v.17173.com/live/17366002/2173057202")
-
-	json := "[{\"channel_name\":\"小色17173直播\",\"play\":\"" + r17173_live + "\",\"living\":true},{\"channel_name\":\"pplive直播\",\"play\":\"" + pp_live + "\",\"living\":true}"
-
-	rept := &reptile.YoukuUserReptile{}
-	rvs, _ := rept.Reptile("http://i.youku.com/u/UMzkzOTQ4ODcy", 1)
-	for _, v := range rvs {
-		json += ",{\"channel_name\":\"" + v.Title + "\",\"play\":\"http://m.test.neotv.cn/vod/play_channels?c=999&u=" + utils.UrlEncode(v.PlayUrl) + "\",\"living\":false}"
+// @Title 专辑视频列表
+// @Description 专辑视频列表
+// @Param   pid     path   int  true  "专辑id"
+// @Param   page     path   int  false  "页"
+// @Param   size     path   int  false  "页数量"
+// @Success 200 {object} outobjs.OutVideoPageList
+// @router /playlist/vods [get]
+func (c *VideoController) PlaylistVods() {
+	pid, _ := c.GetInt64("pid")
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("size")
+	if pid <= 0 {
+		c.Json(libs.NewError("vod_parameter", "V1501", "参数错误", ""))
+		return
 	}
-	json += "]"
-	c.Ctx.Output.Header("Content-Type", "application/json;charset=UTF-8")
-	c.Ctx.WriteString(json)
-}
-
-func (c *VideoController) PlayChannels() {
-	url := c.GetString("u")
-	url, _ = utils.UrlDecode(url)
-	rept := reptile.NewYoukuReptile()
-	vods, _ := rept.Reptile(url)
-	c.Json(vods.StreamTypes)
-}
-
-func (c *VideoController) Play() {
-	cc, _ := c.GetInt("c")
-	m := c.GetString("m")
-	uu := c.GetString("u")
-	//////////////////////////////////////////////////////////////////debug
-	//////////////////////////////////////////////////////////////////
-
-	url, _ := utils.UrlDecode(uu)
-	var rept reptile.IReptile
-	switch cc {
-	default:
-		rept = reptile.NewYoukuReptile()
+	pls := &vod.Vods{}
+	pl, _ := pls.GetPlaylistVods(pid, page, size)
+	outp := []*outobjs.OutVideoInfo{}
+	vods, ok := pl.List.([]*vod.Video)
+	if !ok {
+		c.Json(libs.NewError("vod_parameter", "V1502", "类型转换失败", ""))
+		return
 	}
-	mode := reptile.ConvertVodStreamMode(m)
-	vods, _ := rept.Reptile(url)
-	//m3u8 := libs.BuildM3u8(vods, mode)
-	//c.Ctx.Output.Header("Content-Type", "application/x-mpegURL")
-	//c.Ctx.WriteString(m3u8)
-	//c.Json(vods)
-	//fmt.Println(vods)
-	lst, ok := vods.Segs[mode]
-	if ok {
-		c.Json(lst)
+	for _, vod := range vods {
+		outp = append(outp, outobjs.GetOutVideoInfo(vod))
 	}
+	outpl := &outobjs.OutVideoPageList{
+		CurrentPage: page,
+		Total:       pl.Total,
+		Pages:       utils.TotalPages(pl.Total, size),
+		Size:        size,
+		Vods:        outp,
+	}
+	c.Json(outpl)
 }
-
-func (c *VideoController) YouKuRealVods() {
-	url := c.GetString("url")
-	rept := reptile.NewYoukuReptile()
-	vods, _ := rept.Reptile(url)
-	c.Json(vods)
-}
-*/

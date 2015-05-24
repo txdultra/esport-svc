@@ -56,7 +56,7 @@ type OutVideoInfoByGame struct {
 
 type OutVideoPageList struct {
 	Total       int             `json:"total"`
-	TotalPage   int             `json:"pages"`
+	Pages       int             `json:"pages"`
 	CurrentPage int             `json:"current_page"`
 	Size        int             `json:"size"`
 	Time        int64           `json:"t"`
@@ -180,6 +180,20 @@ type OutVodPlaylist struct {
 	ImgUrl   string           `json:"img_url"`
 	Uid      int64            `json:"uid"`
 	Member   *OutSimpleMember `json:"member"`
+}
+
+type OutVodPlaylistVod struct {
+	No    int             `json:"no"`
+	VodId int64           `json:"vod_id"`
+	Vod   *OutVodForAdmin `json:"vod"`
+}
+
+type OutVodPlaylistVodPageForAdmin struct {
+	CurrentPage int                  `json:"current_page"`
+	Total       int                  `json:"total"`
+	Pages       int                  `json:"pages"`
+	Size        int                  `json:"size"`
+	Lists       []*OutVodPlaylistVod `json:"lists"`
 }
 
 func GetOutVodForAdmin(video *vod.Video) *OutVodForAdmin {

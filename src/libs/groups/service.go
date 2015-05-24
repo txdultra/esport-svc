@@ -631,8 +631,9 @@ func (s *GroupService) Update(group *Group) error {
 	if group.Status == GROUP_STATUS_CLOSED {
 		return fmt.Errorf("小组已被关闭")
 	}
-	if len(group.Name) > s.cfg.GroupNameLen {
-		return fmt.Errorf(fmt.Sprintf("小组名称不能大于%d个字符", s.cfg.GroupNameLen))
+	nameRunes := []rune(group.Name)
+	if len(nameRunes) > s.cfg.GroupNameLen {
+		return fmt.Errorf(fmt.Sprintf("组名称不能大于%d个字符", s.cfg.GroupNameLen))
 	}
 	_name := utils.CensorWords(group.Name)
 	if _name != group.Name {
@@ -650,9 +651,9 @@ func (s *GroupService) Update(group *Group) error {
 	if len(group.GameIds) == 0 {
 		return fmt.Errorf("未选择游戏分类")
 	}
-	if group.BgImg == 0 {
-		return fmt.Errorf("未设置背景图")
-	}
+	//	if group.BgImg == 0 {
+	//		return fmt.Errorf("未设置背景图")
+	//	}
 	//新建后更新间隔
 	if group.CreateTime+update_group_limit_seconds > time.Now().Unix() {
 		return fmt.Errorf(fmt.Sprintf("新建小组%d秒内不允许修改", update_group_limit_seconds))

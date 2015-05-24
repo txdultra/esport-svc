@@ -536,9 +536,9 @@ func (v *Vods) CreatePlaylist(p *VideoPlaylist, vodIds map[int64]int) (int64, er
 	if len(p.Title) == 0 {
 		return 0, errors.New("专辑必须有标题")
 	}
-	if p.Img == 0 {
-		return 0, errors.New("必须有一张标题图片")
-	}
+	//	if p.Img == 0 {
+	//		return 0, errors.New("必须有一张标题图片")
+	//	}
 	for vid, _ := range vodIds {
 		if vid <= 0 {
 			return 0, errors.New("视频编号不能小于0")
@@ -643,7 +643,7 @@ func (v *Vods) GetPlaylistVods(plsId int64, p int, s int) (*libs.PL, error) {
 	vpvs := []*VideoPlaylistVod{}
 	qs := o.QueryTable(&VideoPlaylistVod{})
 
-	num, _ := qs.Filter("pid", plsId).OrderBy("-no").All(&vpvs)
+	num, _ := qs.Filter("pid", plsId).OrderBy("no").All(&vpvs)
 	if num <= 0 {
 		return v.plvPL(*tmp, p, s), nil
 	}
@@ -661,129 +661,140 @@ func (v *Vods) plvPL(plvs []*VideoPlaylistVod, p int, s int) *libs.PL {
 	if len(plvs) > offset && len(plvs) >= end {
 		_plvs = plvs[offset:end]
 	}
-	vods := []*Video{}
-	for _, plv := range _plvs {
-		vod := v.Get(plv.VideoId, true)
-		if vod != nil {
-			vods = append(vods, vod)
-		}
-	}
 	pl := &libs.PL{
 		P:     p,
 		S:     s,
 		Total: len(plvs),
-		Type:  reflect.TypeOf([]*Video{}),
-		List:  vods,
+		Type:  reflect.TypeOf([]*VideoPlaylistVod{}),
+		List:  _plvs,
 	}
 	return pl
 }
 
-func (v *Vods) UpdatePLsVodNos(plsId int64, vodIds map[int64]int) error {
+func (v *Vods) UpdatePlaylistVods(plsId int64, vodIds map[int64]int) error {
 	o := dbs.NewDefaultOrm()
-	vpvs := []*VideoPlaylistVod{}
-	qs := o.QueryTable(&VideoPlaylistVod{})
-	qs.Filter("pid", plsId).All(&vpvs)
-	get := func(vid int64) (bool, *VideoPlaylistVod) {
-		for _, vp := range vpvs {
-			if vp.VideoId == vid {
-				return true, vp
-			}
-		}
-		return false, nil
-	}
-	o.Begin()
+	o.QueryTable(&VideoPlaylistVod{}).Filter("pid", plsId).Delete()
+
+	inserts := []VideoPlaylistVod{}
 	for vid, no := range vodIds {
-		ok, p := get(vid)
-		if ok {
-			if p.No != no {
-				p.No = no
-				o.Update(p)
-			}
-		}
+		inserts = append(inserts, VideoPlaylistVod{
+			PlaylistId: plsId,
+			VideoId:    vid,
+			No:         no,
+		})
 	}
-	err := o.Commit()
-	if err != nil {
-		o.Rollback()
-		return errors.New("提交事务时发生错误:" + err.Error())
-	}
+	_, err := o.InsertMulti(50, inserts)
 	cache := utils.GetCache()
 	cache.Delete(v.vplvodsCacheKey(plsId))
-	return nil
+	return err
 }
 
-func (v *Vods) RemovePlsVod(plsId int64, videoId int64) error {
-	o := dbs.NewDefaultOrm()
-	pls := &VideoPlaylist{}
-	pls.Id = plsId
-	err := o.Read(pls)
-	if err == orm.ErrNoRows || err == orm.ErrMissPK || err != nil {
-		return errors.New("指定的专辑不存在")
-	}
+//func (v *Vods) UpdatePLsVodNos(plsId int64, vodIds map[int64]int) error {
+//	o := dbs.NewDefaultOrm()
+//	vpvs := []*VideoPlaylistVod{}
+//	qs := o.QueryTable(&VideoPlaylistVod{})
+//	qs.Filter("pid", plsId).All(&vpvs)
+//	get := func(vid int64) (bool, *VideoPlaylistVod) {
+//		for _, vp := range vpvs {
+//			if vp.VideoId == vid {
+//				return true, vp
+//			}
+//		}
+//		return false, nil
+//	}
+//	o.Begin()
+//	for vid, no := range vodIds {
+//		ok, p := get(vid)
+//		if ok {
+//			if p.No != no {
+//				p.No = no
+//				o.Update(p)
+//			}
+//		}
+//	}
+//	err := o.Commit()
+//	if err != nil {
+//		o.Rollback()
+//		return errors.New("提交事务时发生错误:" + err.Error())
+//	}
+//	cache := utils.GetCache()
+//	cache.Delete(v.vplvodsCacheKey(plsId))
+//	return nil
+//}
 
-	qs := o.QueryTable(&VideoPlaylistVod{})
-	num, err := qs.Filter("pid", plsId).Filter("vid", videoId).Delete()
-	if err != nil {
-		return err
-	}
-	if num == 1 {
-		pls.Vods -= 1
-		o.Update(pls)
-		cache := utils.GetCache()
-		cache.Delete(v.vplvodsCacheKey(plsId))
-		cache.Delete(v.vplCacheKey(plsId))
-	}
-	return nil
-}
+//func (v *Vods) RemovePlsVod(plsId int64, videoId int64) error {
+//	o := dbs.NewDefaultOrm()
+//	pls := &VideoPlaylist{}
+//	pls.Id = plsId
+//	err := o.Read(pls)
+//	if err == orm.ErrNoRows || err == orm.ErrMissPK || err != nil {
+//		return errors.New("指定的专辑不存在")
+//	}
 
-func (v *Vods) AppenedPlsVods(plsId int64, vodIds map[int64]int) error {
-	if len(vodIds) == 0 {
-		return nil
-	}
-	o := dbs.NewDefaultOrm()
-	pls := &VideoPlaylist{}
-	pls.Id = plsId
-	err := o.Read(pls)
-	if err == orm.ErrNoRows || err == orm.ErrMissPK || err != nil {
-		return errors.New("指定的专辑不存在")
-	}
+//	qs := o.QueryTable(&VideoPlaylistVod{})
+//	num, err := qs.Filter("pid", plsId).Filter("vid", videoId).Delete()
+//	if err != nil {
+//		return err
+//	}
+//	if num == 1 {
+//		pls.Vods -= 1
+//		o.Update(pls)
+//		cache := utils.GetCache()
+//		cache.Delete(v.vplvodsCacheKey(plsId))
+//		cache.Delete(v.vplCacheKey(plsId))
+//	}
+//	return nil
+//}
 
-	vpvs := []*VideoPlaylistVod{}
-	qs := o.QueryTable(&VideoPlaylistVod{})
-	qs.Filter("pid", plsId).OrderBy("-no").All(&vpvs)
-	o.Begin()
-	has := func(vid int64) bool {
-		for _, vp := range vpvs {
-			if vp.VideoId == vid {
-				return true
-			}
-		}
-		return false
-	}
-	apds := 0
-	for vid, no := range vodIds {
-		ok := has(vid)
-		if !ok {
-			vp := &VideoPlaylistVod{
-				PlaylistId: plsId,
-				VideoId:    vid,
-				No:         no,
-			}
-			o.Insert(vp)
-			apds++
-		}
-	}
-	pls.Vods += apds
-	o.Update(pls)
-	err = o.Commit()
-	if err != nil {
-		o.Rollback()
-		return errors.New("提交事务时发生错误:" + err.Error())
-	}
-	cache := utils.GetCache()
-	cache.Delete(v.vplvodsCacheKey(plsId))
-	cache.Delete(v.vplCacheKey(plsId))
-	return nil
-}
+//func (v *Vods) AppenedPlsVods(plsId int64, vodIds map[int64]int) error {
+//	if len(vodIds) == 0 {
+//		return nil
+//	}
+//	o := dbs.NewDefaultOrm()
+//	pls := &VideoPlaylist{}
+//	pls.Id = plsId
+//	err := o.Read(pls)
+//	if err == orm.ErrNoRows || err == orm.ErrMissPK || err != nil {
+//		return errors.New("指定的专辑不存在")
+//	}
+
+//	vpvs := []*VideoPlaylistVod{}
+//	qs := o.QueryTable(&VideoPlaylistVod{})
+//	qs.Filter("pid", plsId).OrderBy("-no").All(&vpvs)
+//	o.Begin()
+//	has := func(vid int64) bool {
+//		for _, vp := range vpvs {
+//			if vp.VideoId == vid {
+//				return true
+//			}
+//		}
+//		return false
+//	}
+//	apds := 0
+//	for vid, no := range vodIds {
+//		ok := has(vid)
+//		if !ok {
+//			vp := &VideoPlaylistVod{
+//				PlaylistId: plsId,
+//				VideoId:    vid,
+//				No:         no,
+//			}
+//			o.Insert(vp)
+//			apds++
+//		}
+//	}
+//	pls.Vods += apds
+//	o.Update(pls)
+//	err = o.Commit()
+//	if err != nil {
+//		o.Rollback()
+//		return errors.New("提交事务时发生错误:" + err.Error())
+//	}
+//	cache := utils.GetCache()
+//	cache.Delete(v.vplvodsCacheKey(plsId))
+//	cache.Delete(v.vplCacheKey(plsId))
+//	return nil
+//}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //个人空间抓取
