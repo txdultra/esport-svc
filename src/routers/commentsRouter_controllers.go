@@ -6,69 +6,6 @@ import (
 
 func init() {
 	
-	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
-		beego.ControllerComments{
-			"Home",
-			`/`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
-		beego.ControllerComments{
-			"DownApp",
-			`/download`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
-		beego.ControllerComments{
-			"Down",
-			`/down`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
-		beego.ControllerComments{
-			"Feedback",
-			`/feedback`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
-		beego.ControllerComments{
-			"PrivacyProtocol",
-			`/privacy_protocol`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
-		beego.ControllerComments{
-			"VodPlay",
-			`/vod/:id([0-9]+)`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
-		beego.ControllerComments{
-			"VodStream",
-			`/vod/:id([0-9]+)/stream`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
-		beego.ControllerComments{
-			"PeronalLive",
-			`/plive/:id([0-9]+)`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
-		beego.ControllerComments{
-			"JigouLive",
-			`/jlive/:id([0-9]+)`,
-			[]string{"get"},
-			nil})
-
 	beego.GlobalControllerRouter["controllers:GroupController"] = append(beego.GlobalControllerRouter["controllers:GroupController"],
 		beego.ControllerComments{
 			"GetSetting",
@@ -230,25 +167,123 @@ func init() {
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers:ImageController"] = append(beego.GlobalControllerRouter["controllers:ImageController"],
+	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
 		beego.ControllerComments{
-			"Resize",
-			`/resize`,
+			"Add",
+			`/add`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
+		beego.ControllerComments{
+			"Remove",
+			`/remove`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
+		beego.ControllerComments{
+			"Removes",
+			`/removes`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
+		beego.ControllerComments{
+			"Show",
+			`/show`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers:ImageController"] = append(beego.GlobalControllerRouter["controllers:ImageController"],
+	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
 		beego.ControllerComments{
-			"Crop",
-			`/crop`,
+			"Gets",
+			`/list`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers:ImageController"] = append(beego.GlobalControllerRouter["controllers:ImageController"],
+	beego.GlobalControllerRouter["controllers:CountController"] = append(beego.GlobalControllerRouter["controllers:CountController"],
 		beego.ControllerComments{
-			"Blur",
-			`/blur`,
+			"MemberCounts",
+			`/all`,
 			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:UcController"] = append(beego.GlobalControllerRouter["controllers:UcController"],
+		beego.ControllerComments{
+			"Create",
+			`/create`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
+		beego.ControllerComments{
+			"Home",
+			`/`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
+		beego.ControllerComments{
+			"DownApp",
+			`/download`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
+		beego.ControllerComments{
+			"Down",
+			`/down`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
+		beego.ControllerComments{
+			"Feedback",
+			`/feedback`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
+		beego.ControllerComments{
+			"PrivacyProtocol",
+			`/privacy_protocol`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
+		beego.ControllerComments{
+			"VodPlay",
+			`/vod/:id([0-9]+)`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
+		beego.ControllerComments{
+			"VodStream",
+			`/vod/:id([0-9]+)/stream`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
+		beego.ControllerComments{
+			"PeronalLive",
+			`/plive/:id([0-9]+)`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:WebController"] = append(beego.GlobalControllerRouter["controllers:WebController"],
+		beego.ControllerComments{
+			"JigouLive",
+			`/jlive/:id([0-9]+)`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FeedbackController"] = append(beego.GlobalControllerRouter["controllers:FeedbackController"],
+		beego.ControllerComments{
+			"Submit",
+			`/submit`,
+			[]string{"post"},
 			nil})
 
 	beego.GlobalControllerRouter["controllers:ShareController"] = append(beego.GlobalControllerRouter["controllers:ShareController"],
@@ -426,6 +461,146 @@ func init() {
 			[]string{"post"},
 			nil})
 
+	beego.GlobalControllerRouter["controllers:ImageController"] = append(beego.GlobalControllerRouter["controllers:ImageController"],
+		beego.ControllerComments{
+			"Resize",
+			`/resize`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:ImageController"] = append(beego.GlobalControllerRouter["controllers:ImageController"],
+		beego.ControllerComments{
+			"Crop",
+			`/crop`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:ImageController"] = append(beego.GlobalControllerRouter["controllers:ImageController"],
+		beego.ControllerComments{
+			"Blur",
+			`/blur`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
+		beego.ControllerComments{
+			"Friends",
+			`/friends/all`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
+		beego.ControllerComments{
+			"FriendsP",
+			`/friends`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
+		beego.ControllerComments{
+			"Followers",
+			`/followers`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
+		beego.ControllerComments{
+			"BothFriends",
+			`/both_friends`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
+		beego.ControllerComments{
+			"Show",
+			`/show`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
+		beego.ControllerComments{
+			"Create",
+			`/create`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
+		beego.ControllerComments{
+			"Destroy",
+			`/destroy`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
+		beego.ControllerComments{
+			"Recmds",
+			`/recmds`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:UserTaskController"] = append(beego.GlobalControllerRouter["controllers:UserTaskController"],
+		beego.ControllerComments{
+			"All",
+			`/all`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FileController"] = append(beego.GlobalControllerRouter["controllers:FileController"],
+		beego.ControllerComments{
+			"Get",
+			`/:id([0-9]+)`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FileController"] = append(beego.GlobalControllerRouter["controllers:FileController"],
+		beego.ControllerComments{
+			"GetUrl",
+			`/url/:id([0-9]+)`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FileController"] = append(beego.GlobalControllerRouter["controllers:FileController"],
+		beego.ControllerComments{
+			"Delete",
+			`/:id([0-9]+)`,
+			[]string{"delete"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:FileController"] = append(beego.GlobalControllerRouter["controllers:FileController"],
+		beego.ControllerComments{
+			"Upload",
+			`/upload`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:MessageController"] = append(beego.GlobalControllerRouter["controllers:MessageController"],
+		beego.ControllerComments{
+			"Mentions",
+			`/mentions`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:MessageController"] = append(beego.GlobalControllerRouter["controllers:MessageController"],
+		beego.ControllerComments{
+			"EmptyMentions",
+			`/mentions/empty`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:MessageController"] = append(beego.GlobalControllerRouter["controllers:MessageController"],
+		beego.ControllerComments{
+			"DelMention",
+			`/mentions/del`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:MessageController"] = append(beego.GlobalControllerRouter["controllers:MessageController"],
+		beego.ControllerComments{
+			"Count",
+			`/count`,
+			[]string{"get"},
+			nil})
+
 	beego.GlobalControllerRouter["controllers:VideoController"] = append(beego.GlobalControllerRouter["controllers:VideoController"],
 		beego.ControllerComments{
 			"Modes",
@@ -496,24 +671,45 @@ func init() {
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers:CommentController"] = append(beego.GlobalControllerRouter["controllers:CommentController"],
+	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
 		beego.ControllerComments{
-			"Publish",
-			`/publish`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CommentController"] = append(beego.GlobalControllerRouter["controllers:CommentController"],
-		beego.ControllerComments{
-			"Gets",
-			`/list`,
+			"VerifyPic",
+			`/verify_pic`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers:CommentController"] = append(beego.GlobalControllerRouter["controllers:CommentController"],
+	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
 		beego.ControllerComments{
-			"Get",
-			`/get`,
+			"Version",
+			`/version`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
+		beego.ControllerComments{
+			"Games",
+			`/games`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
+		beego.ControllerComments{
+			"Match",
+			`/match`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
+		beego.ControllerComments{
+			"Matchs",
+			`/matchs`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
+		beego.ControllerComments{
+			"Expressions",
+			`/expressions`,
 			[]string{"get"},
 			nil})
 
@@ -626,6 +822,34 @@ func init() {
 		beego.ControllerComments{
 			"LiveStreamCallback",
 			`/stream/callback`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CommentController"] = append(beego.GlobalControllerRouter["controllers:CommentController"],
+		beego.ControllerComments{
+			"Publish",
+			`/publish`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CommentController"] = append(beego.GlobalControllerRouter["controllers:CommentController"],
+		beego.ControllerComments{
+			"Gets",
+			`/list`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:CommentController"] = append(beego.GlobalControllerRouter["controllers:CommentController"],
+		beego.ControllerComments{
+			"Get",
+			`/get`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers:OpenIDController"] = append(beego.GlobalControllerRouter["controllers:OpenIDController"],
+		beego.ControllerComments{
+			"Login",
+			`/login`,
 			[]string{"post"},
 			nil})
 
@@ -788,230 +1012,6 @@ func init() {
 			"SetMyConfig",
 			`/my_config`,
 			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
-		beego.ControllerComments{
-			"Friends",
-			`/friends/all`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
-		beego.ControllerComments{
-			"FriendsP",
-			`/friends`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
-		beego.ControllerComments{
-			"Followers",
-			`/followers`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
-		beego.ControllerComments{
-			"BothFriends",
-			`/both_friends`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
-		beego.ControllerComments{
-			"Show",
-			`/show`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
-		beego.ControllerComments{
-			"Create",
-			`/create`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
-		beego.ControllerComments{
-			"Destroy",
-			`/destroy`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FriendShipsController"] = append(beego.GlobalControllerRouter["controllers:FriendShipsController"],
-		beego.ControllerComments{
-			"Recmds",
-			`/recmds`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:UcController"] = append(beego.GlobalControllerRouter["controllers:UcController"],
-		beego.ControllerComments{
-			"Create",
-			`/create`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
-		beego.ControllerComments{
-			"VerifyPic",
-			`/verify_pic`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
-		beego.ControllerComments{
-			"Version",
-			`/version`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
-		beego.ControllerComments{
-			"Games",
-			`/games`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
-		beego.ControllerComments{
-			"Match",
-			`/match`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
-		beego.ControllerComments{
-			"Matchs",
-			`/matchs`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CommonController"] = append(beego.GlobalControllerRouter["controllers:CommonController"],
-		beego.ControllerComments{
-			"Expressions",
-			`/expressions`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FeedbackController"] = append(beego.GlobalControllerRouter["controllers:FeedbackController"],
-		beego.ControllerComments{
-			"Submit",
-			`/submit`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
-		beego.ControllerComments{
-			"Add",
-			`/add`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
-		beego.ControllerComments{
-			"Remove",
-			`/remove`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
-		beego.ControllerComments{
-			"Removes",
-			`/removes`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
-		beego.ControllerComments{
-			"Show",
-			`/show`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CollectController"] = append(beego.GlobalControllerRouter["controllers:CollectController"],
-		beego.ControllerComments{
-			"Gets",
-			`/list`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:MessageController"] = append(beego.GlobalControllerRouter["controllers:MessageController"],
-		beego.ControllerComments{
-			"Mentions",
-			`/mentions`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:MessageController"] = append(beego.GlobalControllerRouter["controllers:MessageController"],
-		beego.ControllerComments{
-			"EmptyMentions",
-			`/mentions/empty`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:MessageController"] = append(beego.GlobalControllerRouter["controllers:MessageController"],
-		beego.ControllerComments{
-			"DelMention",
-			`/mentions/del`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:MessageController"] = append(beego.GlobalControllerRouter["controllers:MessageController"],
-		beego.ControllerComments{
-			"Count",
-			`/count`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:OpenIDController"] = append(beego.GlobalControllerRouter["controllers:OpenIDController"],
-		beego.ControllerComments{
-			"Login",
-			`/login`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:UserTaskController"] = append(beego.GlobalControllerRouter["controllers:UserTaskController"],
-		beego.ControllerComments{
-			"All",
-			`/all`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FileController"] = append(beego.GlobalControllerRouter["controllers:FileController"],
-		beego.ControllerComments{
-			"Get",
-			`/:id([0-9]+)`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FileController"] = append(beego.GlobalControllerRouter["controllers:FileController"],
-		beego.ControllerComments{
-			"GetUrl",
-			`/url/:id([0-9]+)`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FileController"] = append(beego.GlobalControllerRouter["controllers:FileController"],
-		beego.ControllerComments{
-			"Delete",
-			`/:id([0-9]+)`,
-			[]string{"delete"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:FileController"] = append(beego.GlobalControllerRouter["controllers:FileController"],
-		beego.ControllerComments{
-			"Upload",
-			`/upload`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers:CountController"] = append(beego.GlobalControllerRouter["controllers:CountController"],
-		beego.ControllerComments{
-			"MemberCounts",
-			`/all`,
-			[]string{"get"},
 			nil})
 
 }

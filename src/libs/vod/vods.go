@@ -4,6 +4,7 @@ import (
 	"dbs"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/httplib"
@@ -17,7 +18,6 @@ import (
 	"libs/search"
 	"libs/stat"
 	"math/rand"
-	"reflect"
 	"strconv"
 	"time"
 	"utils"
@@ -529,6 +529,7 @@ func (v Vods) CompleCollectible(c *collect.Collectible) error {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //专辑 vodIds->id,no
+
 func (v *Vods) CreatePlaylist(p *VideoPlaylist, vodIds map[int64]int) (int64, error) {
 	if p.Uid <= 0 {
 		return 0, errors.New("专辑必须设置归属主播")
@@ -549,38 +550,12 @@ func (v *Vods) CreatePlaylist(p *VideoPlaylist, vodIds map[int64]int) (int64, er
 		p.PostTime = time.Now()
 	}
 	o := dbs.NewDefaultOrm()
-	o.Begin()
 	id, err := o.Insert(p)
 	if err != nil {
-		o.Rollback()
 		return 0, errors.New("创建视频专辑失败，请联系管理员")
 	}
 	p.Id = id
-	qs := o.QueryTable(&VideoPlaylistVod{})
-	pi, _ := qs.PrepareInsert()
-	for vid, no := range vodIds {
-		vod := v.Get(vid, true)
-		if vod == nil {
-			o.Rollback()
-			return 0, errors.New(fmt.Sprintf("编号:%d的视频不存在", vid))
-		}
-		vpv := &VideoPlaylistVod{
-			PlaylistId: id,
-			VideoId:    vod.Id,
-			No:         no,
-		}
-		_, err = pi.Insert(vpv)
-		if err != nil {
-			o.Rollback()
-			return 0, errors.New("添加专辑视频时失败")
-		}
-	}
-	pi.Close()
-	err = o.Commit()
-	if err != nil {
-		o.Rollback()
-		return 0, errors.New("提交事务时发生错误:" + err.Error())
-	}
+	v.UpdatePlaylistVods(p.Id, vodIds)
 	return id, nil
 }
 
@@ -627,53 +602,53 @@ func (v *Vods) vplvodsCacheKey(plsId int64) string {
 	return fmt.Sprintf("mobile_video_playlist_vods_vid:%d", plsId)
 }
 
-func (v *Vods) GetPlaylistVods(plsId int64, p int, s int) (*libs.PL, error) {
-	pls := v.GetPlaylist(plsId)
-	if pls == nil {
-		return nil, errors.New("不存在专辑")
-	}
+func (v *Vods) GetPlaylistVods(plsId int64, p int, s int) (int, []*Video) {
 	ckey := v.vplvodsCacheKey(plsId)
-	tmp := &[]*VideoPlaylistVod{}
-	cache := utils.GetCache()
-	err := cache.Get(ckey, tmp)
-	if err == nil {
-		return v.plvPL(*tmp, p, s), nil
+	pl := v.GetPlaylist(plsId)
+	if pl == nil {
+		return 0, []*Video{}
 	}
-	o := dbs.NewDefaultOrm()
-	vpvs := []*VideoPlaylistVod{}
-	qs := o.QueryTable(&VideoPlaylistVod{})
-
-	num, _ := qs.Filter("pid", plsId).OrderBy("no").All(&vpvs)
-	if num <= 0 {
-		return v.plvPL(*tmp, p, s), nil
+	if p <= 0 {
+		p = 1
 	}
-	cache.Set(ckey, vpvs, 10*time.Hour)
-	return v.plvPL(vpvs, p, s), nil
-}
-
-func (v *Vods) plvPL(plvs []*VideoPlaylistVod, p int, s int) *libs.PL {
+	if s <= 0 {
+		s = 20
+	}
 	offset := (p - 1) * s
 	end := p * s
-	var _plvs []*VideoPlaylistVod
-	if len(plvs) > offset && len(plvs) < end {
-		_plvs = plvs[offset:]
+	cclient := ssdb.New(use_ssdb_vod_db)
+	objs, _ := cclient.Zrange(ckey, offset, end, reflect.TypeOf(int64(0)))
+	videos := []*Video{}
+	for _, obj := range objs {
+		_id := *(obj.(*int64))
+		vod := v.Get(_id, false)
+		if vod != nil {
+			videos = append(videos, vod)
+		}
 	}
-	if len(plvs) > offset && len(plvs) >= end {
-		_plvs = plvs[offset:end]
-	}
-	pl := &libs.PL{
-		P:     p,
-		S:     s,
-		Total: len(plvs),
-		Type:  reflect.TypeOf([]*VideoPlaylistVod{}),
-		List:  _plvs,
-	}
-	return pl
+	return pl.Vods, videos
+}
+
+func (v *Vods) GetPlaylistPlvsForAdmin(plsId int64, p int, s int) (int, []*VideoPlaylistVod) {
+	offset := (p - 1) * s
+	o := dbs.NewDefaultOrm()
+	query := o.QueryTable(&VideoPlaylistVod{})
+	total, _ := query.Count()
+	var lst []*VideoPlaylistVod
+	query.Filter("pid", plsId).OrderBy("no").Limit(s, offset).All(&lst)
+	return int(total), lst
 }
 
 func (v *Vods) UpdatePlaylistVods(plsId int64, vodIds map[int64]int) error {
+	pl := v.GetPlaylist(plsId)
+	if pl == nil {
+		return fmt.Errorf("专辑不存在")
+	}
 	o := dbs.NewDefaultOrm()
 	o.QueryTable(&VideoPlaylistVod{}).Filter("pid", plsId).Delete()
+
+	cclient := ssdb.New(use_ssdb_vod_db)
+	cclient.Zclear(v.vplvodsCacheKey(plsId)) //删除原列表
 
 	inserts := []VideoPlaylistVod{}
 	for vid, no := range vodIds {
@@ -683,9 +658,21 @@ func (v *Vods) UpdatePlaylistVods(plsId int64, vodIds map[int64]int) error {
 			No:         no,
 		})
 	}
-	_, err := o.InsertMulti(50, inserts)
+	rows, err := o.InsertMulti(50, inserts)
+
+	pl.Vods = int(rows)
+	o.Update(pl)
+
+	ks := []interface{}{}
+	vs := []int64{}
+	for k, v := range vodIds {
+		ks = append(ks, k)
+		vs = append(vs, int64(v))
+	}
+	cclient.MultiZadd(v.vplvodsCacheKey(plsId), ks, vs)
+
 	cache := utils.GetCache()
-	cache.Delete(v.vplvodsCacheKey(plsId))
+	cache.Delete(v.vplCacheKey(plsId))
 	return err
 }
 

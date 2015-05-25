@@ -287,9 +287,16 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	if len(nameRunes) > s.cfg.GroupNameLen {
 		return fmt.Errorf(fmt.Sprintf("组名称不能大于%d个字符", s.cfg.GroupNameLen))
 	}
+	if len(nameRunes) < 2 {
+		return fmt.Errorf(fmt.Sprintf("组名称不能小于%d个字符", 2))
+	}
 	_name := utils.CensorWords(group.Name)
 	if _name != group.Name {
 		return fmt.Errorf("小组名称包含屏蔽字")
+	}
+	_name = utils.StripSQLInjection(group.Name)
+	if _name != group.Name {
+		return fmt.Errorf("小组名称包含非法字符")
 	}
 	descRunes := []rune(group.Description)
 	if len(descRunes) > s.cfg.GroupDescMaxLen {
@@ -519,25 +526,30 @@ func (s *GroupService) Create(group *Group) error {
 			transport.Close()
 		}
 	}()
-	cr, err := client.Do(&credit_proxy.OperationCreditParameter{
-		Uid:    group.Uid,
-		Points: s.cfg.CreateGroupBasePoint,
-		Action: credit_proxy.OPERATION_ACTOIN_LOCKDECR,
-	})
-	if err != nil {
-		return fmt.Errorf("扣除积分失败:002")
+	//官方组不扣积分
+	if group.Belong == GROUP_BELONG_MEMBER {
+		cr, err := client.Do(&credit_proxy.OperationCreditParameter{
+			Uid:    group.Uid,
+			Points: s.cfg.CreateGroupBasePoint,
+			Action: credit_proxy.OPERATION_ACTOIN_LOCKDECR,
+		})
+		if err != nil {
+			return fmt.Errorf("扣除积分失败:002")
+		}
+		//记录积分订单号
+		group.OrderNo = cr.No
 	}
-	//记录积分订单号
-	group.OrderNo = cr.No
 
 	o := dbs.NewOrm(db_aliasname)
 	id, err := o.Insert(group)
 	if err != nil {
 		//退回积分
-		client.Do(&credit_proxy.OperationCreditParameter{
-			No:     cr.No,
-			Action: credit_proxy.OPERATION_ACTOIN_UNLOCK,
-		})
+		if group.Belong == GROUP_BELONG_MEMBER {
+			client.Do(&credit_proxy.OperationCreditParameter{
+				No:     group.OrderNo,
+				Action: credit_proxy.OPERATION_ACTOIN_UNLOCK,
+			})
+		}
 		logs.Errorf("建组失败:%+v", err)
 		return fmt.Errorf("建组失败:002")
 	}
@@ -847,19 +859,6 @@ func (s *GroupService) Exit(uid int64, groupId int64) error {
 
 	return nil
 }
-
-//func (s *GroupService) UpdateMemberLastAction(groupId int64, uid int64, t time.Time) {
-//	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid) //用户加入小组的集合key
-//	ts, err := ssdb.New(use_ssdb_group_db).Zscore(mjoined_key, groupId)
-//	if ts == 0 || err != nil {
-//		return
-//	}
-//	if ts > t.Unix() {
-//		return
-//	}
-//	gap := t.Unix() - ts
-//	ssdb.New(use_ssdb_group_db).Zincrby(mjoined_key, groupId, gap)
-//}
 
 func (s *GroupService) MyJoins(uid int64, page int, size int) (int, []*Group) {
 	mjoined_key := fmt.Sprintf(group_member_joined_sortset, uid) //用户加入小组的集合key

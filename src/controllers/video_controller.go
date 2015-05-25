@@ -544,20 +544,21 @@ func (c *VideoController) PlaylistVods() {
 		return
 	}
 	pls := &vod.Vods{}
-	pl, _ := pls.GetPlaylistVods(pid, page, size)
+	total, vods := pls.GetPlaylistVods(pid, page, size)
 	outp := []*outobjs.OutVideoInfo{}
-	vods, ok := pl.List.([]*vod.Video)
-	if !ok {
-		c.Json(libs.NewError("vod_parameter", "V1502", "类型转换失败", ""))
-		return
-	}
 	for _, vod := range vods {
 		outp = append(outp, outobjs.GetOutVideoInfo(vod))
 	}
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
 	outpl := &outobjs.OutVideoPageList{
 		CurrentPage: page,
-		Total:       pl.Total,
-		Pages:       utils.TotalPages(pl.Total, size),
+		Total:       total,
+		Pages:       utils.TotalPages(total, size),
 		Size:        size,
 		Vods:        outp,
 	}

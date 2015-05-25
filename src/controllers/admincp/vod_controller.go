@@ -486,7 +486,7 @@ func (c *VodCPController) CreatePlaylist() {
 // @Param   vids  path string false  "视频ids(1|2 1表示视频id,2表示排序no)"
 // @Success 200  {object} libs.Error
 // @router /playlist/update_vods [post]
-func (c *VodCPController) AppendPlaylistVods() {
+func (c *VodCPController) UpdatePlaylistVods() {
 	plid, _ := c.GetInt64("plid")
 	vidstrs := c.GetString("vids")
 	vids := make(map[int64]int)
@@ -595,16 +595,11 @@ func (c *VodCPController) PlaylistVods() {
 		page = 1
 	}
 	if size <= 0 {
-		size = 20
+		size = 1000
 	}
 	ups := &vod.Vods{}
-	pl, _ := ups.GetPlaylistVods(plid, page, size)
+	total, plvs := ups.GetPlaylistPlvsForAdmin(plid, page, size)
 	outp := []*outobjs.OutVodPlaylistVod{}
-	plvs, ok := pl.List.([]*vod.VideoPlaylistVod)
-	if !ok {
-		c.Json(libs.NewError("admincp_vod_playlist_vods_fail", "GM010_1021", "类型转换失败", ""))
-		return
-	}
 	for _, plv := range plvs {
 		vod := ups.Get(plv.VideoId, false)
 		if vod == nil {
@@ -618,8 +613,8 @@ func (c *VodCPController) PlaylistVods() {
 	}
 	outpl := &outobjs.OutVodPlaylistVodPageForAdmin{
 		CurrentPage: page,
-		Total:       pl.Total,
-		Pages:       utils.TotalPages(pl.Total, size),
+		Total:       total,
+		Pages:       utils.TotalPages(total, size),
 		Size:        size,
 		Lists:       outp,
 	}

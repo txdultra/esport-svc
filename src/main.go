@@ -73,6 +73,8 @@ import (
 
 func main() {
 
+	fmt.Println(utils.UrlEncode("!@#$%^^&"))
+
 	return
 
 	watcherpath := "/watcher-test"
