@@ -7,6 +7,7 @@ import (
 	"libs/message"
 	"libs/passport"
 	"libs/share"
+	"libs/vars"
 	"libs/vod"
 	"outobjs"
 )
@@ -53,7 +54,7 @@ func (c *CountController) MemberCounts() {
 	sns := sn.NewEventCount(uid)
 	lsm := sm.NewEventCount(uid)
 	gcm := gms.NewEventCount(uid)
-	sysm := message.NewEventCount(uid, message.MSG_TYPE_SYS)
+	sysm := message.NewEventCount(uid, vars.MSG_TYPE_SYS)
 
 	if follwers > 99 {
 		follwers = 99

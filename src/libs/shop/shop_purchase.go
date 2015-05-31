@@ -6,6 +6,7 @@ import (
 	credit_proxy "libs/credits/proxy"
 	"libs/dlock"
 	"libs/message"
+	"libs/vars"
 	"logs"
 	"time"
 )
@@ -113,7 +114,7 @@ func (sp *ShopPurchaser) ChangeOrderStatus(orderNo string, status ORDER_STATUS, 
 			}
 		}
 		go func() {
-			message.SendMsgV2(0, order.Uid, message.MSG_TYPE_SYS, "恭喜您！您在商城提交的订单已发货。", order.OrderNo, nil)
+			message.SendMsgV2(0, order.Uid, vars.MSG_TYPE_SYS, "恭喜您！您在商城提交的订单已发货。", order.OrderNo, nil)
 		}()
 		return err
 	default:

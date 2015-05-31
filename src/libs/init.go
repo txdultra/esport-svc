@@ -27,6 +27,9 @@ func init() {
 		new(PushState), new(Recommend),
 	)
 	MSQ_USE_DRIVER = beego.AppConfig.String("msq.driver")
+	if len(MSQ_USE_DRIVER) == 0 {
+		panic("未配置:msq.driver参数")
+	}
 	//RegisterMsqProcessHandler("msq_test", reflect.TypeOf(TestHandlerMsg{}))
 
 	//注册groupcache策略
@@ -35,10 +38,15 @@ func init() {
 	file_provider_name = beego.AppConfig.String("file.provider.name")
 	file_connect_timeout = utils.StrToDuration(beego.AppConfig.String("file.connect.timeout"))
 	file_rwconnect_timeout = utils.StrToDuration(beego.AppConfig.String("file.rwconnect.timeout"))
+	if len(file_provider_name) == 0 {
+		panic("未配置:file.provider.name参数")
+	}
 
 	open_distributed, _ = beego.AppConfig.Bool("app.distributed")
 	msq_connection_url = beego.AppConfig.String("msq.rabbitmq.addr")
-
+	if len(msq_connection_url) == 0 {
+		panic("未配置:msq.rabbitmq.addr参数")
+	}
 	//task
 	app_task_run_msq, _ = beego.AppConfig.Bool("app.task.run.msq")
 

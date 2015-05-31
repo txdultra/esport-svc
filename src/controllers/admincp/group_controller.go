@@ -8,6 +8,7 @@ import (
 	"outobjs"
 	"strconv"
 	"strings"
+	"time"
 	"utils"
 )
 
@@ -18,6 +19,129 @@ type GroupCPController struct {
 
 func (c *GroupCPController) Prepare() {
 	c.AdminController.Prepare()
+}
+
+// @Title 获取配置参数
+// @Description 获取配置参数
+// @Param   id   path  int  false  "配置参数,默认1"
+// @Success 200  {object} outobjs.OutConfig
+// @router /config/get [get]
+func (c *GroupCPController) GetConfig() {
+	id, _ := c.GetInt64("id")
+	var config *groups.GroupCfg
+	if id <= 0 {
+		config = groups.GetDefaultCfg()
+	} else {
+		config = groups.GetGroupCfg(id)
+	}
+	if config != nil {
+		c.Json(&outobjs.OutConfig{
+			Id:                           config.Id,
+			GroupNameLen:                 config.GroupNameLen,
+			GroupDescMaxLen:              config.GroupDescMaxLen,
+			GroupDescMinLen:              config.GroupDescMinLen,
+			CreateGroupBasePoint:         config.CreateGroupBasePoint,
+			CreateGroupRate:              config.CreateGroupRate,
+			CreateGroupMinUsers:          config.CreateGroupMinUsers,
+			CreateGroupRecruitDay:        config.CreateGroupRecruitDay,
+			CreateGroupMaxCount:          config.CreateGroupMaxCount,
+			CreateGroupCertifiedMaxCount: config.CreateGroupCertifiedMaxCount,
+			CreateGroupClause:            config.CreateGroupClause,
+			ReportOptions:                config.ReportOptions,
+			NewThreadDefaultStatus:       config.NewThreadDefaultStatus,
+		})
+	}
+	c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_050", "指定配置不存在", ""))
+}
+
+// @Title 更新配置参数
+// @Description 更新配置参数
+// @Param   id   path  int  false  "配置参数,默认1"
+// @Param   groupname_len   path  int  true  "组名长度"
+// @Param   groupdesc_maxlen  path  int  true  "组描述最大长度"
+// @Param   groupdesc_minlen  path  int  true  "组描述最小长度"
+// @Param   basepoint  path  int  true  "扣除积分数"
+// @Param   minuser   path  int  true  "最小成员数"
+// @Param   recruit_day   path  int  true  "招募天数"
+// @Param   maxcount   path  int  true  "最大建组数"
+// @Param   cretified_maxcount   path  int  true  "认证会员最大建组数"
+// @Param   clause   path  string  false  "条款"
+// @Param   report_options  path  string  false  "举报选择项(,分隔)"
+// @Success 200 {object} libs.Error
+// @router /config/update [post]
+func (c *GroupCPController) UpdateConfig() {
+	id, _ := c.GetInt64("id")
+	groupname_len, _ := c.GetInt("groupname_len")
+	groupdesc_maxlen, _ := c.GetInt("groupdesc_maxlen")
+	groupdesc_minlen, _ := c.GetInt("groupdesc_minlen")
+	basepoint, _ := c.GetInt64("basepoint")
+	minuser, _ := c.GetInt("minuser")
+	recruitday, _ := c.GetInt("recruit_day")
+	maxcount, _ := c.GetInt("maxcount")
+	cretified_maxcount, _ := c.GetInt("cretified_maxcount")
+	clause := c.GetString("clause")
+	roptions := c.GetString("report_options")
+
+	if id <= 0 {
+		id = 1
+	}
+	if groupname_len <= 0 {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_060", "参数错误", ""))
+		return
+	}
+	if groupdesc_minlen <= 0 {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_061", "参数错误", ""))
+		return
+	}
+	if groupdesc_maxlen <= 0 {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_062", "参数错误", ""))
+		return
+	}
+	if groupdesc_minlen > groupdesc_maxlen {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_063", "参数错误", ""))
+		return
+	}
+	if basepoint < 0 {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_064", "参数错误", ""))
+		return
+	}
+	if minuser <= 0 {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_065", "参数错误", ""))
+		return
+	}
+	if recruitday <= 0 {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_066", "参数错误", ""))
+		return
+	}
+	if maxcount < 0 {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_067", "参数错误", ""))
+		return
+	}
+	if cretified_maxcount < 0 {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_068", "参数错误", ""))
+		return
+	}
+	cfg := groups.GetGroupCfg(id)
+	if cfg == nil {
+		c.Json(libs.NewError("admincp_group_cfg_fail", "GM040_067", "配置不存在", ""))
+		return
+	}
+	cfg.GroupNameLen = groupname_len
+	cfg.GroupDescMinLen = groupdesc_minlen
+	cfg.GroupDescMaxLen = groupdesc_maxlen
+	cfg.CreateGroupBasePoint = basepoint
+	cfg.CreateGroupMinUsers = minuser
+	cfg.CreateGroupRecruitDay = recruitday
+	cfg.CreateGroupMaxCount = maxcount
+	cfg.CreateGroupCertifiedMaxCount = cretified_maxcount
+	cfg.CreateGroupClause = clause
+	cfg.ReportOptions = roptions
+	err := groups.UpdateGroupCfg(cfg)
+	if err != nil {
+		c.Json(libs.NewError("admincp_group_cfg_update_fail", "GM040_011", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_group_cfg_update_success", controllers.RESPONSE_SUCCESS, "更新成功", ""))
 }
 
 // @Title 获取小组列表
@@ -159,4 +283,158 @@ func (c *GroupCPController) CreateGroup() {
 		return
 	}
 	c.Json(libs.NewError("admincp_group_create_success", controllers.RESPONSE_SUCCESS, fmt.Sprintf("%d", group.Id), ""))
+}
+
+// @Title 关闭组
+// @Description 关闭组
+// @Param   group_id  path  int  true  "组id"
+// @Success 200 {object} libs.Error
+// @router /group/close [post]
+func (c *GroupCPController) CloseGroup() {
+	groupid, _ := c.GetInt64("group_id")
+	if groupid <= 0 {
+		c.Json(libs.NewError("admincp_group_close_fail", "GM040_020", "id错误", ""))
+		return
+	}
+	gs := groups.NewGroupService(groups.GetDefaultCfg())
+	err := gs.Close(groupid)
+	if err != nil {
+		c.Json(libs.NewError("admincp_group_close_fail", "GM040_021", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_group_close_success", controllers.RESPONSE_SUCCESS, "关闭成功", ""))
+}
+
+// @Title 更新小组信息
+// @Description 更新小组信息
+// @Param   group_id  path  int  true  "组id"
+// @Param   description   path  string  true  "描述"
+// @Param   country  path  string  false  "国家"
+// @Param   city  path  string  false  "城市"
+// @Param   game_ids  path  string  false  "选择游戏(逗号,分隔)"
+// @Param   bgimg   path  int  true  "背景图片id"
+// @Param   recommend   path  bool  false  "推荐"
+// @Param   displayorder   path  int  false  "排序"
+// @Success 200 {object} libs.Error
+// @router /group/update [post]
+func (c *GroupCPController) UpdateGroup() {
+	groupid, _ := c.GetInt64("group_id")
+	desc, _ := utils.UrlDecode(c.GetString("description"))
+	country, _ := utils.UrlDecode(c.GetString("country"))
+	city, _ := utils.UrlDecode(c.GetString("city"))
+	gameids := c.GetString("game_ids")
+	bgimg, _ := c.GetInt64("bgimg")
+	remd, rmderr := c.GetBool("recommend")
+	displayorder, _ := c.GetInt("displayorder")
+	gs := groups.NewGroupService(groups.GetDefaultCfg())
+	group := gs.Get(groupid)
+	if group == nil {
+		c.Json(libs.NewError("admincp_group_update_fail", "GM040_031", "小组不存在", ""))
+		return
+	}
+	group.Description = desc
+	group.Country = country
+	group.City = city
+	group.GameIds = gameids
+	group.BgImg = bgimg
+	if rmderr == nil {
+		group.Recommend = remd
+	}
+	group.DisplarOrder = displayorder
+	err := gs.Update(group)
+	if err != nil {
+		c.Json(libs.NewError("admincp_group_update_fail", "GM040_032", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_group_update_success", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+}
+
+// @Title 关闭帖子
+// @Description 关闭帖子
+// @Param   thread_id  path  int  true  "帖子id"
+// @Success 200 {object} libs.Error
+// @router /thread/close [post]
+func (c *GroupCPController) CloseThread() {
+	threadid, _ := c.GetInt64("thread_id")
+	if threadid <= 0 {
+		c.Json(libs.NewError("admincp_thread_close_fail", "GM040_030", "id错误", ""))
+		return
+	}
+	ts := groups.NewThreadService(groups.GetDefaultCfg())
+	err := ts.CloseThread(threadid)
+	if err != nil {
+		c.Json(libs.NewError("admincp_thread_close_fail", "GM040_031", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_thread_close_success", controllers.RESPONSE_SUCCESS, "关闭成功", ""))
+}
+
+// @Title 隐藏评论
+// @Description 隐藏评论
+// @Param   post_id  path  string  true  "评论id"
+// @Success 200 {object} libs.Error
+// @router /post/invisible [post]
+func (c *GroupCPController) ClosePost() {
+	postid := c.GetString("post_id")
+	if len(postid) == 0 {
+		c.Json(libs.NewError("admincp_post_invisible_fail", "GM040_040", "id错误", ""))
+		return
+	}
+	ps := groups.NewPostService(groups.GetDefaultCfg())
+	err := ps.Invisible(postid, false)
+	if err != nil {
+		c.Json(libs.NewError("admincp_post_invisible_fail", "GM040_041", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_post_invisible_success", controllers.RESPONSE_SUCCESS, "关闭成功", ""))
+}
+
+// @Title 获取举报列表
+// @Description 获取举报列表
+// @Param   category   path  int  false  "分类"
+// @Param   page   path  int  false  "页"
+// @Param   size   path  int  false  "页数量"
+// @Success 200  {object} outobjs.OutReportPagedList
+// @router /report/list [get]
+func (c *GroupCPController) Reports() {
+	category, _ := c.GetInt("category")
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("size")
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
+	var cg groups.REPORT_CATEGORY
+	switch category {
+	case int(groups.REPORT_CATEGORY_POST):
+		cg = groups.REPORT_CATEGORY_POST
+	case int(groups.REPORT_CATEGORY_THREAD):
+		cg = groups.REPORT_CATEGORY_THREAD
+	case int(groups.REPORT_CATEGORY_GROUP):
+		cg = groups.REPORT_CATEGORY_GROUP
+	}
+	rs := groups.NewReportService()
+	total, reports := rs.Gets(page, size, cg)
+	outs := []*outobjs.OutReport{}
+	for _, r := range reports {
+		outs = append(outs, &outobjs.OutReport{
+			Id:      r.Id,
+			RefId:   r.RefId,
+			C:       r.C,
+			Ts:      time.Unix(r.Ts, 0),
+			RefTxt:  r.RefTxt,
+			PostUid: r.PostUid,
+			Member:  outobjs.GetOutSimpleMember(r.PostUid),
+			Msg:     r.Msg,
+		})
+	}
+	outp := &outobjs.OutReportPagedList{
+		CurrentPage: page,
+		TotalPages:  utils.TotalPages(total, size),
+		PageSize:    size,
+		Reports:     outs,
+	}
+	c.Json(outp)
 }

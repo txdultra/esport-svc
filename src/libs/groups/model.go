@@ -1,8 +1,8 @@
 package groups
 
 import (
-	"libs/message"
 	"libs/share"
+	"libs/vars"
 	"strconv"
 	"strings"
 )
@@ -12,9 +12,9 @@ const (
 )
 
 const (
-	MSG_TYPE_INVITED message.MSG_TYPE = "group:invite"
-	MSG_TYPE_MESSAGE message.MSG_TYPE = "group:msg"
-	MSG_TYPE_REPLY   message.MSG_TYPE = "group:reply"
+	MSG_TYPE_INVITED vars.MSG_TYPE = "group:invite"
+	MSG_TYPE_MESSAGE vars.MSG_TYPE = "group:msg"
+	MSG_TYPE_REPLY   vars.MSG_TYPE = "group:reply"
 )
 
 type GroupCfg struct {

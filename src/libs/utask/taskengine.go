@@ -4,6 +4,8 @@ import (
 	"dbs"
 	"fmt"
 	"libs/credits/proxy"
+	msgclient "libs/message/client"
+	"libs/vars"
 	"sync"
 	"time"
 	"utils/ssdb"
@@ -50,6 +52,16 @@ func (c CreditMissionReward) Reward(mrp *MissionRewardParameter) (string, error)
 
 	result, err := client.Do(param)
 	if result.State == proxy.OPERATION_STATE_SUCCESS {
+		//发送系统消息
+		go func() {
+			client, transport, err := msgclient.NewClient(utask_message_send_host)
+			if err != nil {
+				return
+			}
+			defer transport.Close()
+			msgTxt := fmt.Sprintf("您完成任务获得了%d积分", mrp.Points)
+			client.Send(vars.MESSAGE_SYS_ID, mrp.Uid, string(vars.MSG_TYPE_SYS), msgTxt, result.No)
+		}()
 		return result.No, nil
 	}
 	return "", fmt.Errorf(result.Err)

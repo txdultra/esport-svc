@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"libs"
 	"libs/share"
+	"libs/vars"
 	"libs/vod"
 	"outobjs"
 	"strconv"
@@ -438,13 +439,13 @@ func (c *ShareController) tranfromOutShare(s *share.Share, suid int64, showComme
 				outpic := &outobjs.OutSharePic{}
 				outpic.Id = picid
 				for ps, vpic := range viewPics {
-					if ps == libs.PIC_SIZE_ORIGINAL {
+					if ps == vars.PIC_SIZE_ORIGINAL {
 						outpic.OriginalPic = file_storage.GetFileUrl(vpic.FileId)
 					}
-					if ps == libs.PIC_SIZE_THUMBNAIL {
+					if ps == vars.PIC_SIZE_THUMBNAIL {
 						outpic.ThumbnailPic = file_storage.GetFileUrl(vpic.FileId)
 					}
-					if ps == libs.PIC_SIZE_MIDDLE {
+					if ps == vars.PIC_SIZE_MIDDLE {
 						outpic.BmiddlePic = file_storage.GetFileUrl(vpic.FileId)
 					}
 				}
@@ -823,13 +824,13 @@ func (c *ShareController) tranfromOutShareNotice(n *share.ShareNotice) *outobjs.
 			osn.Pic = &outobjs.OutSharePic{}
 			osn.Pic.Id = n.Pic
 			for ps, vpic := range viewPics {
-				if ps == libs.PIC_SIZE_ORIGINAL {
+				if ps == vars.PIC_SIZE_ORIGINAL {
 					osn.Pic.OriginalPic = file_storage.GetFileUrl(vpic.FileId)
 				}
-				if ps == libs.PIC_SIZE_THUMBNAIL {
+				if ps == vars.PIC_SIZE_THUMBNAIL {
 					osn.Pic.ThumbnailPic = file_storage.GetFileUrl(vpic.FileId)
 				}
-				if ps == libs.PIC_SIZE_MIDDLE {
+				if ps == vars.PIC_SIZE_MIDDLE {
 					osn.Pic.BmiddlePic = file_storage.GetFileUrl(vpic.FileId)
 				}
 			}

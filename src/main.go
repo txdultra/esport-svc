@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	_ "controllers"
+	_ "dbs"
 	_ "docs"
 	"errors"
 	"fmt"
@@ -13,6 +13,7 @@ import (
 	"github.com/astaxie/beego"
 	_ "github.com/astaxie/beego/toolbox"
 	"github.com/glycerine/go-capnproto"
+	"github.com/thrift"
 	//"github.com/golang/groupcache"
 	//"github.com/astaxie/beego/orm"
 	"libs"
@@ -24,8 +25,7 @@ import (
 
 	//"libs/credits/proxy"
 
-	"libs/dlock"
-	"libs/search"
+	"libs/reptile/douyuapi"
 	_ "libs/version"
 	//"outobjs"
 	//"modules/jobs"
@@ -73,54 +73,20 @@ import (
 
 func main() {
 
-	fmt.Println(utils.UrlEncode("!@#$%^^&"))
+	//远程服务调用
+	//transportFactory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
+	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+	transport, _ := thrift.NewTSocket("localhost:29998")
+	//useTransport := transportFactory.GetTransport(transport)
+	client := douyuapi.NewDouyuApiServiceClientFactory(transport, protocolFactory)
 
-	return
-
-	watcherpath := "/watcher-test"
-	watcher := dlock.NewWatcher()
-	watcher.Write(watcherpath, []byte(fmt.Sprintf("new_%d", time.Now().Unix())))
-
-	watcher.RegisterWatcher(watcherpath, func(data []byte) {
-		fmt.Println("get rev :" + string(data))
-	})
-
-	go func() {
-		for {
-			time.Sleep(3 * time.Second)
-			watcher.Write(watcherpath, []byte(fmt.Sprintf("new_%d", time.Now().Unix())))
-		}
-	}()
-
-	time.Sleep(2 * time.Hour)
-
-	return
-
-	search_config := &search.SearchOptions{
-		Host:    "192.168.0.79",
-		Port:    9316,
-		Timeout: 1000,
+	if err := transport.Open(); err != nil {
+		fmt.Println(err)
 	}
-	attrs := []string{"members", "threads"}
-	val := []interface{}{uint64(1), 11, 13}
-	values := [][]interface{}{
-		val,
-	}
-	sph := search.NewSearcher(search_config)
-	fmt.Println(sph.UpdateAttributes("group_idx", attrs, values))
+	defer transport.Close()
+	url, err := client.GetData("238552", "http://www.douyutv.com/238552")
+	fmt.Println(url, err)
 
-	var filterRanges []search.FilterRangeInt
-	filterRanges = append(filterRanges, search.FilterRangeInt{
-		Attr:    "members",
-		Min:     10,
-		Max:     100,
-		Exclude: false,
-	})
-	search_config.FilterRangeInt = filterRanges
-	search_config.MaxMatches = 500
-	search_config.Limit = 100
-	sph2 := search.NewSearcher(search_config)
-	fmt.Println(sph2.Query("", []string{"@weight DESC"}, "group_idx", "all"))
 	return
 
 	//	//	o := dbs.NewOrm("group_db")

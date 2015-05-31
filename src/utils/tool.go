@@ -74,6 +74,9 @@ func TotalPages(total int, size int) int {
 	if total%size > 0 {
 		total_page++
 	}
+	if total%size == 0 {
+		return total_page
+	}
 	return total_page
 }
 

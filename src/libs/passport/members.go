@@ -8,6 +8,7 @@ import (
 	"image"
 	"libs"
 	"libs/search"
+	"libs/vars"
 	"log"
 	"logs"
 	"regexp"
@@ -514,7 +515,7 @@ func (m *MemberProvider) UpdateMemberGids(uid int64, gameIds []int) {
 	cache.Replace(m.cacheKeyByUid(u.Uid), *u, 120*time.Hour)
 }
 
-func (m *MemberProvider) UpdatePushConfig(uid int64, pushProxy int, channelId string, pushId string, deviceType libs.CLIENT_OS) error {
+func (m *MemberProvider) UpdatePushConfig(uid int64, pushProxy int, channelId string, pushId string, deviceType vars.CLIENT_OS) error {
 	u := m.Get(uid)
 	if u == nil {
 		return fmt.Errorf("用户不存在")
@@ -685,11 +686,11 @@ func (m *MemberProvider) avatarThumbnail(fileId int64, maxPx int) (*libs.FileNod
 	return file, nil
 }
 
-func (m *MemberProvider) cacheKeyMemberAvatar(uid int64, picSize libs.PIC_SIZE) string {
+func (m *MemberProvider) cacheKeyMemberAvatar(uid int64, picSize vars.PIC_SIZE) string {
 	return fmt.Sprintf("member_avatar_thumbnail_pic:%d_ps:%d", uid, picSize)
 }
 
-func (m *MemberProvider) GetMemberAvatar(uid int64, picSize libs.PIC_SIZE) *MemberAvatar {
+func (m *MemberProvider) GetMemberAvatar(uid int64, picSize vars.PIC_SIZE) *MemberAvatar {
 	member := m.Get(uid)
 	if member == nil {
 		return nil
@@ -737,13 +738,13 @@ func (m *MemberProvider) SetMemberAvatar(uid int64, srcFileId int64) (*MemberAva
 	ma := &MemberAvatar{
 		Uid:    uid,
 		FileId: srcFileId,
-		Size:   libs.PIC_SIZE_ORIGINAL,
+		Size:   vars.PIC_SIZE_ORIGINAL,
 		Width:  file.Width,
 		Height: file.Height,
 		Ts:     utils.TimeMillisecond(time.Now()),
 	}
 	o := dbs.NewDefaultOrm()
-	o.Raw("delete from common_member_avatars where uid=? and size=?", uid, libs.PIC_SIZE_ORIGINAL).Exec()
+	o.Raw("delete from common_member_avatars where uid=? and size=?", uid, vars.PIC_SIZE_ORIGINAL).Exec()
 	o.Raw("insert into common_member_avatars(uid,fid,size,w,h,ts) values(?,?,?,?,?,?)",
 		ma.Uid,
 		ma.FileId,
@@ -759,7 +760,7 @@ func (m *MemberProvider) SetMemberAvatar(uid int64, srcFileId int64) (*MemberAva
 		return nil, err
 	}
 	cache := utils.GetCache()
-	cache.Delete(m.cacheKeyMemberAvatar(uid, libs.PIC_SIZE_ORIGINAL))
+	cache.Delete(m.cacheKeyMemberAvatar(uid, vars.PIC_SIZE_ORIGINAL))
 
 	//hook
 	hook.Do("upload_avatar", uid, 1)

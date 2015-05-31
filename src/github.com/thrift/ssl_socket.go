@@ -20,9 +20,9 @@
 package thrift
 
 import (
-	"crypto/tls"
 	"net"
 	"time"
+	"crypto/tls"
 )
 
 type TSSLSocket struct {
@@ -102,7 +102,7 @@ func (p *TSSLSocket) Open() error {
 	return nil
 }
 
-// Retrieve the underlying net.Conn
+// Retreive the underlying net.Conn
 func (p *TSSLSocket) Conn() net.Conn {
 	return p.conn
 }
@@ -143,6 +143,10 @@ func (p *TSSLSocket) Write(buf []byte) (int, error) {
 	}
 	p.pushDeadline(false, true)
 	return p.conn.Write(buf)
+}
+
+func (p *TSSLSocket) Peek() bool {
+	return p.IsOpen()
 }
 
 func (p *TSSLSocket) Flush() error {

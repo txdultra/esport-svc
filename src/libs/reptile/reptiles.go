@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"libs/reptile/douyuapi"
 	"logs"
 	"reflect"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/httplib"
 	"github.com/m3u8"
+	"github.com/thrift"
 )
 
 //抓取支持项
@@ -239,7 +241,7 @@ func (d DouyuLive) GetStatus(parameter string) (LIVE_STATUS, error) {
 //客户端参与的特别处理模式
 func (d DouyuLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string, nextCmd string, err error) {
 	lcmd := strings.ToLower(cmd)
-	timestamp := time.Now().Unix() * 1000
+	//timestamp := time.Now().Unix() * 1000
 
 	if lcmd == "get_stream_params" {
 		json_data, err := utils.NewJson([]byte(parameter))
@@ -297,8 +299,23 @@ func (d DouyuLive) ProxyReptile(parameter string, cmd string) (clientReqUrl stri
 		roomId = mstr[__idx+1:]
 		cache.Set("live_douyu_url:"+parameter, roomId, 10*time.Hour)
 	}
-	//return fmt.Sprintf("http://www.douyutv.com/swf_api/room/16789?cdn=&nofan=yes&_t=23780353&sign=2e713565f65b9ecfb63f8e38278d4330")
-	return fmt.Sprintf("http://www.douyutv.com/api/client/room/%s?cdn=&nofan=yes&_t=%d", roomId, timestamp), "get_stream_params", nil
+	if len(roomId) == 0 {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:004")
+	}
+
+	//远程服务调用
+	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+	transport, _ := thrift.NewTSocketTimeout(douyu_api_host, 1*time.Minute)
+	client := douyuapi.NewDouyuApiServiceClientFactory(transport, protocolFactory)
+	if err := transport.Open(); err != nil {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:005")
+	}
+	defer transport.Close()
+	url, err := client.GetData(roomId, parameter)
+	if len(url) == 0 || err != nil {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:006")
+	}
+	return url, "get_stream_params", nil
 }
 
 func (d DouyuLive) Reptile(parameter string) (string, error) {

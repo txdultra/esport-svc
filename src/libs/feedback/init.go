@@ -6,7 +6,6 @@ import (
 
 func init() {
 	orm.RegisterModel(
-		//直播
 		new(Feedback),
 	)
 }

@@ -10,6 +10,15 @@ func init() {
 	collect_db = beego.AppConfig.String("collect.db")
 	collect_collection = beego.AppConfig.String("collect.collection")
 	use_ssdb_collect_db = beego.AppConfig.String("ssdb.collect.db")
+	if len(collect_db) == 0 {
+		panic("未配置collect.db参数")
+	}
+	if len(collect_collection) == 0 {
+		panic("未配置collect.collection参数")
+	}
+	if len(use_ssdb_collect_db) == 0 {
+		panic("未配置ssdb.collect.db参数")
+	}
 }
 
 type COLLECT_RELTYPE string

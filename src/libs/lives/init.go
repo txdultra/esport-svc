@@ -53,6 +53,27 @@ func init() {
 	}
 	//task
 	app_task_run_live, _ = beego.AppConfig.Bool("app.task.run.live")
+
+	//检验参数
+	if len(program_notice_db) == 0 {
+		panic("未配置notice.db参数")
+	}
+	if len(program_notice_collection) == 0 {
+		panic("未配置notice.program.collection参数")
+	}
+	if len(search_live_server) == 0 {
+		panic("未配置search.live.server参数")
+	}
+	if len(push_baidu_apikey) == 0 || len(push_baidu_secret) == 0 {
+		panic("未配置push.baidu.apikey或push.baidu.secret参数")
+	}
+	if len(event_program_key) == 0 {
+		panic("未配置push.class.program参数")
+	}
+	if len(use_ssdb_live_db) == 0 {
+		panic("未配置ssdb.live.db参数")
+	}
+
 	//启动前加载
 	beego.AddAPPStartHook(func() error {
 		once.Do(func() {

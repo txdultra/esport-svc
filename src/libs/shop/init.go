@@ -32,6 +32,10 @@ func init() {
 	init_areas()
 
 	credit_service_host = beego.AppConfig.String("shop.credit.host")
+
+	if len(credit_service_host) == 0 {
+		panic("未配置参数:shop.credit.host参数")
+	}
 }
 
 func init_areas() {
@@ -78,7 +82,7 @@ func init_areas() {
 func register_db() {
 	db_aliasname = beego.AppConfig.String("shop.db.aliasname")
 	if len(db_aliasname) == 0 {
-		return
+		panic("未配置参数:shop.db.aliasname参数")
 	}
 	db_user := beego.AppConfig.String("shop.db.user")
 	db_pwd := beego.AppConfig.String("shop.db.pwd")

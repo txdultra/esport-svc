@@ -3,6 +3,8 @@ package libs
 import (
 	"dbs"
 	"errors"
+	"libs/vars"
+
 	"github.com/astaxie/beego/orm"
 )
 
@@ -13,7 +15,7 @@ type PushMsgData struct {
 	ToNickName string
 	PushId     string
 	ChannelId  string
-	DeviceType CLIENT_OS
+	DeviceType vars.CLIENT_OS
 	Title      string
 	Content    string
 	Category   string

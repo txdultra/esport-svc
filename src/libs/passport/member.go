@@ -2,7 +2,7 @@ package passport
 
 import (
 	"encoding/json"
-	"libs"
+	"libs/vars"
 	"logs"
 	"strconv"
 	"strings"
@@ -34,7 +34,7 @@ type Member struct {
 	PushId           string               `orm:"column(push_id)"`
 	PushChannelId    string               `orm:"column(channel_id)"`
 	PushProxy        int                  `orm:"column(push_pxy)"`
-	DeviceType       libs.CLIENT_OS       `orm:"column(device_type)"`
+	DeviceType       vars.CLIENT_OS       `orm:"column(device_type)"`
 	Certified        bool                 `orm:"column(certified)"`
 	CertifiedReason  string               `orm:"column(certified_reason)"`
 	Gids             string               `orm:"column(gids)"`
@@ -76,7 +76,7 @@ func (self *Member) GameIds() []int {
 type MemberAvatar struct {
 	Uid    int64         `orm:"column(uid)"`
 	FileId int64         `orm:"column(fid)"`
-	Size   libs.PIC_SIZE `orm:"column(size)"`
+	Size   vars.PIC_SIZE `orm:"column(size)"`
 	Width  int           `orm:"column(w)"`
 	Height int           `orm:"column(h)"`
 	Ts     int64         `orm:"column(ts)"`

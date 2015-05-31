@@ -6,6 +6,7 @@ import (
 	"libs"
 	"libs/passport"
 	"libs/pushapi"
+	"libs/vars"
 	"logs"
 	"time"
 	//"strconv"
@@ -76,16 +77,16 @@ func (ProgramNoticeMsqProcesser) PushMsgToBaiduApi(msg *libs.PushMsgData) (int64
 	var messageType pushapi.BAIDU_MSG_TYPE
 
 	switch msg.DeviceType {
-	case libs.CLIENT_OS_ANDROID:
+	case vars.CLIENT_OS_ANDROID:
 		deviceType = pushapi.BAIDU_DEVICE_TYPE_ANDROID
 		messageType = pushapi.BAIDU_MSG_TYPE_NOTICE
 		messages["title"] = msg.Title
 		messages["description"] = msg.Content
-	case libs.CLIENT_OS_IOS:
+	case vars.CLIENT_OS_IOS:
 		deviceType = pushapi.BAIDU_DEVICE_TYPE_IOS
 		messageType = pushapi.BAIDU_MSG_TYPE_NOTICE
 		messages["description"] = msg.Content
-	case libs.CLIENT_OS_WP:
+	case vars.CLIENT_OS_WP:
 		deviceType = pushapi.BAIDU_DEVICE_TYPE_WP
 		messageType = pushapi.BAIDU_MSG_TYPE_NOTICE
 	}

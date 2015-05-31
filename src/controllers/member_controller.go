@@ -7,6 +7,7 @@ import (
 	"libs"
 	"libs/passport"
 	"libs/stat"
+	"libs/vars"
 	"outobjs"
 	"strconv"
 	"strings"
@@ -731,12 +732,12 @@ func (c *MemberController) SetPushId() {
 		return
 	}
 	device_type_lower := strings.ToLower(device_type)
-	if device_type_lower != string(libs.CLIENT_OS_ANDROID) && device_type_lower != string(libs.CLIENT_OS_IOS) && device_type_lower != string(libs.CLIENT_OS_WP) {
+	if device_type_lower != string(vars.CLIENT_OS_ANDROID) && device_type_lower != string(vars.CLIENT_OS_IOS) && device_type_lower != string(vars.CLIENT_OS_WP) {
 		c.Json(libs.NewError("member_set_pushid_parameter_error", "M3803", "客户端系统标识不被支持", ""))
 		return
 	}
 	mp := passport.NewMemberProvider()
-	err := mp.UpdatePushConfig(current_uid, int(proxy_id), channel_id, user_id, libs.CLIENT_OS(device_type_lower))
+	err := mp.UpdatePushConfig(current_uid, int(proxy_id), channel_id, user_id, vars.CLIENT_OS(device_type_lower))
 	if err != nil {
 		c.Json(libs.NewError("member_set_pushid_parameter_fail", "M3805", err.Error(), ""))
 		return
@@ -804,7 +805,7 @@ func (c *MemberController) SetAvatar() {
 func (c *MemberController) GetOriginalAvatar() {
 	uid, _ := c.GetInt64("uid")
 	mp := passport.NewMemberProvider()
-	avatar := mp.GetMemberAvatar(uid, libs.PIC_SIZE_ORIGINAL)
+	avatar := mp.GetMemberAvatar(uid, vars.PIC_SIZE_ORIGINAL)
 	if avatar == nil {
 		c.Json(libs.NewError("member_get_avatar_fail", "M3835", "用户未设置头像", ""))
 		return

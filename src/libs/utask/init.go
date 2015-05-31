@@ -10,7 +10,7 @@ import (
 
 var db_aliasname, db_tbl_pfx string
 var use_ssdb_utask_db string
-var credit_service_host string
+var credit_service_host, utask_message_send_host string
 
 func init() {
 	orm.RegisterModel(
@@ -22,6 +22,7 @@ func init() {
 
 	use_ssdb_utask_db = beego.AppConfig.String("utask.ssdb.db")
 	credit_service_host = beego.AppConfig.String("utask.credit.host")
+	utask_message_send_host = beego.AppConfig.String("utask.message.send.host")
 }
 
 func register_db() {

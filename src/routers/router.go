@@ -180,6 +180,11 @@ func init() {
 				&admincp.ShopCPController{},
 			),
 		),
+		beego.NSNamespace("/group_cp",
+			beego.NSInclude(
+				&admincp.GroupCPController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns1)
 	beego.AddNamespace(ns2)

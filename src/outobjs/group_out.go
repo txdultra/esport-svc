@@ -146,6 +146,40 @@ type OutPost struct {
 	Caied            bool             `json:"caied"`
 }
 
+type OutReport struct {
+	Id      int64                  `json:"id"`
+	RefId   string                 `json:"refid"`
+	C       groups.REPORT_CATEGORY `json:"category"`
+	Ts      time.Time              `json:"post_time"`
+	RefTxt  string                 `json:"reftxt"`
+	PostUid int64                  `json:"post_uid"`
+	Member  *OutSimpleMember       `json:"post_member"`
+	Msg     string                 `json:"msg"`
+}
+
+type OutReportPagedList struct {
+	CurrentPage int          `json:"current_page"`
+	TotalPages  int          `json:"total_pages"`
+	PageSize    int          `json:"page_size"`
+	Reports     []*OutReport `json:"reports"`
+}
+
+type OutConfig struct {
+	Id                           int64                `json:"id"`
+	GroupNameLen                 int                  `json:"groupname_len"`
+	GroupDescMaxLen              int                  `json:"groupdesc_maxlen"`
+	GroupDescMinLen              int                  `json:"groupdesc_minlen"`
+	CreateGroupBasePoint         int64                `json:"creategroup_basepoint"`
+	CreateGroupRate              float32              `json:"creategroup_rate"`
+	CreateGroupMinUsers          int                  `json:"creategroup_minusers"`
+	CreateGroupRecruitDay        int                  `json:"creategroup_recruitday"`
+	CreateGroupMaxCount          int                  `json:"creategroup_maxcount"`
+	CreateGroupCertifiedMaxCount int                  `json:"creategroup_certifiedmaxcount"`
+	CreateGroupClause            string               `json:"creategroup_clause"`
+	ReportOptions                string               `json:"report_options"`
+	NewThreadDefaultStatus       groups.THREAD_STATUS `json:"newthread_defstatus"`
+}
+
 func GetOutGroup(group *groups.Group, concernUid int64) *OutGroup {
 	outgames := []*OutGame{}
 	for _, gid := range group.GameIDs() {

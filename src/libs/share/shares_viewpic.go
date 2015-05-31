@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"libs"
+	"libs/vars"
 	"logs"
 	"sync"
 	"time"
@@ -56,8 +57,8 @@ func (s *ShareViewPics) hash_pic_tbl(fileId int64) string {
 	return tbl
 }
 
-func (s *ShareViewPics) Create(file *libs.File, picSizes []libs.PIC_SIZE) map[libs.PIC_SIZE]ShareViewPicture {
-	sps := make(map[libs.PIC_SIZE]ShareViewPicture)
+func (s *ShareViewPics) Create(file *libs.File, picSizes []vars.PIC_SIZE) map[vars.PIC_SIZE]ShareViewPicture {
+	sps := make(map[vars.PIC_SIZE]ShareViewPicture)
 	data, err := s.fileData(file.Id)
 	if err != nil {
 		fmt.Println("---------------------------------", err)
@@ -70,10 +71,10 @@ func (s *ShareViewPics) Create(file *libs.File, picSizes []libs.PIC_SIZE) map[li
 	for _, spsize := range picSizes {
 		size := 0
 		switch spsize {
-		case libs.PIC_SIZE_MIDDLE:
+		case vars.PIC_SIZE_MIDDLE:
 			size = sns_share_pic_middle_w
 			break
-		case libs.PIC_SIZE_THUMBNAIL:
+		case vars.PIC_SIZE_THUMBNAIL:
 			size = sns_share_pic_thumbnail_w
 			break
 		default:
@@ -84,7 +85,7 @@ func (s *ShareViewPics) Create(file *libs.File, picSizes []libs.PIC_SIZE) map[li
 		sp.ParentFileId = file.Id
 		sp.Ts = time.Now().Unix()
 		sp.PicSize = spsize
-		if spsize != libs.PIC_SIZE_ORIGINAL {
+		if spsize != vars.PIC_SIZE_ORIGINAL {
 			fid, err := s.resize(data, file, size)
 			if err != nil {
 				fmt.Println("---------------------------------", err)
@@ -104,13 +105,13 @@ func (s *ShareViewPics) Create(file *libs.File, picSizes []libs.PIC_SIZE) map[li
 	return sps
 }
 
-func (s *ShareViewPics) Get(fid int64) map[libs.PIC_SIZE]ShareViewPicture {
+func (s *ShareViewPics) Get(fid int64) map[vars.PIC_SIZE]ShareViewPicture {
 	cache := utils.GetCache()
 	key := fmt.Sprintf(share_view_picture_fid, fid)
 	tbl := s.hash_pic_tbl(fid)
 	var csps []ShareViewPicture
-	toMap := func(arr []ShareViewPicture) map[libs.PIC_SIZE]ShareViewPicture {
-		_sps := make(map[libs.PIC_SIZE]ShareViewPicture)
+	toMap := func(arr []ShareViewPicture) map[vars.PIC_SIZE]ShareViewPicture {
+		_sps := make(map[vars.PIC_SIZE]ShareViewPicture)
 		for _, ar := range arr {
 			_sps[ar.PicSize] = ar
 		}

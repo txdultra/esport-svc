@@ -531,6 +531,15 @@ func (c *GroupController) GetThreads() {
 		page = 1
 	}
 	size := 20
+
+	//5秒缓冲
+	query_cache_key := fmt.Sprintf("front_fast_cache.group.threads:g_%d_p_%d_s_%d", groupid, page, size)
+	c_obj := utils.GetLocalFastExpriesTimePartCache(query_cache_key)
+	if c_obj != nil {
+		c.Json(c_obj)
+		return
+	}
+
 	ths := groups.NewThreadService(groups.GetDefaultCfg())
 	_, threads := ths.Gets(groupid, page, size, current_uid)
 	out_threads := []*outobjs.OutThread{}
@@ -542,6 +551,7 @@ func (c *GroupController) GetThreads() {
 		PageSize:    size,
 		Threads:     out_threads,
 	}
+	utils.SetLocalFastExpriesTimePartCache(5*time.Second, query_cache_key, out_p)
 	c.Json(out_p)
 }
 

@@ -9,12 +9,15 @@ import (
 	"libs"
 	credit_client "libs/credits/client"
 	credit_proxy "libs/credits/proxy"
+	"libs/vars"
+	"strings"
 	//"libs/dlock"
 	"libs/message"
 	"libs/passport"
 	"libs/search"
 	"logs"
 	"reflect"
+	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -290,6 +293,10 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	if len(nameRunes) < 2 {
 		return fmt.Errorf(fmt.Sprintf("组名称不能小于%d个字符", 2))
 	}
+	matched, _ := regexp.MatchString(`^[a-z0-9A-Z\p{Han}]+(_[a-z0-9A-Z\p{Han}]+)*$`, group.Name)
+	if !matched {
+		return fmt.Errorf("只能包含数字,字母,中文,_")
+	}
 	_name := utils.CensorWords(group.Name)
 	if _name != group.Name {
 		return fmt.Errorf("小组名称包含屏蔽字")
@@ -304,6 +311,10 @@ func (s *GroupService) VerifyNewGroup(group *Group) error {
 	}
 	if len(descRunes) <= s.cfg.GroupDescMinLen {
 		return fmt.Errorf(fmt.Sprintf("组描述内容不能小于%d个字符", s.cfg.GroupDescMinLen))
+	}
+	_desc := utils.StripSQLInjection(group.Description)
+	if _desc != group.Description {
+		return fmt.Errorf("小组描述包含非法字符")
 	}
 	if group.Uid <= 0 {
 		return fmt.Errorf("未设置创建人")
@@ -657,6 +668,10 @@ func (s *GroupService) Update(group *Group) error {
 	if len(group.Description) < s.cfg.GroupDescMinLen {
 		return fmt.Errorf(fmt.Sprintf("小组描述内容不能小于%d个字符", s.cfg.GroupDescMinLen))
 	}
+	_desc := utils.StripSQLInjection(group.Description)
+	if _desc != group.Description {
+		return fmt.Errorf("小组描述包含非法字符")
+	}
 	if group.Uid <= 0 {
 		return fmt.Errorf("未设置创建人")
 	}
@@ -689,6 +704,18 @@ func (s *GroupService) Update(group *Group) error {
 	cache := utils.GetCache()
 	cache.Replace(s.GetCacheKey(group.Id), *group, 1*time.Hour)
 	return nil
+}
+
+func (s *GroupService) UpdateDbVitality(groups []*Group) {
+	sql := "update groups set vitality case id "
+	ids := []string{}
+	for _, group := range groups {
+		sql += fmt.Sprintf(" when %d then %d ", group.Id, group.Vitality)
+		ids = append(ids, fmt.Sprintf("%d", group.Id))
+	}
+	sql += " end where id in (" + strings.Join(ids, ",") + ")"
+	o := dbs.NewOrm(db_aliasname)
+	o.Raw(sql).Exec()
 }
 
 func (s *GroupService) Get(groupId int64) *Group {
@@ -996,6 +1023,7 @@ func (s *GroupService) Search(words string, page int, size int, match_mode strin
 		sorts = append(sorts, "endtime ASC")
 		break
 	default:
+		sorts = append(sorts, "recommend DESC")
 		sorts = append(sorts, "displayorder DESC")
 		sorts = append(sorts, "vitality DESC")
 	}
@@ -1017,7 +1045,7 @@ func (s *GroupService) GroupUserCount(groupId int64) int {
 
 func (s *GroupService) ChangeStatus(group *Group) error {
 	o := dbs.NewOrm(db_aliasname)
-	_, err := o.Update(group, "status")
+	_, err := o.Update(group, "starttime", "endtime", "status")
 	if err != nil {
 		return fmt.Errorf("更新状态失败")
 	}
@@ -1698,7 +1726,7 @@ func (c *ThreadService) Gets(groupId int64, page int, size int, uid int64) (int,
 	}
 	o := dbs.NewOrm(db_aliasname)
 	var maps []orm.Params
-	_, err := o.QueryTable(&Thread{}).Filter("groupid", groupId).OrderBy("-lastpost").Limit(size).Offset((page-1)*size).Values(&maps, "id")
+	_, err := o.QueryTable(&Thread{}).Filter("groupid", groupId).Filter("closed", false).OrderBy("-lastpost").Limit(size).Offset((page-1)*size).Values(&maps, "id")
 	if err == nil {
 		strids := make([]string, len(maps), len(maps))
 		for i, m := range maps {
@@ -1775,6 +1803,26 @@ func (c *ThreadService) SetLastPost(post *Post) {
 		delete(thcLastQs, refId)
 		cclient.Del(ckey)
 	})
+}
+
+func (c *ThreadService) CloseThread(threadId int64) error {
+	thread := c.Get(threadId)
+	if thread == nil {
+		return fmt.Errorf("帖子不存在")
+	}
+	o := dbs.NewOrm(db_aliasname)
+	o.QueryTable(&Thread{}).Filter("id", threadId).Update(orm.Params{
+		"closed": true,
+	})
+	thread.Closed = true
+	ckey := c.getCacheKey(threadId)
+	ssdb.New(use_ssdb_group_db).Set(ckey, thread)
+
+	go func() {
+		gs := NewGroupService(c.cfg)
+		gs.ActionCount(thread.GroupId, []GP_PROPERTY{GP_PROPERTY_THREADS}, []int{-1})
+	}()
+	return nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1990,7 +2038,7 @@ func (s *PostService) Invisible(postId string, do bool) error {
 	return nil
 }
 
-func (s *PostService) imgToRes(imgId int64, picSizes []libs.PIC_SIZE) *ImgRes {
+func (s *PostService) imgToRes(imgId int64, picSizes []vars.PIC_SIZE) *ImgRes {
 	if imgId <= 0 {
 		return nil
 	}
@@ -2008,26 +2056,26 @@ func (s *PostService) imgToRes(imgId int64, picSizes []libs.PIC_SIZE) *ImgRes {
 	for _, spsize := range picSizes {
 		size := 0
 		switch spsize {
-		case libs.PIC_SIZE_MIDDLE:
+		case vars.PIC_SIZE_MIDDLE:
 			size = group_pic_middle_w
 			break
-		case libs.PIC_SIZE_THUMBNAIL:
+		case vars.PIC_SIZE_THUMBNAIL:
 			size = group_pic_thumbnail_w
 			break
 		default:
 			size = 0
 			break
 		}
-		if spsize != libs.PIC_SIZE_ORIGINAL {
+		if spsize != vars.PIC_SIZE_ORIGINAL {
 			fid, err := imgResize(data, file, size)
 			if err != nil {
 				fmt.Println("---------------------------------", err)
 				continue
 			}
-			if spsize == libs.PIC_SIZE_MIDDLE {
+			if spsize == vars.PIC_SIZE_MIDDLE {
 				ir.BmiddleImgId = fid
 			}
-			if spsize == libs.PIC_SIZE_THUMBNAIL {
+			if spsize == vars.PIC_SIZE_THUMBNAIL {
 				ir.ThumbnailImgId = fid
 			}
 		} else {
@@ -2093,10 +2141,10 @@ func (s *PostService) Create(post *Post) error {
 				if file.ExtName == "gif" { //gif不支持
 					return
 				}
-				ir := s.imgToRes(_id, []libs.PIC_SIZE{
-					libs.PIC_SIZE_ORIGINAL,
-					libs.PIC_SIZE_THUMBNAIL,
-					libs.PIC_SIZE_MIDDLE,
+				ir := s.imgToRes(_id, []vars.PIC_SIZE{
+					vars.PIC_SIZE_ORIGINAL,
+					vars.PIC_SIZE_THUMBNAIL,
+					vars.PIC_SIZE_MIDDLE,
 				})
 				if ir != nil {
 					irs = append(irs, ir)
@@ -2240,6 +2288,7 @@ func (s *PostService) Gets(threadId int64, page int, size int, orderby POST_ORDE
 		}
 
 		total, _ = ssdb.New(use_ssdb_group_db).Zcard(fmt.Sprintf(thread_post_sets, threadId))
+		total-- //剪掉一个楼主post
 
 		keys := make([]string, len(rs), len(rs))
 		for i, r := range rs {
@@ -2268,7 +2317,7 @@ func (r *ReportService) Create(report *Report) error {
 	return err
 }
 
-func (r *ReportService) Gets(page int, size int, c REPORT_CATEGORY) ([]*Report, int) {
+func (r *ReportService) Gets(page int, size int, c REPORT_CATEGORY) (int, []*Report) {
 	o := dbs.NewOrm(db_aliasname)
 	query := o.QueryTable(&Report{})
 	if int(c) > 0 {
@@ -2278,5 +2327,5 @@ func (r *ReportService) Gets(page int, size int, c REPORT_CATEGORY) ([]*Report, 
 	offset := (page - 1) * size
 	var lst []*Report
 	query.OrderBy("-ts").Limit(size, offset).All(&lst)
-	return lst, int(total)
+	return int(total), lst
 }

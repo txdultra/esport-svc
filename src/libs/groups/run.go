@@ -83,3 +83,44 @@ func gpService() {
 		time.Sleep(10 * time.Second)
 	}
 }
+
+func gpVitality() {
+	o := dbs.NewOrm(db_aliasname)
+	gs := NewGroupService(GetDefaultCfg())
+	type GroupZt struct {
+		GroupId int64
+		Members int
+		Threads int
+	}
+
+	var zts []*GroupZt
+	_, err := o.Raw("select * from groups_zt").QueryRows(&zts)
+	if err != nil {
+		logs.Errorf("group zt fail:%+v", err)
+		return
+	}
+	lens := len(zts)
+	if lens > 0 {
+		offset := 0
+		for i := 100; i < lens; i += 100 {
+			if i > lens {
+				i = lens
+			}
+			groups := []*Group{}
+			for _, zt := range zts[offset:i] {
+				group := gs.Get(zt.GroupId)
+				if group == nil {
+					continue
+				}
+				group.Vitality = group.Threads - zt.Threads
+				groups = append(groups, group)
+			}
+			gs.UpdateSearchEngineAttrs(groups, []string{"vitality"})
+			offset = i
+			gs.UpdateDbVitality(groups)
+		}
+	}
+
+	o.Raw("truncate groups_zt;").Exec()
+	o.Raw("insert into groups_zt(group_id,members,threads) select id,members,threads from groups;").Exec()
+}

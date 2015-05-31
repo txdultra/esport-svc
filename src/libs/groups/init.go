@@ -11,6 +11,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"github.com/astaxie/beego/toolbox"
 )
 
 var group_setting_id int
@@ -35,11 +36,17 @@ const (
 func init() {
 	//ssdb tag
 	use_ssdb_group_db = beego.AppConfig.String("group.ssdb.db")
+	if len(use_ssdb_group_db) == 0 {
+		panic("未配置group.ssdb.db参数")
+	}
 	//积分系统地址
 	credit_service_host = beego.AppConfig.String("group.credit.host")
+	if len(credit_service_host) == 0 {
+		panic("未配置group.credit.host参数")
+	}
 
 	//setting id
-	group_setting_id, _ = beego.AppConfig.Int("group.setting.id")
+	group_setting_id = beego.AppConfig.DefaultInt("group.setting.id", 1)
 	update_group_limit_seconds = beego.AppConfig.DefaultInt64("group.update.limit.seconds", 20)
 
 	group_pic_thumbnail_w, _ = beego.AppConfig.Int("group.pic.thumbnail.w")
@@ -53,11 +60,17 @@ func init() {
 
 	app_task_run = beego.AppConfig.DefaultBool("app.task.run.group", false)
 	group_timerjob_host = beego.AppConfig.String("group.timerjob.host")
+	if len(group_timerjob_host) == 0 {
+		panic("未配置group.timerjob.host参数")
+	}
 
 	//search
 	search_server = beego.AppConfig.String("search.group.server")
 	search_port, _ = beego.AppConfig.Int("search.group.port")
 	search_timeout, _ = beego.AppConfig.Int("search.group.timeout")
+	if len(search_server) == 0 {
+		panic("未配置小组使用的搜索服务地址")
+	}
 
 	orm.RegisterModel(new(GroupCfg), new(Group), new(Thread), new(Post),
 		new(Report), new(MemberCount),
@@ -69,14 +82,25 @@ func init() {
 	group_msg_collection = beego.AppConfig.String("group.msg.collection")
 	use_ssdb_message_db = beego.AppConfig.String("group.ssdb.db") //独立缓存库
 	mbox_atmsg_length = beego.AppConfig.DefaultInt("mbox.atmsg.length", 200)
-	initMsgSysConfig()
+	if len(group_msg_db) == 0 {
+		panic("未配置group.message.db参数")
+	}
+	if len(group_msg_collection) == 0 {
+		panic("未配置group.msg.collection参数")
+	}
+	if len(use_ssdb_message_db) == 0 {
+		panic("未配置group.ssdb.db参数")
+	}
 
-	//注册分享模块功能
-	register_share_mod()
+	initMsgSysConfig()
 
 	//启动前加载
 	beego.AddAPPStartHook(func() error {
-		load_tbls() //加载分表数据
+		//加载分表数据
+		load_tbls()
+		//注册分享模块功能
+		register_share_mod()
+
 		if app_task_run {
 			//定时工作
 			tjInit()
@@ -85,6 +109,17 @@ func init() {
 			watcher.RegisterWatcher(watcher_path, func(data []byte) {
 				ResetDefaultCfg()
 			})
+			//活跃度统计
+			tskName := "group_vitality_task"
+			spec := "0 0 0/7 * * *"
+			_spec := beego.AppConfig.String("group.vitality.interval.spec")
+			if len(_spec) > 0 {
+				spec = _spec
+			}
+			toolbox.AddTask(tskName, toolbox.NewTask(tskName, spec, func() error {
+				gpVitality()
+				return nil
+			}))
 		}
 		return nil
 	})

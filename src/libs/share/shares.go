@@ -8,6 +8,7 @@ import (
 	"libs/message"
 	"libs/passport"
 	"libs/stat"
+	"libs/vars"
 	"logs"
 	"reflect"
 	"strconv"
@@ -363,7 +364,7 @@ func (n *Shares) saveToCacheAndMsgEvent(s *Share, atuids map[int64]int64, msgNot
 	}
 }
 
-func (n *Shares) getMsgType(s *Share) message.MSG_TYPE {
+func (n *Shares) getMsgType(s *Share) vars.MSG_TYPE {
 	if s.ShareType&int(SHARE_KIND_VOD) == int(SHARE_KIND_VOD) {
 		return MSG_TYPE_VOD
 	} else if s.ShareType&int(SHARE_KIND_PIC) == int(SHARE_KIND_PIC) {

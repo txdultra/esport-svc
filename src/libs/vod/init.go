@@ -73,12 +73,25 @@ func init() {
 	app_task_run_vod, _ = beego.AppConfig.Bool("app.task.run.vod")
 
 	use_ssdb_vod_db = beego.AppConfig.String("ssdb.vod.db")
+	if len(use_ssdb_vod_db) == 0 {
+		panic("未配置:ssdb.vod.db参数")
+	}
 
 	//初始化消息模块配置
 	vod_msg_db = beego.AppConfig.String("vod.message.db")
 	vod_msg_collection = beego.AppConfig.String("vod.msg.collection")
 	use_ssdb_message_db = beego.AppConfig.String("ssdb.message.db")
 	mbox_atmsg_length = beego.AppConfig.DefaultInt("mbox.atmsg.length", 200)
+	if len(vod_msg_db) == 0 {
+		panic("未配置:vod.message.db参数")
+	}
+	if len(vod_msg_collection) == 0 {
+		panic("未配置:vod.msg.collection参数")
+	}
+	if len(use_ssdb_message_db) == 0 {
+		panic("未配置:ssdb.message.db参数")
+	}
+
 	initMsgSysConfig()
 
 	//启动前加载

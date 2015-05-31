@@ -7,6 +7,7 @@ import (
 	"libs/groups"
 	"libs/message"
 	"libs/share"
+	"libs/vars"
 	"libs/vod"
 	"outobjs"
 	"strconv"
@@ -98,7 +99,7 @@ func (c *MessageController) Mentions() {
 	c.Json(out_list)
 }
 
-func (c *MessageController) transformMsgType(submitName string) message.MSG_TYPE {
+func (c *MessageController) transformMsgType(submitName string) vars.MSG_TYPE {
 	switch submitName {
 	case "vod":
 		return vod.MSG_TYPE_COMMENT
@@ -107,11 +108,11 @@ func (c *MessageController) transformMsgType(submitName string) message.MSG_TYPE
 	case "group":
 		return groups.MSG_TYPE_MESSAGE
 	default:
-		return message.MSG_TYPE_SYS
+		return vars.MSG_TYPE_SYS
 	}
 }
 
-func (c *MessageController) transformObj(refId string, msgType message.MSG_TYPE, out *outobjs.OutAtMsg) {
+func (c *MessageController) transformObj(refId string, msgType vars.MSG_TYPE, out *outobjs.OutAtMsg) {
 	switch msgType {
 	case vod.MSG_TYPE_COMMENT:
 		cmtt := comment.NewCommentor("vod")

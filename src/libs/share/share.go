@@ -1,19 +1,19 @@
 package share
 
 import (
-	"libs/message"
+	"libs/vars"
 	"strconv"
 	"strings"
 	//"labix.org/v2/mgo/bson"
-	"libs"
+
 	"logs"
 	"time"
 )
 
 const (
-	MSG_TYPE_VOD  message.MSG_TYPE = "share:vod"
-	MSG_TYPE_TEXT message.MSG_TYPE = "share:text"
-	MSG_TYPE_PICS message.MSG_TYPE = "share:pics"
+	MSG_TYPE_VOD  vars.MSG_TYPE = "share:vod"
+	MSG_TYPE_TEXT vars.MSG_TYPE = "share:text"
+	MSG_TYPE_PICS vars.MSG_TYPE = "share:pics"
 )
 
 type SHARE_KIND int
@@ -34,10 +34,10 @@ const (
 	SHARE_TYPE_COMMENT  SHARE_TYPE = 2
 )
 
-var NeedSharePicSizes []libs.PIC_SIZE = []libs.PIC_SIZE{
-	libs.PIC_SIZE_ORIGINAL,
-	libs.PIC_SIZE_THUMBNAIL,
-	libs.PIC_SIZE_MIDDLE,
+var NeedSharePicSizes []vars.PIC_SIZE = []vars.PIC_SIZE{
+	vars.PIC_SIZE_ORIGINAL,
+	vars.PIC_SIZE_THUMBNAIL,
+	vars.PIC_SIZE_MIDDLE,
 }
 
 type ShareSubcur struct {
@@ -109,7 +109,7 @@ type ShareViewPicture struct {
 	ParentFileId int64 `orm:"column(pfid)"`
 	FileId       int64 `orm:"column(fid)"`
 	Ts           int64
-	PicSize      libs.PIC_SIZE `orm:"column(ps)"`
+	PicSize      vars.PIC_SIZE `orm:"column(ps)"`
 }
 
 func (self *ShareViewPicture) TableName() string {

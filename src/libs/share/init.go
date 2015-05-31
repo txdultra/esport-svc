@@ -67,6 +67,18 @@ func init() {
 	sns_notice_db_insert_queue_open, _ = beego.AppConfig.Bool("sns.notice.db_insert_queue.open")
 	sns_msg_db_insert_queue_open, _ = beego.AppConfig.Bool("sns.msg.db_insert_queue.open")
 	msq_db_batch_queue_name = beego.AppConfig.String("msq.db_batch.queue_name")
+	if len(use_ssdb_share_db) == 0 {
+		panic("未配置参数:ssdb.share.db参数")
+	}
+	if len(use_ssdb_cmt_db) == 0 {
+		panic("未配置参数:ssdb.share.cmt.db参数")
+	}
+	if len(use_ssdb_notice_db) == 0 {
+		panic("未配置参数:ssdb.share.notice.db参数")
+	}
+	if len(msq_db_batch_queue_name) == 0 {
+		panic("未配置参数:msq.db_batch.queue_name参数")
+	}
 
 	//注册关注事件
 	passport.RegisterFriendEvent("friend_share_msg_event", &ShareMsgs{})
@@ -92,6 +104,15 @@ func init() {
 	sns_msg_collection = beego.AppConfig.String("sns.atmsg.collection")
 	use_ssdb_message_db = beego.AppConfig.String("ssdb.message.db")
 	mbox_atmsg_length = beego.AppConfig.DefaultInt("mbox.atmsg.length", 200)
+	if len(sns_msg_db) == 0 {
+		panic("未配置参数:sns.share.db参数")
+	}
+	if len(sns_msg_collection) == 0 {
+		panic("未配置参数:sns.atmsg.collection参数")
+	}
+	if len(use_ssdb_message_db) == 0 {
+		panic("未配置参数:ssdb.message.db参数")
+	}
 	initMsgSysConfig()
 
 	//register share events

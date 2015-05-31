@@ -2,8 +2,8 @@ package vod
 
 import (
 	"libs"
-	"libs/message"
 	"libs/reptile"
+	"libs/vars"
 	"strings"
 	"time"
 	"utils"
@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	MSG_TYPE_COMMENT message.MSG_TYPE = "vod:comment"
+	MSG_TYPE_COMMENT vars.MSG_TYPE = "vod:comment"
 )
 
 type Video struct {

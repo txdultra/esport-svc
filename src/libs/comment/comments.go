@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"libs/hook"
 	"libs/stat"
+	"libs/vars"
 	"logs"
 
 	"labix.org/v2/mgo/bson"
@@ -37,7 +38,7 @@ func NewCommentor(mod string) *Commentor {
 	return c
 }
 
-func (c *Commentor) Create(data map[string]interface{}, atId func(string) int64, atName func(int64) string, msgNotice bool, msgType message.MSG_TYPE) (error, string) {
+func (c *Commentor) Create(data map[string]interface{}, atId func(string) int64, atName func(int64) string, msgNotice bool, msgType vars.MSG_TYPE) (error, string) {
 	comment := c.dataToComment(data)
 	if comment.RefId <= 0 {
 		return fmt.Errorf("RefId 属性不能为0"), ""

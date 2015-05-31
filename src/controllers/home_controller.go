@@ -100,6 +100,21 @@ func (c *HomeController) ApiUrls() {
 				BaseUrl: host_maps["openid"], //"http://192.168.0.33:8080",
 				Version: "v1",
 			},
+			&outobjs.OutApiModHost{
+				ModName: "user_task",
+				BaseUrl: host_maps["user_task"], //"http://192.168.0.33:8080",
+				Version: "v1",
+			},
+			&outobjs.OutApiModHost{
+				ModName: "groups",
+				BaseUrl: host_maps["groups"], //"http://192.168.0.33:8080",
+				Version: "v1",
+			},
+			&outobjs.OutApiModHost{
+				ModName: "shop",
+				BaseUrl: host_maps["shop"], //"http://192.168.0.33:8080",
+				Version: "v1",
+			},
 		}
 	}
 	c.Json(out_api_mod_hosts)

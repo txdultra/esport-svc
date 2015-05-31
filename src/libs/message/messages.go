@@ -3,6 +3,7 @@ package message
 import (
 	"dbs"
 	"fmt"
+	"libs/vars"
 	"time"
 	"utils"
 	"utils/ssdb"
@@ -12,7 +13,7 @@ import (
 	"labix.org/v2/mgo/bson"
 )
 
-func CreateMsg(fromUid int64, toUid int64, msgType MSG_TYPE, content string, refId string) *MsgData {
+func CreateMsg(fromUid int64, toUid int64, msgType vars.MSG_TYPE, content string, refId string) *MsgData {
 	return &MsgData{
 		Id:        bson.NewObjectId(),
 		FromUid:   fromUid,
@@ -44,7 +45,7 @@ func SendMsg(msg *MsgData, completedCallback func(string)) error {
 	return nil
 }
 
-func SendMsgV2(fromUid int64, toUid int64, msgType MSG_TYPE, content string, relId string, completedCallback func(string)) error {
+func SendMsgV2(fromUid int64, toUid int64, msgType vars.MSG_TYPE, content string, relId string, completedCallback func(string)) error {
 	msg := CreateMsg(fromUid, toUid, msgType, content, relId)
 	return SendMsg(msg, completedCallback)
 }
@@ -55,7 +56,7 @@ func incrAtMsgAlerts(uid int64, msc *MsgStorageConfig) int {
 	return int(c)
 }
 
-func NewEventCount(uid int64, msgType MSG_TYPE) int {
+func NewEventCount(uid int64, msgType vars.MSG_TYPE) int {
 	config := getMsgStorageConfig(msgType)
 	c := 0
 	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
@@ -66,7 +67,7 @@ func NewEventCount(uid int64, msgType MSG_TYPE) int {
 	return c
 }
 
-func ResetEventCount(uid int64, msgType MSG_TYPE) bool {
+func ResetEventCount(uid int64, msgType vars.MSG_TYPE) bool {
 	config := getMsgStorageConfig(msgType)
 	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
 	ok, _ := ssdb.New(config.CacheDb).Del(new_alert_box)
@@ -100,7 +101,7 @@ func SendMsgs2(msgs []MsgData) error {
 	return nil
 }
 
-func EmptyMsgBox(uid int64, msgType MSG_TYPE) error {
+func EmptyMsgBox(uid int64, msgType vars.MSG_TYPE) error {
 	config := getMsgStorageConfig(msgType)
 	session, col := dbs.MgoC(config.DbName, config.TableName)
 	defer session.Close()
@@ -118,7 +119,7 @@ func EmptyMsgBox(uid int64, msgType MSG_TYPE) error {
 	return nil
 }
 
-func DelMsg(uid int64, msg_id string, msgType MSG_TYPE) error {
+func DelMsg(uid int64, msg_id string, msgType vars.MSG_TYPE) error {
 	config := getMsgStorageConfig(msgType)
 	if !bson.IsObjectIdHex(msg_id) {
 		return fmt.Errorf("msg_id格式错误")
@@ -142,7 +143,7 @@ func DelMsg(uid int64, msg_id string, msgType MSG_TYPE) error {
 	return nil
 }
 
-func GetMsgs(uid int64, page int, size int, ts time.Time, msgType MSG_TYPE) (int, []*MsgData) {
+func GetMsgs(uid int64, page int, size int, ts time.Time, msgType vars.MSG_TYPE) (int, []*MsgData) {
 	msgs := []*MsgData{}
 	if uid <= 0 {
 		return 0, msgs
@@ -172,4 +173,15 @@ func GetMsgs(uid int64, page int, size int, ts time.Time, msgType MSG_TYPE) (int
 		return 0, msgs
 	}
 	return msg_totals, msgs
+}
+
+//thrift impl
+type MessageServiceImpl struct{}
+
+func (m *MessageServiceImpl) Send(fromUid int64, toUid int64, msgType string, content string, refId string) (err error) {
+	_, ok := msgtype_storage_maps[vars.MSG_TYPE(msgType)]
+	if !ok {
+		return fmt.Errorf("消息类型不存在")
+	}
+	return SendMsgV2(fromUid, toUid, vars.MSG_TYPE(msgType), content, refId, nil)
 }
