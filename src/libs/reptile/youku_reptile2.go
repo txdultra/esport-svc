@@ -33,7 +33,7 @@ func NewYoukuReptileV2() *YoukuReptileV2 {
 }
 
 func (y *YoukuReptileV2) getVid(url string) (string, error) {
-	re := regexp.MustCompile("http://v.youku.com/v_show/id_(\\w+)\\.html")
+	re := regexp.MustCompile("http://v.youku.com/v_show/id_([0-9A-Za-z_=]+)\\.html")
 	matchs := re.FindSubmatch([]byte(url))
 	if len(matchs) != 2 {
 		return "", errors.New("youku url format fail")

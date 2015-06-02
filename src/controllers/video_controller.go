@@ -505,10 +505,16 @@ func (c *VideoController) DownloadClarities() {
 	sps := []reptile.VOD_STREAM_MODE{reptile.VOD_STREAM_MODE_STANDARD_SP, reptile.VOD_STREAM_MODE_HIGH_SP, reptile.VOD_STREAM_MODE_SUPER_SP}
 	for _, sp := range sps {
 		for _, opt := range vpf.OptFlvs {
+			fmt.Println(opt.Mode)
 			if opt.Mode == sp {
 				clars = append(clars, &outobjs.OutVideoDownClarity{reptile.ConvertVodModeName(opt.Mode), opt.Mode, opt.Size})
 			}
 		}
+	}
+
+	//如果没有直接的flv,则解析m3u8文件
+	if len(clars) == 0 {
+
 	}
 
 	//	for _, opt := range vpf.OptFlvs {

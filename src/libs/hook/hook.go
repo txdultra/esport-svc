@@ -32,8 +32,8 @@ func RegisterHook(event string, name string, hook IHook) {
 func Do(event string, args ...interface{}) {
 	lock.RLock()
 	defer lock.RUnlock()
-	if hooks, ok := hooks[event]; ok {
-		for _, hook := range hooks {
+	if subhooks, ok := hooks[event]; ok {
+		for _, hook := range subhooks {
 			hook.Do(event, args...)
 		}
 	}

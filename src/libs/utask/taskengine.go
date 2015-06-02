@@ -54,13 +54,16 @@ func (c CreditMissionReward) Reward(mrp *MissionRewardParameter) (string, error)
 	if result.State == proxy.OPERATION_STATE_SUCCESS {
 		//发送系统消息
 		go func() {
-			client, transport, err := msgclient.NewClient(utask_message_send_host)
+			msgc, msgt, err := msgclient.NewClient(utask_message_send_host)
 			if err != nil {
 				return
 			}
-			defer transport.Close()
-			msgTxt := fmt.Sprintf("您完成任务获得了%d积分", mrp.Points)
-			client.Send(vars.MESSAGE_SYS_ID, mrp.Uid, string(vars.MSG_TYPE_SYS), msgTxt, result.No)
+			defer msgt.Close()
+			msgTxt := fmt.Sprintf("您完成%s任务获得了%d积分", mrp.Info, mrp.Points)
+			err = msgc.Send(vars.MESSAGE_SYS_ID, mrp.Uid, string(vars.MSG_TYPE_SYS), msgTxt, result.No)
+			if err != nil {
+				return
+			}
 		}()
 		return result.No, nil
 	}

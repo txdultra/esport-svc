@@ -13,7 +13,6 @@ import (
 	"github.com/astaxie/beego"
 	_ "github.com/astaxie/beego/toolbox"
 	"github.com/glycerine/go-capnproto"
-	"github.com/thrift"
 	//"github.com/golang/groupcache"
 	//"github.com/astaxie/beego/orm"
 	"libs"
@@ -25,7 +24,6 @@ import (
 
 	//"libs/credits/proxy"
 
-	"libs/reptile/douyuapi"
 	_ "libs/version"
 	//"outobjs"
 	//"modules/jobs"
@@ -72,20 +70,10 @@ import (
 )
 
 func main() {
-
-	//远程服务调用
-	//transportFactory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
-	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
-	transport, _ := thrift.NewTSocket("localhost:29998")
-	//useTransport := transportFactory.GetTransport(transport)
-	client := douyuapi.NewDouyuApiServiceClientFactory(transport, protocolFactory)
-
-	if err := transport.Open(); err != nil {
-		fmt.Println(err)
-	}
-	defer transport.Close()
-	url, err := client.GetData("238552", "http://www.douyutv.com/238552")
-	fmt.Println(url, err)
+	re1 := regexp.MustCompile("http://v.youku.com/v_show/id_([0-9A-Za-z_=]+)\\.html")
+	fmt.Println(re1.MatchString("http://v.youku.com/v_show/id_XMTI1Mjc1NDg4NA.html"))
+	matchs := re1.FindSubmatch([]byte("http://v.youku.com/v_show/id_XMTI1Mjc1NDg4NA==.html"))
+	fmt.Println(string(matchs[1]))
 
 	return
 
