@@ -2,8 +2,8 @@ package txn
 
 import (
 	"fmt"
-	"labix.org/v2/mgo/bson"
-	. "launchpad.net/gocheck"
+	"gopkg.in/mgo.v2/bson"
+	. "gopkg.in/check.v1"
 )
 
 type TarjanSuite struct{}
@@ -23,7 +23,7 @@ func bids(ns ...int) (ids []bson.ObjectId) {
 
 func (TarjanSuite) TestExample(c *C) {
 	successors := map[bson.ObjectId][]bson.ObjectId{
-		bid(1): bids(2),
+		bid(1): bids(2, 3),
 		bid(2): bids(1, 5),
 		bid(3): bids(4),
 		bid(4): bids(3, 5),
@@ -36,9 +36,9 @@ func (TarjanSuite) TestExample(c *C) {
 
 	c.Assert(tarjanSort(successors), DeepEquals, [][]bson.ObjectId{
 		bids(9),
-		bids(8, 7, 6),
+		bids(6, 7, 8),
 		bids(5),
-		bids(2, 1),
-		bids(4, 3),
+		bids(3, 4),
+		bids(1, 2),
 	})
 }

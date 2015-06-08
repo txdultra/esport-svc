@@ -6,7 +6,6 @@ import (
 	"strings"
 	//"labix.org/v2/mgo/bson"
 
-	"logs"
 	"time"
 )
 
@@ -75,11 +74,7 @@ func (self *Share) GetRefUids() []int64 {
 	}
 	uidarr := strings.Split(self.RefUids, ",")
 	for _, str := range uidarr {
-		_uid, err := strconv.ParseInt(str, 10, 64)
-		if err != nil {
-			logs.Errorf("share method getRefUids transfor uid fail:%s", err.Error())
-			continue
-		}
+		_uid, _ := strconv.ParseInt(str, 10, 64)
 		if _uid <= 0 {
 			continue
 		}

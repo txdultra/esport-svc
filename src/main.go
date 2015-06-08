@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	//"strings"
 
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/httplib"
 	_ "github.com/astaxie/beego/toolbox"
 	"github.com/glycerine/go-capnproto"
 	//"github.com/golang/groupcache"
@@ -59,6 +61,7 @@ import (
 	//"logs"
 	//"encoding/json"
 	//"github.com/huichen/sego"
+	"github.com/m3u8"
 
 	//加载钩子程序
 
@@ -70,10 +73,28 @@ import (
 )
 
 func main() {
-	re1 := regexp.MustCompile("http://v.youku.com/v_show/id_([0-9A-Za-z_=]+)\\.html")
-	fmt.Println(re1.MatchString("http://v.youku.com/v_show/id_XMTI1Mjc1NDg4NA.html"))
-	matchs := re1.FindSubmatch([]byte("http://v.youku.com/v_show/id_XMTI1Mjc1NDg4NA==.html"))
-	fmt.Println(string(matchs[1]))
+
+	m3u8txt, _ := httplib.Get("http://pl.youku.com/playlist/m3u8?ctype=12&ep=cSaXGU2NUcsJ5CPZjj8bYi7icSQHXJZ1kn7N%2F5g1SMRAKezQkTzSzg%3D%3D&ev=1&keyframe=1&oip=2032745641&sid=3433407591066125205c8&token=8239&type=mp4&vid=XOTQxNzgxOTQ4").String()
+	buf := bytes.NewBufferString(m3u8txt)
+	pl, ts, _ := m3u8.Decode(*buf, false)
+	fmt.Println(ts)
+	pls := pl.(*m3u8.MediaPlaylist)
+	flvs := make(map[string]int)
+	for _, p := range pls.Segments {
+		if p == nil {
+			continue
+		}
+		uri, err := url.Parse(p.URI)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		url := fmt.Sprintf("%s://%s%s", uri.Scheme, uri.Host, uri.Path)
+		if _, ok := flvs[url]; !ok {
+			flvs[url] = 1
+		}
+	}
+	fmt.Println(flvs)
 
 	return
 

@@ -101,22 +101,33 @@ func gpVitality() {
 	}
 	lens := len(zts)
 	if lens > 0 {
-		offset := 0
-		for i := 100; i < lens; i += 100 {
-			if i > lens {
-				i = lens
+		page := 1
+		size := 100
+		totalpages := utils.TotalPages(lens, size)
+		for {
+			if page > totalpages {
+				break
 			}
+			offset := (page - 1) * size
+			limit := page * size
+			if page == totalpages {
+				limit = lens
+			}
+			page++
+
 			groups := []*Group{}
-			for _, zt := range zts[offset:i] {
+			for _, zt := range zts[offset:limit] {
 				group := gs.Get(zt.GroupId)
 				if group == nil {
 					continue
 				}
 				group.Vitality = group.Threads - zt.Threads
+				if group.Vitality == 0 {
+					continue
+				}
 				groups = append(groups, group)
 			}
 			gs.UpdateSearchEngineAttrs(groups, []string{"vitality"})
-			offset = i
 			gs.UpdateDbVitality(groups)
 		}
 	}

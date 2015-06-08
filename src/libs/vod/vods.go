@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"time"
 	"utils"
+	"utils/cache"
 	"utils/ssdb"
 
 	"labix.org/v2/mgo/bson"
@@ -351,6 +352,80 @@ func (v *Vods) GetPlayFlvs(videoId int64, wait bool) *VideoPlayFlvs {
 		return flvs
 	}
 	return nil
+}
+
+func (v *Vods) GetM3u8Flvs(videoId int64, wait bool) []VideoOpt {
+	vod := v.Get(videoId, false)
+	if vod == nil {
+		return nil
+	}
+	flvs := v.GetPlayFlvs(videoId, wait)
+	if flvs == nil {
+		return nil
+	}
+
+	convert_modes := make(map[reptile.VOD_STREAM_MODE]reptile.VOD_STREAM_MODE)
+	convert_modes[reptile.VOD_STREAM_MODE_MSTD] = reptile.VOD_STREAM_MODE_STANDARD_SP
+	convert_modes[reptile.VOD_STREAM_MODE_MHIGH] = reptile.VOD_STREAM_MODE_HIGH_SP
+	convert_modes[reptile.VOD_STREAM_MODE_MSUPER] = reptile.VOD_STREAM_MODE_SUPER_SP
+
+	rep := reptile.ReptileService(vod.Source)
+	if rep == nil {
+		return nil
+	}
+	vos := []VideoOpt{}
+	for mode, toMode := range convert_modes {
+		for _, opt := range flvs.OptFlvs {
+			if opt.Mode == mode {
+				if len(opt.Flvs) > 0 {
+					vseg, err := rep.M3u8ToSegs(opt.Flvs[0].Url)
+					if err != nil {
+						continue
+					}
+					vo := VideoOpt{
+						Size:    opt.Size,
+						Mode:    toMode,
+						Seconds: opt.Seconds,
+						Flvs:    []VideoFlv{},
+					}
+					for _, seg := range vseg {
+						vo.Flvs = append(vo.Flvs, VideoFlv{
+							Url:     seg.Url,
+							No:      int16(seg.No),
+							Size:    seg.Size,
+							Seconds: seg.Seconds,
+						})
+					}
+					vo.N = len(vo.Flvs)
+					vos = append(vos, vo)
+				}
+			}
+		}
+	}
+	if len(vos) > 0 {
+		for _, vo := range vos {
+			existed := false
+			for _, opt := range flvs.OptFlvs {
+				if opt.Mode == vo.Mode {
+					existed = true
+				}
+			}
+			if !existed {
+				flvs.OptFlvs = append(flvs.OptFlvs, vo)
+			}
+		}
+		session, col := dbs.MgoC(MOD_NAME, VOD_FLVS_COLLECTION_NAME)
+		defer session.Close()
+		col.RemoveId(flvs.ID)
+		err := col.Insert(*flvs)
+		if err == nil {
+			com_bs, err := bson.Marshal(*flvs)
+			if err == nil {
+				cache.Set(v.flvsCacheKey(videoId), com_bs, 1*time.Hour)
+			}
+		}
+	}
+	return vos
 }
 
 func (v *Vods) VodStreamToVideoPlayFlvs(videoId int64, vs *reptile.VodStreams) *VideoPlayFlvs {

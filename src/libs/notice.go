@@ -3,6 +3,7 @@ package libs
 import (
 	"dbs"
 	"errors"
+	"logs"
 	//"github.com/astaxie/beego"
 	"labix.org/v2/mgo/bson"
 	//"strconv"
@@ -10,7 +11,6 @@ import (
 	"time"
 	//"utils"
 	"fmt"
-	"log"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -205,25 +205,33 @@ func (n *Noticer) StartNoticeTimer(eventId int, eventKey string, afterDuration t
 			msq := NewMsq()
 			msvc, err := msq.CreateMsqService(msq_config)
 			if err != nil {
-				log.Fatal("初始化队列服务错误:", err.Error())
+				logs.Errorf("初始化队列服务错误:", err.Error())
 				return
 			}
 			pusher.SetState(eventId, eventKey, PUSH_STATE_SENDING)
 			i := 1
+			err = msvc.BeginMulti()
+			if err != nil {
+				logs.Errorf("开启队列批量作业错误:", err.Error())
+				return
+			}
+			defer msvc.EndMulti()
 			for {
 				_, events := pn.GetObservers(i, 200, map[string]interface{}{"event_id": eventId}, "")
 				if len(events) == 0 {
 					break
 				}
-				for _, event := range events {
+				msgs := make([]*MsqMessage, len(events), len(events))
+				for j, event := range events {
 					msg := buildMsg(&event)
 					if msg == nil {
 						continue
 					}
-					err = msvc.Send(msg)
-					if err != nil {
-						fmt.Println(err)
-					}
+					msgs[j] = msg
+				}
+				err = msvc.MultiSend(msgs)
+				if err != nil {
+					logs.Errorf("队列消息批量发送失败:", err.Error())
 				}
 				i++
 			}

@@ -369,6 +369,63 @@ func (c *GroupCPController) CloseThread() {
 	c.Json(libs.NewError("admincp_thread_close_success", controllers.RESPONSE_SUCCESS, "关闭成功", ""))
 }
 
+// @Title 获取帖子信息
+// @Description 获取帖子信息
+// @Param   thread_id  path  int  true  "帖子id"
+// @Success 200 {object} outobjs.OutThread
+// @router /thread/get [get]
+func (c *GroupCPController) GetThread() {
+	thread_id, _ := c.GetInt64("thread_id")
+	if thread_id <= 0 {
+		c.Json(libs.NewError("admincp_thread_get_fail", "GM040_080", "id错误", ""))
+		return
+	}
+	ts := groups.NewThreadService(groups.GetDefaultCfg())
+	thread := ts.Get(thread_id)
+	if thread == nil {
+		c.Json(libs.NewError("admincp_thread_get_fail", "GM040_081", "帖子不存在", ""))
+		return
+	}
+	c.Json(outobjs.GetOutThread(thread))
+}
+
+// @Title 获取帖子列表
+// @Description 获取帖子列表
+// @Param   group_id  path  int  true  "组id"
+// @Param   page  path  int  false  "页"
+// @Param   size  path  int  false  "页数量"
+// @Success 200 {object} outobjs.OutThreadPagedList
+// @router /thread/list [get]
+func (c *GroupCPController) GetThreads() {
+	group_id, _ := c.GetInt64("group_id")
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("size")
+	if group_id <= 0 {
+		c.Json(libs.NewError("admincp_thread_list_fail", "GM040_090", "group_id错误", ""))
+		return
+	}
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
+	ts := groups.NewThreadService(groups.GetDefaultCfg())
+	total, threads := ts.Gets(group_id, page, size, 0)
+	out_ts := []*outobjs.OutThread{}
+	for _, thread := range threads {
+		out_ts = append(out_ts, outobjs.GetOutThread(thread))
+	}
+	out_p := &outobjs.OutThreadPagedListForAdmin{
+		CurrentPage: page,
+		PageSize:    size,
+		Threads:     out_ts,
+		Total:       total,
+		Pages:       utils.TotalPages(total, size),
+	}
+	c.Json(out_p)
+}
+
 // @Title 隐藏评论
 // @Description 隐藏评论
 // @Param   post_id  path  string  true  "评论id"
@@ -387,6 +444,107 @@ func (c *GroupCPController) ClosePost() {
 		return
 	}
 	c.Json(libs.NewError("admincp_post_invisible_success", controllers.RESPONSE_SUCCESS, "关闭成功", ""))
+}
+
+// @Title 获取评论列表
+// @Description 获取评论列表
+// @Param   thread_id  path  int  true  "帖子id"
+// @Param   page  path  int  false  "页"
+// @Param   size  path  int  false  "页数量"
+// @Success 200 {object} outobjs.OutPostPagedList
+// @router /post/list [get]
+func (c *GroupCPController) GetPosts() {
+	threadid, _ := c.GetInt64("thread_id")
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("size")
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
+	oby := groups.POST_ORDERBY_ASC
+	cfg := groups.GetDefaultCfg()
+	ps := groups.NewPostService(cfg)
+	ths := groups.NewThreadService(cfg)
+	thread := ths.Get(threadid)
+	if thread == nil {
+		c.Json(libs.NewError("group_getpost_fail", "GM040_050", "帖子不存在", ""))
+		return
+	}
+	//用户顶踩记录
+	actionTags := ps.MemberThreadPostActionTags(threadid, 0)
+	dcTag := func(outp *outobjs.OutPost) {
+		if dc, ok := actionTags[outp.Id]; ok {
+			if dc == groups.POST_ACTIONTAG_DING {
+				outp.Dinged = true
+			}
+			if dc == groups.POST_ACTIONTAG_CAI {
+				outp.Caied = true
+			}
+		}
+	}
+	//顶计数查询ids,进行统一获取
+	postids := []string{}
+	postids = append(postids, thread.Lordpid) //楼主评论
+
+	//最大顶post
+	maxdings := ps.GetTops(threadid, 2, groups.POST_ACTIONTAG_DING)
+	var maxding *outobjs.OutPost
+	for _, md := range maxdings {
+		if md.Position != 1 {
+			maxding = outobjs.GetOutPost(md, ps.GetSrcToRes(md.Resources))
+			dcTag(maxding)
+			postids = append(postids, maxding.Id)
+			break
+		}
+	}
+	//楼主post
+	lordPost := ps.Get(thread.Lordpid)
+	lordOutPost := outobjs.GetOutPost(lordPost, ps.GetSrcToRes(lordPost.Resources))
+	dcTag(lordOutPost)
+
+	//获取post列表
+	total, posts := ps.Gets(threadid, page, size, oby, false)
+
+	//顶记录
+	for _, p := range posts {
+		postids = append(postids, p.Id)
+	}
+	dingCs := ps.GetPostActionCounts(threadid, postids, groups.POST_ACTIONTAG_DING)
+	dingCsF := func(outp *outobjs.OutPost) {
+		if outp == nil {
+			return
+		}
+		if cs, ok := dingCs[outp.Id]; ok {
+			outp.Ding = cs
+		}
+	}
+
+	//转换输出模型
+	out_posts := []*outobjs.OutPost{}
+	for _, p := range posts {
+		res := ps.GetSrcToRes(p.Resources)
+		_outp := outobjs.GetOutPost(p, res)
+		dcTag(_outp)
+		dingCsF(_outp)
+		out_posts = append(out_posts, _outp)
+	}
+	dingCsF(maxding)
+	dingCsF(lordOutPost)
+
+	out_p := &outobjs.OutPostPagedList{
+		CurrentPage: page,
+		TotalPages:  utils.TotalPages(total, size),
+		PageSize:    size,
+		Posts:       out_posts,
+		MaxDingPost: maxding,
+		MaxCaiPost:  nil,
+		Thread:      outobjs.GetOutThread(thread),
+		JoinedGroup: false,
+		LordPost:    lordOutPost,
+	}
+	c.Json(out_p)
 }
 
 // @Title 获取举报列表

@@ -6,80 +6,80 @@ import (
 
 func init() {
 	
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
 		beego.ControllerComments{
-			"GetItem",
-			`/item`,
+			"GetRoles",
+			`/get_roles`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
 		beego.ControllerComments{
-			"GetItems",
-			`/items`,
+			"GetRoleMembers",
+			`/get_rolemembers`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
 		beego.ControllerComments{
-			"AddItem",
-			`/item/add`,
+			"SetRoles",
+			`/set_roles`,
 			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
 		beego.ControllerComments{
-			"UpdateItem",
-			`/item/update`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
-		beego.ControllerComments{
-			"DeleteItem",
-			`/item/del`,
-			[]string{"delete"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
-		beego.ControllerComments{
-			"AddItemStock",
-			`/item/add_stock`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
-		beego.ControllerComments{
-			"AddItemCodes",
-			`/item/add_codes`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
-		beego.ControllerComments{
-			"GetOrders",
-			`/orders`,
+			"VerifyNickName",
+			`/verify_nickname`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
 		beego.ControllerComments{
-			"GetOrder",
-			`/order`,
+			"VerifyUserName",
+			`/verify_username`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
 		beego.ControllerComments{
-			"SetOrderStatus",
-			`/order_status`,
+			"AddMember",
+			`/add`,
 			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
 		beego.ControllerComments{
-			"Snap",
-			`/snap`,
+			"SetMemberCertifiable",
+			`/set_certified`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+		beego.ControllerComments{
+			"UpdateMember",
+			`/update`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+		beego.ControllerComments{
+			"ResetNickName",
+			`/reset_nickname`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+		beego.ControllerComments{
+			"GetMemberGames",
+			`/games`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+		beego.ControllerComments{
+			"Search",
+			`/search`,
 			[]string{"get"},
 			nil})
 
@@ -90,108 +90,94 @@ func init() {
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
 		beego.ControllerComments{
-			"Add",
-			`/add`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
-		beego.ControllerComments{
-			"Update",
-			`/update`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
-		beego.ControllerComments{
-			"Get",
-			`/get`,
+			"GetConfig",
+			`/config/get`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
 		beego.ControllerComments{
-			"List",
-			`/list`,
+			"UpdateConfig",
+			`/config/update`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
+		beego.ControllerComments{
+			"GroupSearch",
+			`/group/search`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
 		beego.ControllerComments{
-			"UpdateOfGameBatch",
-			`/update/ofgame_batch`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
-		beego.ControllerComments{
-			"UserVodCenterReptileAdd",
-			`/uc/add`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
-		beego.ControllerComments{
-			"UserVodCenterReptileDel",
-			`/uc/del`,
-			[]string{"delete"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
-		beego.ControllerComments{
-			"UserVodCenterReptileScanAll",
-			`/uc/scan_all`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
-		beego.ControllerComments{
-			"UserVodCenterReptileList",
-			`/uc/list`,
+			"GetGroup",
+			`/group/get`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
 		beego.ControllerComments{
-			"UserVodCenterChangeUser",
-			`/uc/change_user`,
+			"CreateGroup",
+			`/group/create`,
 			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
 		beego.ControllerComments{
-			"VodPlayLists",
-			`/playlists`,
+			"CloseGroup",
+			`/group/close`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
+		beego.ControllerComments{
+			"UpdateGroup",
+			`/group/update`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
+		beego.ControllerComments{
+			"CloseThread",
+			`/thread/close`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
+		beego.ControllerComments{
+			"GetThread",
+			`/thread/get`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
 		beego.ControllerComments{
-			"VodPlayListGet",
-			`/playlist`,
+			"GetThreads",
+			`/thread/list`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
 		beego.ControllerComments{
-			"CreatePlaylist",
-			`/playlist/create`,
+			"ClosePost",
+			`/post/invisible`,
 			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
 		beego.ControllerComments{
-			"UpdatePlaylistVods",
-			`/playlist/update_vods`,
-			[]string{"post"},
+			"GetPosts",
+			`/post/list`,
+			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
 		beego.ControllerComments{
-			"PlaylistVods",
-			`/playlist/vods`,
+			"Reports",
+			`/report/list`,
 			[]string{"get"},
 			nil})
 
@@ -279,122 +265,94 @@ func init() {
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"Games",
-			`/game/list`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"GameAdd",
-			`/game/add`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"GameUpdate",
-			`/game/update`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"Matchs",
-			`/match/list`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"MatchAdd",
-			`/match/add`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"MatchUpdate",
-			`/match/update`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"RecommendList",
-			`/recommend/list`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"RecommendAdd",
-			`/recommend/add`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"RecommendUpdate",
-			`/recommend/update`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"RecommendDelete",
-			`/recommend/del`,
-			[]string{"delete"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"RecommendGet",
-			`/recommend/:id([0-9]+)`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"Versions",
-			`/versions`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"Version",
-			`/version`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"VersionAdd",
-			`/version/add`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"VersionUpdate",
-			`/version/update`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
-		beego.ControllerComments{
-			"VersionDel",
-			`/version/del`,
-			[]string{"delete"},
-			nil})
-
 	beego.GlobalControllerRouter["controllers/admincp:FeedbackCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:FeedbackCPController"],
 		beego.ControllerComments{
 			"List",
 			`/list`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShareCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShareCPController"],
+		beego.ControllerComments{
+			"Publishs",
+			`/publishs`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"GetItem",
+			`/item`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"GetItems",
+			`/items`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"AddItem",
+			`/item/add`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"UpdateItem",
+			`/item/update`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"DeleteItem",
+			`/item/del`,
+			[]string{"delete"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"AddItemStock",
+			`/item/add_stock`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"AddItemCodes",
+			`/item/add_codes`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"GetOrders",
+			`/orders`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"GetOrder",
+			`/order`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"SetOrderStatus",
+			`/order_status`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:ShopCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShopCPController"],
+		beego.ControllerComments{
+			"Snap",
+			`/snap`,
 			[]string{"get"},
 			nil})
 
@@ -573,11 +531,109 @@ func init() {
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:ShareCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:ShareCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
 		beego.ControllerComments{
-			"Publishs",
-			`/publishs`,
+			"Add",
+			`/add`,
 			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"Update",
+			`/update`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"Get",
+			`/get`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"List",
+			`/list`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"UpdateOfGameBatch",
+			`/update/ofgame_batch`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"UserVodCenterReptileAdd",
+			`/uc/add`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"UserVodCenterReptileDel",
+			`/uc/del`,
+			[]string{"delete"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"UserVodCenterReptileScanAll",
+			`/uc/scan_all`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"UserVodCenterReptileList",
+			`/uc/list`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"UserVodCenterChangeUser",
+			`/uc/change_user`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"VodPlayLists",
+			`/playlists`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"VodPlayListGet",
+			`/playlist`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"CreatePlaylist",
+			`/playlist/create`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"UpdatePlaylistVods",
+			`/playlist/update_vods`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:VodCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:VodCPController"],
+		beego.ControllerComments{
+			"PlaylistVods",
+			`/playlist/vods`,
+			[]string{"get"},
 			nil})
 
 	beego.GlobalControllerRouter["controllers/admincp:AuthCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:AuthCPController"],
@@ -594,151 +650,116 @@ func init() {
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"GetRoles",
-			`/get_roles`,
+			"Games",
+			`/game/list`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"GetRoleMembers",
-			`/get_rolemembers`,
+			"GameAdd",
+			`/game/add`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
+		beego.ControllerComments{
+			"GameUpdate",
+			`/game/update`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
+		beego.ControllerComments{
+			"Matchs",
+			`/match/list`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"SetRoles",
-			`/set_roles`,
+			"MatchAdd",
+			`/match/add`,
 			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"VerifyNickName",
-			`/verify_nickname`,
+			"MatchUpdate",
+			`/match/update`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
+		beego.ControllerComments{
+			"RecommendList",
+			`/recommend/list`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"VerifyUserName",
-			`/verify_username`,
+			"RecommendAdd",
+			`/recommend/add`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
+		beego.ControllerComments{
+			"RecommendUpdate",
+			`/recommend/update`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
+		beego.ControllerComments{
+			"RecommendDelete",
+			`/recommend/del`,
+			[]string{"delete"},
+			nil})
+
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
+		beego.ControllerComments{
+			"RecommendGet",
+			`/recommend/:id([0-9]+)`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"AddMember",
-			`/add`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
-		beego.ControllerComments{
-			"SetMemberCertifiable",
-			`/set_certified`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
-		beego.ControllerComments{
-			"UpdateMember",
-			`/update`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
-		beego.ControllerComments{
-			"ResetNickName",
-			`/reset_nickname`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
-		beego.ControllerComments{
-			"GetMemberGames",
-			`/games`,
+			"Versions",
+			`/versions`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:MemberCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:MemberCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"Search",
-			`/search`,
+			"Version",
+			`/version`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"GetConfig",
-			`/config/get`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
-		beego.ControllerComments{
-			"UpdateConfig",
-			`/config/update`,
+			"VersionAdd",
+			`/version/add`,
 			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"GroupSearch",
-			`/group/search`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
-		beego.ControllerComments{
-			"GetGroup",
-			`/group/get`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
-		beego.ControllerComments{
-			"CreateGroup",
-			`/group/create`,
+			"VersionUpdate",
+			`/version/update`,
 			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
+	beego.GlobalControllerRouter["controllers/admincp:CommonCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:CommonCPController"],
 		beego.ControllerComments{
-			"CloseGroup",
-			`/group/close`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
-		beego.ControllerComments{
-			"UpdateGroup",
-			`/group/update`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
-		beego.ControllerComments{
-			"CloseThread",
-			`/thread/close`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
-		beego.ControllerComments{
-			"ClosePost",
-			`/post/invisible`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["controllers/admincp:GroupCPController"] = append(beego.GlobalControllerRouter["controllers/admincp:GroupCPController"],
-		beego.ControllerComments{
-			"Reports",
-			`/report/list`,
-			[]string{"get"},
+			"VersionDel",
+			`/version/del`,
+			[]string{"delete"},
 			nil})
 
 }

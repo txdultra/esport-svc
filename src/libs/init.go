@@ -93,7 +93,7 @@ func runMsqMsgProcessTasker(tasker IMsqMsgProcessTasker) {
 		for {
 			msg := <-c
 			if msg == MSQ_RECEIVE_CLOSED {
-				time.Sleep(10 * time.Second) //停10秒后重启
+				time.Sleep(30 * time.Second) //停30秒后重启
 				break
 			}
 		}

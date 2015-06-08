@@ -140,6 +140,7 @@ type ILiveViewOnPc interface {
 //点播抓取接口
 type IReptile interface {
 	Reptile(url string) (*VodStreams, error)
+	M3u8ToSegs(m3u8url string) ([]VodSeg, error)
 }
 
 //点播回调抓取模式接口

@@ -30,7 +30,7 @@ func init() {
 	host_maps["file"] = beego.AppConfig.String("api.host.file")
 	host_maps["img"] = beego.AppConfig.String("api.host.img")
 	host_maps["user_task"] = beego.AppConfig.String("api.host.user_task")
-	host_maps["groups"] = beego.AppConfig.String("api.host.group")
+	host_maps["groups"] = beego.AppConfig.String("api.host.groups")
 	host_maps["shop"] = beego.AppConfig.String("api.host.shop")
 
 	feedback_url := beego.AppConfig.String("api.host.feedback")

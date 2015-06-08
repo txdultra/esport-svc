@@ -113,6 +113,12 @@ func (f *Searcher) sph_match_mode(match_mode string) int {
 	}
 }
 
+func (f *Searcher) filterWords(words string) string {
+	_w := strings.Trim(words, " ")
+	_w = strings.Replace(_w, " ", "|", -1)
+	return _w
+}
+
 func (f *Searcher) VideoQuery(words string, match_mode string) ([]int64, int, error) {
 	sc := sphinx.NewClient(f.sphinxOptions())
 	if err := sc.Error(); err != nil {
@@ -133,6 +139,7 @@ func (f *Searcher) VideoQuery(words string, match_mode string) ([]int64, int, er
 			sc.SetFilterRange(filter.Attr, filter.Min, filter.Max, filter.Exclude)
 		}
 	}
+	words = f.filterWords(words)
 	words = strings.ToUpper(words) //统一转成大写
 	sego_words := words            //f.Segment(words)
 	res, err := sc.Query(sego_words, vod_idx_name, "")
@@ -170,6 +177,7 @@ func (f *Searcher) MemberQuery(words string, match_mode string, sortBy string) (
 			sc.SetFilterRange(filter.Attr, filter.Min, filter.Max, filter.Exclude)
 		}
 	}
+	words = f.filterWords(words)
 	words = strings.ToUpper(words) //统一转成大写
 	sego_words := words            //f.Segment(words)
 	res, err := sc.Query(sego_words, member_idx_name, "")
@@ -202,6 +210,7 @@ func (f *Searcher) LiveQuery(words string, match_mode string) ([]int64, int, err
 			sc.SetFilterRange(filter.Attr, filter.Min, filter.Max, filter.Exclude)
 		}
 	}
+	words = f.filterWords(words)
 	words = strings.ToUpper(words) //统一转成大写
 	sego_words := words            //f.Segment(words)
 	res, err := sc.Query(sego_words, live_idx_name, "")
@@ -234,6 +243,7 @@ func (f *Searcher) ProgramQuery(words string, match_mode string) ([]int64, int, 
 			sc.SetFilterRange(filter.Attr, filter.Min, filter.Max, filter.Exclude)
 		}
 	}
+	words = f.filterWords(words)
 	words = strings.ToUpper(words) //统一转成大写
 	sego_words := words            //f.Segment(words)
 	res, err := sc.Query(sego_words, program_idx_name, "")
@@ -287,6 +297,7 @@ func (f *Searcher) Query(words string, sorts []string, index string, match_mode 
 			sc.SetFilterRange(filter.Attr, filter.Min, filter.Max, filter.Exclude)
 		}
 	}
+	words = f.filterWords(words)
 	words = strings.ToUpper(words) //统一转成大写
 	sego_words := words            //f.Segment(words)
 	res, err := sc.Query(sego_words, index, "")

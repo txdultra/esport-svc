@@ -768,6 +768,9 @@ func (c *GroupController) GetPosts() {
 		JoinedGroup: gs.IsJoined(current_uid, thread.GroupId),
 		LordPost:    lordOutPost,
 	}
+	go func() {
+		ths.ActionProperty([]groups.TH_PROPERTY{groups.TH_PROPERTY_VIEWS}, []int64{1}, threadid)
+	}()
 	c.Json(out_p)
 }
 

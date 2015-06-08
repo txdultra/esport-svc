@@ -32,7 +32,6 @@ import (
 
 var stats *Stats
 var statsMutex sync.Mutex
-var raceDetector bool
 
 func SetStats(enabled bool) {
 	statsMutex.Lock()

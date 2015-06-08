@@ -1,18 +1,18 @@
 // BSON library for Go
-// 
+//
 // Copyright (c) 2010-2012 - Gustavo Niemeyer <gustavo@niemeyer.net>
-// 
+//
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met: 
-// 
+// modification, are permitted provided that the following conditions are met:
+//
 // 1. Redistributions of source code must retain the above copyright notice, this
-//    list of conditions and the following disclaimer. 
+//    list of conditions and the following disclaimer.
 // 2. Redistributions in binary form must reproduce the above copyright notice,
 //    this list of conditions and the following disclaimer in the documentation
-//    and/or other materials provided with the distribution. 
-// 
+//    and/or other materials provided with the distribution.
+//
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 // ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 // WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,6 +28,7 @@
 package bson
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/url"
@@ -42,6 +43,7 @@ import (
 var (
 	typeBinary         = reflect.TypeOf(Binary{})
 	typeObjectId       = reflect.TypeOf(ObjectId(""))
+	typeDBPointer      = reflect.TypeOf(DBPointer{"", ObjectId("")})
 	typeSymbol         = reflect.TypeOf(Symbol(""))
 	typeMongoTimestamp = reflect.TypeOf(MongoTimestamp(0))
 	typeOrderKey       = reflect.TypeOf(MinKey)
@@ -51,6 +53,7 @@ var (
 	typeURL            = reflect.TypeOf(url.URL{})
 	typeTime           = reflect.TypeOf(time.Time{})
 	typeString         = reflect.TypeOf("")
+	typeJSONNumber     = reflect.TypeOf(json.Number(""))
 )
 
 const itoaCacheSize = 32
@@ -177,10 +180,14 @@ func isZero(v reflect.Value) bool {
 	case reflect.Bool:
 		return !v.Bool()
 	case reflect.Struct:
-		if v.Type() == typeTime {
+		vt := v.Type()
+		if vt == typeTime {
 			return v.Interface().(time.Time).IsZero()
 		}
-		for i := v.NumField()-1; i >= 0; i-- {
+		for i := 0; i < v.NumField(); i++ {
+			if vt.Field(i).PkgPath != "" {
+				continue // Private field
+			}
 			if !isZero(v.Field(i)) {
 				return false
 			}
@@ -205,7 +212,7 @@ func (e *encoder) addSlice(v reflect.Value) {
 		return
 	}
 	l := v.Len()
-	et  := v.Type().Elem()
+	et := v.Type().Elem()
 	if et == typeDocElem {
 		for i := 0; i < l; i++ {
 			elem := v.Index(i).Interface().(DocElem)
@@ -271,6 +278,17 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 		case typeSymbol:
 			e.addElemName('\x0E', name)
 			e.addStr(s)
+		case typeJSONNumber:
+			n := v.Interface().(json.Number)
+			if i, err := n.Int64(); err == nil {
+				e.addElemName('\x12', name)
+				e.addInt64(i)
+			} else if f, err := n.Float64(); err == nil {
+				e.addElemName('\x01', name)
+				e.addFloat64(f)
+			} else {
+				panic("failed to convert json.Number to a number: " + s)
+			}
 		default:
 			e.addElemName('\x02', name)
 			e.addStr(s)
@@ -278,7 +296,7 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 
 	case reflect.Float32, reflect.Float64:
 		e.addElemName('\x01', name)
-		e.addInt64(int64(math.Float64bits(v.Float())))
+		e.addFloat64(v.Float())
 
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		u := v.Uint()
@@ -347,7 +365,17 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 		et := v.Type().Elem()
 		if et.Kind() == reflect.Uint8 {
 			e.addElemName('\x05', name)
-			e.addBinary('\x00', v.Slice(0, v.Len()).Interface().([]byte))
+			if v.CanAddr() {
+				e.addBinary('\x00', v.Slice(0, v.Len()).Interface().([]byte))
+			} else {
+				n := v.Len()
+				e.addInt32(int32(n))
+				e.addBytes('\x00')
+				for i := 0; i < n; i++ {
+					el := v.Index(i)
+					e.addBytes(byte(el.Uint()))
+				}
+			}
 		} else {
 			e.addElemName('\x04', name)
 			e.addDoc(v)
@@ -367,6 +395,15 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 		case Binary:
 			e.addElemName('\x05', name)
 			e.addBinary(s.Kind, s.Data)
+
+		case DBPointer:
+			e.addElemName('\x0C', name)
+			e.addStr(s.Namespace)
+			if len(s.Id) != 12 {
+				panic("ObjectIDs must be exactly 12 bytes long (got " +
+					strconv.Itoa(len(s.Id)) + ")")
+			}
+			e.addBytes([]byte(s.Id)...)
 
 		case RegEx:
 			e.addElemName('\x0B', name)
@@ -388,7 +425,7 @@ func (e *encoder) addElem(name string, v reflect.Value, minSize bool) {
 		case time.Time:
 			// MongoDB handles timestamps as milliseconds.
 			e.addElemName('\x09', name)
-			e.addInt64(s.Unix() * 1000 + int64(s.Nanosecond() / 1e6))
+			e.addInt64(s.Unix()*1000 + int64(s.Nanosecond()/1e6))
 
 		case url.URL:
 			e.addElemName('\x02', name)
@@ -455,6 +492,10 @@ func (e *encoder) addInt64(v int64) {
 	u := uint64(v)
 	e.addBytes(byte(u), byte(u>>8), byte(u>>16), byte(u>>24),
 		byte(u>>32), byte(u>>40), byte(u>>48), byte(u>>56))
+}
+
+func (e *encoder) addFloat64(v float64) {
+	e.addInt64(int64(math.Float64bits(v)))
 }
 
 func (e *encoder) addBytes(v ...byte) {

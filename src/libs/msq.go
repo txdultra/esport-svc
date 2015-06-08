@@ -1,6 +1,7 @@
 package libs
 
 import (
+	"fmt"
 	//"bytes"
 	"dbs"
 	"encoding/json"
@@ -74,6 +75,9 @@ type IMsqService interface {
 	Config() *MsqQueueConfig
 	Init(config *MsqQueueConfig) error
 	Send(msg *MsqMessage) error
+	BeginMulti() error
+	EndMulti() error
+	MultiSend(msgs []*MsqMessage) error
 	Receive(handler IMsqMsgProcesser) (<-chan string, error) //完成时发送ok
 	Receiving(handler IMsqMsgProcesser) error                //接收进行时
 	DelQueue() error
@@ -86,6 +90,8 @@ type IMsqMsgProcesser interface {
 //rabbitMQ service
 type AmpqMsqService struct {
 	_config *MsqQueueConfig
+	conn    *amqp.Connection
+	channel *amqp.Channel
 }
 
 func (s *AmpqMsqService) MsqId() string {
@@ -150,6 +156,53 @@ func (s *AmpqMsqService) createConn(config *MsqQueueConfig, args amqp.Table) (*a
 	return conn, c, nil
 }
 
+func (s *AmpqMsqService) EndMulti() error {
+	if s.channel != nil {
+		s.channel.Close()
+	}
+	if s.conn != nil {
+		s.conn.Close()
+	}
+	return nil
+}
+
+func (s *AmpqMsqService) BeginMulti() error {
+	_conn, _c, err := s.createConn(s._config, nil)
+	if err != nil {
+		return errors.New(err.Error())
+	}
+	s.conn = _conn
+	s.channel = _c
+	return nil
+}
+
+func (s *AmpqMsqService) MultiSend(msgs []*MsqMessage) error {
+	if s.conn == nil || s.channel == nil {
+		return fmt.Errorf("批量发送必须先调用BeginMulti方法")
+	}
+	deliveryMode := amqp.Persistent
+	if !s._config.Durable {
+		deliveryMode = amqp.Transient
+	}
+	for _, msg := range msgs {
+		body, err := json.Marshal(msg)
+		if err != nil {
+			continue
+		}
+		_msg := amqp.Publishing{
+			DeliveryMode: deliveryMode,
+			Timestamp:    time.Now(),
+			Body:         body,
+		}
+		rkey := s._config.QueueName
+		if len(s._config.Exchange) > 0 {
+			rkey = s._config.RoutingKey
+		}
+		s.channel.Publish(s._config.Exchange, rkey, false, false, _msg)
+	}
+	return nil
+}
+
 func (s *AmpqMsqService) Send(msg *MsqMessage) error {
 	conn, c, err := s.createConn(s._config, nil)
 	if err != nil {
@@ -157,9 +210,6 @@ func (s *AmpqMsqService) Send(msg *MsqMessage) error {
 	}
 	defer conn.Close()
 	defer c.Close()
-	if err != nil {
-		return err
-	}
 	deliveryMode := amqp.Persistent
 	if !s._config.Durable {
 		deliveryMode = amqp.Transient

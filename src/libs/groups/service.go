@@ -707,7 +707,10 @@ func (s *GroupService) Update(group *Group) error {
 }
 
 func (s *GroupService) UpdateDbVitality(groups []*Group) {
-	sql := "update groups set vitality case id "
+	if len(groups) == 0 {
+		return
+	}
+	sql := "update groups set vitality = case id "
 	ids := []string{}
 	for _, group := range groups {
 		sql += fmt.Sprintf(" when %d then %d ", group.Id, group.Vitality)

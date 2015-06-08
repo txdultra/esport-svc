@@ -1,14 +1,18 @@
 package reptile
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 	"utils"
+
+	"github.com/m3u8"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/httplib"
@@ -431,4 +435,41 @@ func (y *YoukuReptileV2) vodDownStreamMode(mode string) VOD_STREAM_MODE {
 	default:
 		return VOD_STREAM_MODE_UNDEFINED
 	}
+}
+
+func (y *YoukuReptileV2) M3u8ToSegs(m3u8url string) ([]VodSeg, error) {
+	m3u8txt, err := httplib.Get(m3u8url).String()
+	if err != nil {
+		return nil, err
+	}
+	buf := bytes.NewBufferString(m3u8txt)
+	playlist, ts, _ := m3u8.Decode(*buf, false)
+	if ts != m3u8.MEDIA {
+		return nil, fmt.Errorf("格式错误")
+	}
+	mpls := playlist.(*m3u8.MediaPlaylist)
+	flvs := make(map[string]bool)
+	vodsegs := []VodSeg{}
+	i := 0
+	for _, seg := range mpls.Segments {
+		if seg == nil {
+			continue
+		}
+		uri, err := url.Parse(seg.URI)
+		if err != nil {
+			continue
+		}
+		url := fmt.Sprintf("%s://%s%s", uri.Scheme, uri.Host, uri.Path)
+		if _, ok := flvs[url]; !ok {
+			flvs[url] = true
+			vodsegs = append(vodsegs, VodSeg{
+				No:      i,
+				Seconds: 0,
+				Size:    0,
+				Url:     url,
+			})
+			i++
+		}
+	}
+	return vodsegs, nil
 }

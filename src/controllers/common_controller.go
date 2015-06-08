@@ -90,6 +90,7 @@ func (c *CommonController) VerifyPic() {
 // @Description 获取版本信息,new_version属性为最新版本,无最新版则为空
 // @Param   plat   path  string  true  "平台标识(android,ios,wphone)"
 // @Param   ver    path  string  true  "客户端当前版本号名称"
+// @Param   channel    path  string  false  "渠道"
 // @Success 200 {object} outobjs.OutVersion
 // @router /version [get]
 func (c *CommonController) Version() {

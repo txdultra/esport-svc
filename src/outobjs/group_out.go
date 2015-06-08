@@ -44,6 +44,7 @@ type OutGroup struct {
 	RemainSeconds    int64               `json:"remain_seconds"`
 	MinUsers         int                 `json:"min_users"`
 	IsJoined         bool                `json:"is_joined"`
+	DisplayOrder     int                 `json:"displayorder"`
 }
 
 type OutInviteMember struct {
@@ -101,6 +102,14 @@ type OutThread struct {
 	Closed             bool                 `json:"closed"`
 	Highlight          bool                 `json:"highlight"`
 	Heats              int                  `json:"heats"`
+}
+
+type OutThreadPagedListForAdmin struct {
+	CurrentPage int          `json:"current_page"`
+	PageSize    int          `json:"page_size"`
+	Total       int          `json:"total"`
+	Pages       int          `json:"pages"`
+	Threads     []*OutThread `json:"threads"`
 }
 
 type OutPostPagedList struct {
@@ -223,6 +232,7 @@ func GetOutGroup(group *groups.Group, concernUid int64) *OutGroup {
 		RemainSeconds:    remain_seconds,
 		MinUsers:         group.MinUsers,
 		IsJoined:         isJoined,
+		DisplayOrder:     group.DisplarOrder,
 	}
 }
 

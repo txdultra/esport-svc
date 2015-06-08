@@ -1,0 +1,8 @@
+2015 Jun 05/9:59:47.344466505 AM CST [Error] file:share.go line=80 share method getRefUids transfor uid fail:strconv.ParseInt: parsing "161288812391762861232666236": value out of range
+2015 Jun 05/10:01:42.106586130 AM CST [Error] file:share.go line=80 share method getRefUids transfor uid fail:strconv.ParseInt: parsing "@16181123236": invalid syntax
+2015 Jun 05/10:02:00.030398636 AM CST [Error] file:share.go line=80 share method getRefUids transfor uid fail:strconv.ParseInt: parsing "161288812391762861232666236": value out of range
+2015 Jun 05/10:48:24.345499764 AM CST [Error] file:share.go line=80 share method getRefUids transfor uid fail:strconv.ParseInt: parsing "161288812391762861232666236": value out of range
+2015 Jun 05/10:49:29.765718613 AM CST [Error] file:share.go line=80 share method getRefUids transfor uid fail:strconv.ParseInt: parsing "161288812391762861232666236": value out of range
+2015 Jun 05/10:49:46.545147216 AM CST [Error] file:share.go line=80 share method getRefUids transfor uid fail:strconv.ParseInt: parsing "@16181123236": invalid syntax
+2015 Jun 05/10:49:48.564538414 AM CST [Error] file:share.go line=80 share method getRefUids transfor uid fail:strconv.ParseInt: parsing "161288812391762861232666236": value out of range
+2015 Jun 05/10:49:59.464500929 AM CST [Error] file:share.go line=80 share method getRefUids transfor uid fail:strconv.ParseInt: parsing "161288812391762861232666236": value out of range

@@ -432,17 +432,6 @@ func (c *VideoController) Download() {
 		c.Json(libs.NewError("vod_not_exist", "V1302", "视频不存在", ""))
 		return
 	}
-	//opts := vs.GetOpts(vid, true)
-	//for _, opt := range opts {
-	//	if opt.Mode == mode {
-	//		flvs := vs.GetFlvs(opt.Id)
-	//		if len(flvs) == 0 {
-	//			c.Json(libs.NewError("vod_flvs_not_exist", "V1304", "视频的文件不存在", ""))
-	//		}
-	//		go stat.GetCounter(vod.MOD_NAME).IncrCount(vid, 1, "download")
-	//		c.Json(flvs)
-	//	}
-	//}
 	vpf := vs.GetPlayFlvs(vid, true)
 	if vpf == nil {
 		c.Json(libs.NewError("vod_flvs_not_exist", "V1304", "视频的文件不存在", ""))
@@ -501,37 +490,28 @@ func (c *VideoController) DownloadClarities() {
 		c.Json(libs.NewError("vod_flvs_not_exist", "V1403", "视频的文件不存在", ""))
 		return
 	}
-	clars := []*outobjs.OutVideoDownClarity{}
 	sps := []reptile.VOD_STREAM_MODE{reptile.VOD_STREAM_MODE_STANDARD_SP, reptile.VOD_STREAM_MODE_HIGH_SP, reptile.VOD_STREAM_MODE_SUPER_SP}
+	clars := c.toOutVideoDownClarity(sps, vpf.OptFlvs)
+
+	//如果没有直接的flv,则解析m3u8文件
+	if len(clars) == 0 {
+		opts := vs.GetM3u8Flvs(vid, false)
+		clars = c.toOutVideoDownClarity(sps, opts)
+	}
+	utils.SetLocalFastExpriesTimePartCache(6*time.Hour, query_cache_key, clars)
+	c.Json(clars)
+}
+
+func (c *VideoController) toOutVideoDownClarity(sps []reptile.VOD_STREAM_MODE, opts []vod.VideoOpt) []*outobjs.OutVideoDownClarity {
+	clars := []*outobjs.OutVideoDownClarity{}
 	for _, sp := range sps {
-		for _, opt := range vpf.OptFlvs {
-			fmt.Println(opt.Mode)
+		for _, opt := range opts {
 			if opt.Mode == sp {
 				clars = append(clars, &outobjs.OutVideoDownClarity{reptile.ConvertVodModeName(opt.Mode), opt.Mode, opt.Size})
 			}
 		}
 	}
-
-	//如果没有直接的flv,则解析m3u8文件
-	if len(clars) == 0 {
-
-	}
-
-	//	for _, opt := range vpf.OptFlvs {
-	//		switch opt.Mode {
-	//		case reptile.VOD_STREAM_MODE_STANDARD_SP:
-	//			clars = append(clars, &outobjs.OutVideoDownClarity{reptile.ConvertVodModeName(reptile.VOD_STREAM_MODE_STANDARD_SP), reptile.VOD_STREAM_MODE_STANDARD_SP, opt.Size})
-	//			break
-	//		case reptile.VOD_STREAM_MODE_HIGH_SP:
-	//			clars = append(clars, &outobjs.OutVideoDownClarity{reptile.ConvertVodModeName(reptile.VOD_STREAM_MODE_HIGH_SP), reptile.VOD_STREAM_MODE_HIGH_SP, opt.Size})
-	//			break
-	//		case reptile.VOD_STREAM_MODE_SUPER_SP:
-	//			clars = append(clars, &outobjs.OutVideoDownClarity{reptile.ConvertVodModeName(reptile.VOD_STREAM_MODE_SUPER_SP), reptile.VOD_STREAM_MODE_SUPER_SP, opt.Size})
-	//		}
-	//	}
-	//	sortutil.AscByField(clars, "Size")
-	utils.SetLocalFastExpriesTimePartCache(6*time.Hour, query_cache_key, clars)
-	c.Json(clars)
+	return clars
 }
 
 // @Title 专辑视频列表
