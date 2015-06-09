@@ -25,6 +25,7 @@ type OutGroup struct {
 	CreateTime       time.Time           `json:"create_time"`
 	CreateFriendTime string              `json:"create_friendtime"`
 	MemberCount      int                 `json:"member_count"`
+	ThreadCount      int                 `json:"thread_count"`
 	Country          string              `json:"country"`
 	City             string              `json:"city"`
 	Games            []*OutGame          `json:"games"`
@@ -45,6 +46,7 @@ type OutGroup struct {
 	MinUsers         int                 `json:"min_users"`
 	IsJoined         bool                `json:"is_joined"`
 	DisplayOrder     int                 `json:"displayorder"`
+	CreditNo         string              `json:"credit_no"`
 }
 
 type OutInviteMember struct {
@@ -213,6 +215,7 @@ func GetOutGroup(group *groups.Group, concernUid int64) *OutGroup {
 		CreateTime:       time.Unix(group.CreateTime, 0),
 		CreateFriendTime: utils.FriendTime(time.Unix(group.CreateTime, 0)),
 		MemberCount:      group.Members,
+		ThreadCount:      group.Threads,
 		Country:          group.Country,
 		City:             group.City,
 		Games:            outgames,
@@ -233,6 +236,7 @@ func GetOutGroup(group *groups.Group, concernUid int64) *OutGroup {
 		MinUsers:         group.MinUsers,
 		IsJoined:         isJoined,
 		DisplayOrder:     group.DisplarOrder,
+		CreditNo:         group.OrderNo,
 	}
 }
 
