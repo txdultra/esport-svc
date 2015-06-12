@@ -13,15 +13,16 @@ const (
 )
 
 type ClientVersion struct {
-	Id          int64
-	Version     float64
-	Ver         string `orm:"column(ver)"`
-	VerName     string
-	Description string
-	PostTime    time.Time
-	Platform    MOBILE_PLATFORM
-	IsExpried   bool
-	DownloadUrl string `orm:"column(down_url)"`
+	Id           int64
+	Version      float64
+	Ver          string `orm:"column(ver)"`
+	VerName      string
+	Description  string
+	PostTime     time.Time
+	Platform     MOBILE_PLATFORM
+	IsExpried    bool
+	DownloadUrl  string `orm:"column(down_url)"`
+	AllowVodDown bool   `orm:"column(allow_voddown)"`
 }
 
 func (self *ClientVersion) TableName() string {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ckplayer>
-<title>{font color="#FFDD00" face="新宋体"}精彩视频推荐{/font}</title>
+<title>{font color="#FFDD00" face="新宋体"}{/font}</title>
 	<!--左上角的标题说明文字，支持html-->
 	<area>600,400,0xFFDD00,20</area>
 	<!--

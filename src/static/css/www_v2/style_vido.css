@@ -1,0 +1,60 @@
+@charset "utf-8";
+/* CSS Document */
+
+/* 前端 -yugc */
+html,body{ height: 100%, width: 100% }
+.wrap { position:absolute; width:100%; z-index:-1; background:url(/static/img/www_v2/vido_bg.jpg) no-repeat; background-size:cover;}
+.wrap .vido_tit { width:620px; height:50px; margin:0 auto; margin-top:40px; font-size:24px; font-weight:bold; color:#FFF;}
+
+.wrap .vido_bg { position:relative; width:600px; height:435px; margin:0 auto; background:url(/static/img/www_v2/bofang_bg.png) no-repeat 0 0; margin-top:10px;}
+.vido_bg .bofang { position:absolute; width:600px; height:335px; background:#99F; top:0; left:0;}
+.vido_bg .player_info { position:absolute; width:600px; height:100px; left:0; bottom:0;  overflow:hidden;}
+.vido_bg .player_info .play_th{ position:relative; float:left; width:90px; height:100px; padding-left:10px;}
+.vido_bg .player_info .play_th a { display:inline-block; width:80px; height:80px; border-radius:40px; background:#b8babc; border:2px solid #383837; margin-top:5px; overflow:hidden; text-align:center; vertical-align:middle;}
+.vido_bg .player_info .play_th span { display:inline-block; width:20px; height:20px; position:absolute; left:73px; top:58px; z-index:99;}
+.vido_bg .player_info .play_th a img { width:100%; height:100%;}
+.vido_bg .player_info .play_txt { float:left; width:220px; height:100px;}
+.play_txt .txt_1 { display:block; float:left; width:220px; height:30px; font-size:24px; color:#FFF; margin-top:20px;}
+.play_txt .txt_2 { display:block; float:left; width:220px; height:20px; font-size:14px; color:#b8babc;}
+.vido_bg .player_info .fllow { float:left; width:280px; height:55px; overflow:hidden; margin-top:20px;}
+.vido_bg .player_info .fllow  div { float:left; width:85px; height:55px; margin-left:5px;}
+.line_1{ float:left; display:block; width:1px; height:34px; text-align:center; vertical-align:middle; line-height:55px; font-size:30px; color:#3b3a39;}
+.line_2 {float:left; display:block; width:1px; height:34px; text-align:center; vertical-align:middle; line-height:55px; font-size:30px; color:#3b3a39;}
+.vido_bg .player_info .fllow  div .fl_num { display:block; float:left; width:85px; height:25px; text-align:center; vertical-align:middle; color:#b8babc; font-weight:bold; font-size:18px;}
+.vido_bg .player_info .fllow  div .fl_name {display:block; float:left; width:85px; height:15px; text-align:center; vertical-align:middle; font-size:14px; color:#7d7d7d; font-weight:bold; margin-top:10px;}
+
+.wrap .get_txt { width:425px; height:60px; margin:0 auto; margin-top:30px; font-size:36px; color:#FFF; text-align:center; vertical-align:middle;}
+.wrap .btn_con { width:600px; height:60px; margin:0 auto;}
+.wrap .btn_con a { display:block; width:222px; height:58px; overflow:hidden;}
+.pc_ios_btn { float:left; margin-left:55px; background:url(/static/img/www_v2/pc_ios_btn.png) no-repeat 0 0;}
+.pc_and_btn { float:left; margin-left:50px; background:url(/static/img/www_v2/pc_and_btn.png) no-repeat 0 0;}
+
+.wrap .footer{ width:300px; height:35px; margin:0 auto; margin-top:40px;}
+.wrap .footer a,.wrap .footer span { float:left; text-decoration:none; font-size:14px; color:#7d7d7d; font-weight:bold;}
+.wrap .footer span { display:block; width:20px; height:35px; text-align:center; vertical-align:middle;}
+.wrap .footer a:hover { color:#ff5454;}
+
+.wrap .share {width:215px; height:50px; margin:0 auto; margin-top:30px;}
+.wrap .share a { display:block; float:left; width:42px; height:42px; margin-left:10px;}
+.wrap .share .share1 { background:url(/static/img/www_v2/spritebox-sprite3.png) no-repeat;  background-position: -2px -240px;}
+.wrap .share .share2 { background:url(/static/img/www_v2/spritebox-sprite3.png) no-repeat;  background-position: -242px -240px;}
+.wrap .share .share3 { background:url(/static/img/www_v2/spritebox-sprite3.png) no-repeat;  background-position: -160px -240px;}
+.wrap .share .share4 { background:url(/static/img/www_v2/spritebox-sprite3.png) no-repeat;  background-position: -80px -240px;}
+
+.wrap .last{ width:380px; height:30px; margin:0 auto; margin-top:35px; font-family:Arial, Helvetica, sans-serif; font-size:14px; color:#ffffff;}
+.wrap .last a { text-decoration:none; font-family:Arial, Helvetica, sans-serif; font-size:14px; color:#ff5454;}
+
+
+
+.box { position:absolute; width:540px; height:450px; background:#FFF; top:50%; left:50%; margin-top:-400px; margin-left:-300px; z-index:99;} 
+.box .box_content { width:470px; height:405px; margin-top:27px; margin-left:30px;}
+.box .box_content .q1 ,.q2,.q4{ float:left; width:465px; height:30px; margin-bottom:10px;}
+.q4 {margin-top:10px; margin-bottom:10px;}
+.box .box_content .q5 {float:left; width:465px; height:45px; margin-top:20px; text-align:center;}
+.box .box_content .q5 span a { font-size:18px; color:#fd5353; text-decoration:none;}
+.box .box_content .s1 {float:left; width:465px; height:15px; margin-top:-10px; font-size:14px; color:#b8babc; margin-left:70px;}
+.box .box_content .q3 {float:left; width:464px; height:220px;}
+.box .name { float:left; width:70px; height:18px; font-size:14px; color:#7d7d7d;line-height:18px; text-align:center; line-height:30px;}
+.box .txt { float:left; border:1px solid #d2d2d2; margin-left:10px; text-indent:0.5em; line-height:30px;}
+.box .close { float:right; width:25px; height:25px; background:url(/static/img/www_v2/close.png) no-repeat 0 0; cursor:pointer; margin-top:15px; margin-right:15px;}
+.box .atxt { float:left; width:380px; height:220px; border:1px solid #d2d2d2; margin-left:10px; resize:none; text-indent:0.5em; color:#b8babc;}

@@ -2,7 +2,7 @@
 -------------------------------------------------------------------------
   说明:
   正式使用时可以把该文件的注释全部去掉，节省加载时间
-  ckplayer6.6,有问题请访问http://www.ckplayer.com
+  ckplayer6.7,有问题请访问http://www.ckplayer.com
   请注意，该文件为UTF-8编码，不需要改变编码即可使用于各种编码形式的网站内	
 -------------------------------------------------------------------------
 第一部分，加载插件
@@ -20,9 +20,9 @@
 */
 function ckcpt() {
     var cpt = '';
-    //cpt += 'right.swf,2,1,0,0,2,0|'; //右边开关灯，调整，分享按钮的插件
+    cpt += 'right.swf,2,1,0,0,2,0|'; //右边开关灯，调整，分享按钮的插件
     //cpt += 'share.swf,1,1,-180,-100,3,0|'; //分享插件
-    //cpt += 'adjustment.swf,1,1,-180,-100,3,0|'; //调整大小和颜色的插件
+    cpt += 'adjustment.swf,1,1,-180,-100,3,0|'; //调整大小和颜色的插件
     return cpt;
 }
 /*
@@ -42,9 +42,9 @@ function ckstyle() { //定义总的风格
         flashvars: '',
         /*
 		这里是用来做为对flashvars值的补充，除了c和x二个参数以外的设置都可以在这里进行配置
-		                          1 1 1 1   1 1 1 1 1 1 2 2 2  2 2 2 2 2    2 2 3 3 3 3 3 3 3 3 3   3 4  4 4
-       			1 2 3 4 5 6 7 8 9 0 1 2 3   4 5 6 7 8 9 0 1 2  3 4 5 6 7    8 9 0 1 2 3 4 5 6 7 8   9 0  1 2*/
-        setup: '1,1,1,1,1,2,0,1,2,0,0,1,200,0,2,1,0,1,1,1,2,10,3,0,1,2,3000,0,0,0,0,1,1,1,1,1,1,250,0,90,0,0',
+		                          1 1 1 1   1 1 1 1 1 1 2 2 2  2 2 2 2 2    2 2 3 3 3 3 3 3 3 3 3   3 4  4 4 4
+       			1 2 3 4 5 6 7 8 9 0 1 2 3   4 5 6 7 8 9 0 1 2  3 4 5 6 7    8 9 0 1 2 3 4 5 6 7 8   9 0  1 2 3*/
+        setup: '1,1,1,1,1,2,0,1,2,0,0,1,200,0,2,1,0,1,1,1,2,10,3,0,1,2,3000,0,0,0,0,1,1,1,1,1,1,250,0,90,0,0,0',
         /*
 		这是配置文件里比较重要的一个参数，共有N个功能控制参数，并且以后会继续的增加，各控制参数以英文逗号(,)隔开。下面列出各参数的说明：
 			1、鼠标经过按钮是否使用手型，0普通鼠标，1手型鼠标，2是只有按钮手型，3是控制栏手型
@@ -109,6 +109,7 @@ function ckstyle() { //定义总的风格
 			40、前置视频广告的默认音量
 			41、当s=3/4时加载插件是否从压缩包里加载，0不是，1是
 			42、加载风格是否采用加密方式传送，该功能普通用户不能使用
+			43、在s=1/2时，调用地址里的地址是否是相对地址（相对于调用文件），0不是，1是
 		*/
         pm_bg: '0x000000,100,230,180',
         /*播放器整体的背景配置，请注意，这里只是一个初始化的设置，如果需要真正的改动播放器的背景和最小宽高，需要在风格文件里找到相同的参数进行更改。
@@ -118,7 +119,7 @@ function ckstyle() { //定义总的风格
 		4、播放器最小高度
 		这里只是初始化时的设置，最终加载完播放器后显示的效果需要在style.swf/style.xml里设置该参数
 		*/
-        mylogo: 'null',
+        mylogo: '',
         /*
 		视频加载前显示的logo文件，不使用设置成null，即mylogo='null';
 		*/
@@ -131,7 +132,7 @@ function ckstyle() { //定义总的风格
 		3、水平偏移量，举例说明，如果第1个参数设置成0左对齐，第3个偏移量设置成10，就是离左边10个像素，第一个参数设置成2，偏移量如果设置的是正值就会移到播放器外面，只有设置成负值才行，设置成-1，按钮就会跑到播放器外面
 		4、垂直偏移量 
 		*/
-        logo: 'null',
+        logo: '',
         /*
 		默认右上角一直显示的logo，不使用设置成null，即logo='null';
 		*/
@@ -270,7 +271,7 @@ function ckstyle() { //定义总的风格
 			8、(default = 0) — 指定发光是否为内侧发光。 值 1 指定发光是内侧发光。 值 0 指定发光是外侧发光（对象外缘周围的发光）  
 			9、(default = 0) — 指定对象是否具有挖空效果。 值为 1 将使对象的填充变为透明，并显示文档的背景颜色 
 		*/
-        advmarquee: escape(''),
+        advmarquee: escape('{a href="http://www.ckplayer.com"}{font color="#FFFFFF" size="12"}这里可以放文字广告，播放器默认使用这里设置的广告内容，如果不想在这里使用可以清空这里的内容，如果想在页面中实时定义滚动文字广告内容，可以清空这里的内容，然后在页面中设置广告函数。{/font}{/a}'),
         /*
 		该处是滚动文字广告的内容，如果不想在这里设置，就把这里清空并且在页面中使用js的函数定义function ckmarqueeadv(){return '广告内容'}
 		*/
@@ -294,7 +295,7 @@ function ckstyle() { //定义总的风格
 		以下内容定义自定义插件的相关配置，这里也可以自定义任何自己的插件需要配置的内容，当然，如果你某个插件不使用的话，也可以删除相关的配置
 		------------------------------------------------------------------------------------------------------------------
 		*/
-        cpt_lights: '0',
+        cpt_lights: '1',
 		/*
 		该处定义是否使用开关灯，和right.swf插件配合作用,使用开灯效果时调用页面的js函数function closelights(){};
 		*/
@@ -786,11 +787,11 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
                 v: v
             };
         },
-		embed:function(f,d,i,w,h,b,v,e,p){
+		embed:function(f,d,i,w,h,b,v,e,p,j){
 			var s=['all'];
 			if(b){
 				if(this.isHTML5()){
-					this.embedHTML5(d,i,w,h,e,v,s);
+					this.embedHTML5(d,i,w,h,e,v,s,j);
 				}
 				else{
 					this.embedSWF(f,d,i,w,h,v,p);
@@ -801,7 +802,7 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
 					this.embedSWF(f,d,i,w,h,v,p);
 				}
 				else if(this.isHTML5()){
-					this.embedHTML5(d,i,w,h,e,v,s);
+					this.embedHTML5(d,i,w,h,e,v,s,j);
 				}
 				else{
 					this.embedSWF(f,d,i,w,h,v,p);
@@ -845,7 +846,7 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
 			}
             s += '<object pluginspage="http://www.macromedia.com/go/getflashplayer" ';
             s += 'classid="clsid:d27cdb6e-ae6d-11cf-96b8-444553540000" ';
-            s += 'codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=10,0,0,0" ';
+            s += 'codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=11,3,0,0" ';
             s += 'width="' + W + '" ';
             s += 'height="' + H + '" ';
             s += i;
@@ -864,7 +865,7 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
                     l = error['f'];
 					g = true;
                 } else {
-                    if (this.Flash()['v'] < 10) {
+                    if (this.Flash()['v'] < 11) {
                         l = error['v'];
 						g = true;
                     } else {
@@ -882,14 +883,15 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
 				this._K_(D).style.textAlign= 'center';
 			}
         },
-        embedHTML5: function(C, P, W, H, V, A, S) {
+        embedHTML5: function(C, P, W, H, V, A, S, J) {
             this._E_ = {
                 c: C,
                 p: P,
                 w: W,
                 h: H,
                 v: V,
-                s: S
+                s: S,
+				j: J==undefined || J?true:false
             };
             this._A_ = A;
 			this.getX();
@@ -975,6 +977,7 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
             var p = C._E_['p'],
 			a = C._E_['v'],
 			c = C._E_['c'],
+			j = '',
 			b = false;
 			var s = this._E_['v'];
 			var w=C._E_['w'],h=C._E_['h'];
@@ -994,14 +997,16 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
 			if(h.toString().indexOf('%')>-1){
 				h='100%';
 			}
-			var v = '<video controls'+r+' id="' + p + '" width="' + w + '" height="' + h + '"' + C.getParams() + '>' + C.getVideo() + '</video>';
+			if(C._E_['j']){
+				j='controls="controls"';
+			}
+			var v = '<video '+j+r+' id="' + p + '" width="' + w + '" height="' + h + '"' + C.getParams() + '>' + C.getVideo() + '</video>';
             C._K_(c).innerHTML = v;
-			
             C._K_(c).style.backgroundColor = '#000';
-            C._V_ = this._K_(p);
+            C._V_ = C._K_(p);
 			if(!d){
-				C._K_(c).style.width=this._E_['w'].toString().indexOf('%')>-1?(C._K_(c).offsetWidth*parseInt(this._E_['w'])*0.01)+'px':C._V_.width+'px';
-				C._K_(c).style.height=this._E_['h'].toString().indexOf('%')>-1?(C._K_(c).offsetHeight*parseInt(this._E_['h'])*0.01)+'px':C._V_.height+'px';
+				C._K_(c).style.width=C._E_['w'].toString().indexOf('%')>-1?(C._K_(c).offsetWidth*parseInt(C._E_['w'])*0.01)+'px':C._V_.width+'px';
+				C._K_(c).style.height=C._E_['h'].toString().indexOf('%')>-1?(C._K_(c).offsetHeight*parseInt(C._E_['h'])*0.01)+'px':C._V_.height+'px';
 			}
             C._P_ = false;
             C._T_ = true;
@@ -1028,6 +1033,12 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
 			C.addListener('loadedmetadata', C.loadedMetadataHandler);
 			C.addListener('ended', C.endedHandler);
 			C.addListener('volumechange', C.volumeChangeHandler);
+			if((C.getVars('m')!='' && C.getVars('m')!=null) || parseInt( C.getSn('setup', 0))>0){
+				C._K_(c).style.cursor='pointer';
+			}
+			if((C.getVars('m')!='' && C.getVars('m')!=null) || parseInt( C.getSn('setup', 1))==1){
+				C.addListener('click', C.html5Click);
+			}
         },
         videoPlay: function() {
             if (this._T_) {
@@ -1295,6 +1306,9 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
                 C._O_['volume'] = C._V_['volume'] * 100;
                 C.returnStatus('volumechange:'+C._V_['volume'] * 100, 1);
             }
+			if (parseInt(C.getVars('p')) == 1) {
+				C.playHandler();
+			}
         },
         errorHandler: function() {
             CKobject.returnStatus('error', 1);
@@ -1341,6 +1355,12 @@ html5代码块的代码可以随意更改以适合你的应用，欢迎到论坛
 				}
             }
         },
+		html5Click: function(){
+			var C = CKobject;
+			if(C.getVars('m')!='' && C.getVars('m')!=null){
+				window.open(C.getVars('m'));
+			}
+		},
         returnStatus: function(s, j) {
             var h = s;
             if (this._H_ == 3) {

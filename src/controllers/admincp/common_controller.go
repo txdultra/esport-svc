@@ -440,15 +440,16 @@ func (c *CommonCPController) Versions() {
 	outs := []*outobjs.OutVersionForAdmin{}
 	for _, v := range vers {
 		outs = append(outs, &outobjs.OutVersionForAdmin{
-			Id:          v.Id,
-			Version:     v.Version,
-			Ver:         v.Ver,
-			VerName:     v.VerName,
-			Description: v.Description,
-			PostTime:    v.PostTime,
-			Platform:    v.Platform,
-			IsExpried:   v.IsExpried,
-			DownloadUrl: v.DownloadUrl,
+			Id:           v.Id,
+			Version:      v.Version,
+			Ver:          v.Ver,
+			VerName:      v.VerName,
+			Description:  v.Description,
+			PostTime:     v.PostTime,
+			Platform:     v.Platform,
+			IsExpried:    v.IsExpried,
+			DownloadUrl:  v.DownloadUrl,
+			AllowVodDown: v.AllowVodDown,
 		})
 	}
 	c.Json(outs)
@@ -471,15 +472,16 @@ func (c *CommonCPController) Version() {
 		return
 	}
 	c.Json(outobjs.OutVersionForAdmin{
-		Id:          v.Id,
-		Version:     v.Version,
-		Ver:         v.Ver,
-		VerName:     v.VerName,
-		Description: v.Description,
-		PostTime:    v.PostTime,
-		Platform:    v.Platform,
-		IsExpried:   v.IsExpried,
-		DownloadUrl: v.DownloadUrl,
+		Id:           v.Id,
+		Version:      v.Version,
+		Ver:          v.Ver,
+		VerName:      v.VerName,
+		Description:  v.Description,
+		PostTime:     v.PostTime,
+		Platform:     v.Platform,
+		IsExpried:    v.IsExpried,
+		DownloadUrl:  v.DownloadUrl,
+		AllowVodDown: v.AllowVodDown,
 	})
 }
 
@@ -491,6 +493,7 @@ func (c *CommonCPController) Version() {
 // @Param   desc   path	string true  "版本描述"
 // @Param   plat   path	string true  "平台(android,ios,wphone)"
 // @Param   down_url   path	string true  "下载地址"
+// @Param   allow_voddown   path	bool false  "允许视频下载"
 // @Success 200 {object} libs.Error
 // @router /version/add [post]
 func (c *CommonCPController) VersionAdd() {
@@ -500,6 +503,7 @@ func (c *CommonCPController) VersionAdd() {
 	desc, _ := utils.UrlDecode(c.GetString("desc"))
 	plt := c.GetString("plat")
 	down_url, _ := utils.UrlDecode(c.GetString("down_url"))
+	allow_voddown, _ := c.GetBool("allow_voddown")
 
 	if _version <= 0 {
 		c.Json(libs.NewError("admincp_common_version_add_fail", "GM004_001", "version不能小于等于0", ""))
@@ -518,13 +522,14 @@ func (c *CommonCPController) VersionAdd() {
 		return
 	}
 	v := &version.ClientVersion{
-		Version:     _version,
-		Ver:         ver,
-		VerName:     ver_name,
-		Description: desc,
-		Platform:    version.MOBILE_PLATFORM(plt),
-		IsExpried:   false,
-		DownloadUrl: down_url,
+		Version:      _version,
+		Ver:          ver,
+		VerName:      ver_name,
+		Description:  desc,
+		Platform:     version.MOBILE_PLATFORM(plt),
+		IsExpried:    false,
+		DownloadUrl:  down_url,
+		AllowVodDown: allow_voddown,
 	}
 	vcs := &version.VCS{}
 	_, err := vcs.Create(v)
@@ -545,6 +550,7 @@ func (c *CommonCPController) VersionAdd() {
 // @Param   is_expried   path	bool true  "是否过期"
 // @Param   down_url   path	string true  "下载地址"
 // @Param   plat   path	string true  "平台(android,ios,wphone)"
+// @Param   allow_voddown   path	bool false  "允许视频下载"
 // @Success 200 {object} libs.Error
 // @router /version/update [post]
 func (c *CommonCPController) VersionUpdate() {
@@ -556,6 +562,7 @@ func (c *CommonCPController) VersionUpdate() {
 	plat := c.GetString("plat")
 	is_expried, _ := c.GetBool("is_expried")
 	down_url, _ := utils.UrlDecode(c.GetString("down_url"))
+	allow_voddown, _ := c.GetBool("allow_voddown")
 
 	if id <= 0 {
 		c.Json(libs.NewError("admincp_common_version_update_fail", "GM004_011", "id不能小于等于0", ""))
@@ -593,6 +600,7 @@ func (c *CommonCPController) VersionUpdate() {
 	v.Description = desc
 	v.IsExpried = is_expried
 	v.DownloadUrl = down_url
+	v.AllowVodDown = allow_voddown
 	err := vcs.Update(v)
 	if err == nil {
 		c.Json(libs.NewError("admincp_common_version_update_succ", controllers.RESPONSE_SUCCESS, "更新成功", ""))

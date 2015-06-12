@@ -833,6 +833,15 @@ func (r PPTVLive) Reptile(parameter string) (string, error) {
 ////////////////////////////////////////////////////////////////////////////////
 type TwitchTVLive struct{}
 
+func (r TwitchTVLive) ViewHtmlOnPc(url string, width int, height int) string {
+	__index := strings.LastIndex(url, "/")
+	if __index <= 0 {
+		return ""
+	}
+	return fmt.Sprintf(`<iframe src="http://www.twitch.tv/%s/embed" frameborder="0" scrolling="no" height="%d" width="%d"></iframe>`,
+		url[__index+1:], height, width)
+}
+
 func (r TwitchTVLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string, nextCmd string, err error) {
 	lcmd := strings.ToLower(cmd)
 	if lcmd == "get_stream_params" {
@@ -984,6 +993,10 @@ func (fy FyzbLive) Reptile(parameter string) (string, error) {
 //majorleaguegaming
 ////////////////////////////////////////////////////////////////////////////////
 type MLGTVLive struct{}
+
+func (r MLGTVLive) ViewHtmlOnPc(url string, width int, height int) string {
+	return ""
+}
 
 func (r MLGTVLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string, nextCmd string, err error) {
 	lcmd := strings.ToLower(cmd)
@@ -1138,6 +1151,10 @@ func (r MLGTVLive) Reptile(parameter string) (string, error) {
 //hitbox
 ////////////////////////////////////////////////////////////////////////////////
 type HitboxLive struct{}
+
+func (r HitboxLive) ViewHtmlOnPc(url string, width int, height int) string {
+	return ""
+}
 
 func (r HitboxLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string, nextCmd string, err error) {
 	//	http://edge.hls.dt.hitbox.tv/hls/ectv_360p/index.m3u8

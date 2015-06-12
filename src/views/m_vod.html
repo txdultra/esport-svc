@@ -4,83 +4,62 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0" />
 <title>电竞圈</title>
-<link rel="stylesheet" type="text/css" href="/static/css/reset.css">
 {{template "m_header.html" .}}
-<style>
-	article { width:100%; height:100%; position:relative; background:#14161c;}
-	article .head { background:url(/static/img/app_head.jpg); background-size:cover; width:100%; height:13%;}
-	article .head .logo { float:left; width:17%; height:75%; margin-top:3%; margin-left:13%;}
-	article .head .logo_title { float:left; width:66%; height:25%; margin-top:3%; margin-left:3%; font-size:1em; color:#FFF; font-family:"微软雅黑"}
-	article .head .logo_corp {float:left; width:66%; height:20%; margin-left:3%; font-family:"微软雅黑"; color:#FFF; font-size:0.5em;}
-	article .head .logo_star { float:left; width:25%; height:20%; margin-left:3%; margin-top:1%;}
-	article .content { background:url(/static/img/app_content.jpg); background-size:cover; width:100%;}
-	article .main_title { width:100%; height:5%; color:#ffffff; font-size:0.875em; font-family:"\5B8B\4F53";font-weight:bold; text-align:center; display:block;white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-top:8px;}
-	article .app_vido { width:100%; height:35%; background:#CCC;}
-	article .app_man { width:100%; height:15%;}
-	.app_man .man_logo { float:left; width:50px;; height:50px; margin-top:6%; border-radius:50px; margin-left:5%; overflow:hidden;}
-	.app_man .man_name { float:left; color:#FFF; font-size:1em; margin-top:9%; margin-left:3%;}
-	.app_man .sp,.fans { float:left; font-size:0.775em; color:#b8babc; margin-left:3%; margin-top:10%;}
-	article .footer { background:url(/static/img/app_footer.jpg); background-size:cover;width:100%; height:29%;}
-	article .footer .footer_title { width:100%; height:auto; color:#ffffff; font-size:0.5em; text-align:center;}
-	.ios { float:left;  width:40%; height:22%; border-radius:5px; margin-top:3%; margin-left:30%;}
-	.w_ios { float:left; width:40%; color:#fff; margin-left:33%; margin-top:2%;}
-	.and { float:left;  width:40%; height:22%; border-radius:5px; margin-top:2%; margin-left:30%;}
-	.w_and { float:left; width:40%; color:#fff; margin-left:33%; margin-top:2%;}
-	.last { float:left; width:100%; font-size:0.7em; color:#FFF; text-align:center;position:absolute; bottom:0;}
-	.last span {color:#F00;}
-	@media screen and (max-device-width: 480px) {
-		img { width:100%; height:100%;}
-		.app_ma {float:left; width:20%; height:45%; margin-left:18%; margin-top:5%;}
-		article .head .logo {float:left; width:17%; height:80%; margin-top:3%; margin-left:13%;}
-		article .head .logo_star {float:left; width:23%; height:20%; margin-left:3%; margin-top:1%;}
-/*		.ios { float:left;  width:35%; height:20%; border-radius:5px; margin-top:5%; margin-left:8%;}
-		.and { float:left;  width:35%; height:20%; border-radius:5px; margin-top:2%; margin-left:8%;}*/
-	}
-	@media screen and (min-device-width:480px) and (max-device-width:1136px){ 
-			img {width:100%; height:100%;}
-			article .main_title,.head { font-size:1.5em;}
-			.app_man .man_logo {float:left; width:60px;; height:60px; margin-top:8%; border-radius:60px; margin-left:5%; margin-left:10%;overflow:hidden;}
-			.app_man .man_name { float:left; color:#FFF; font-size:1.5em; margin-top:10%; margin-left:5%;}
-			.app_man .sp,.fans { float:left; color:#FFF; font-size:1em; margin-top:11%;}
-			.app_ma { float:left; margin-top:8%;  margin-left:12%;}
-			article .footer .footer_title { font-size:1.5em; margin-top:1%;}
-			 margin-top.ios  { margin-top:9%;}	
-			article .head .logo_star{:-1%;}
-			article .head .logo_corp{ font-size:0.75em;}
-		}
-		
-		@media screen and (orientation:landscape) {
-				article { width:100%; height:300%; position:relative; background:#14161c;}
-				article .head { background:url(/static/img/app_head.jpg); background-size:cover; width:100%; height:14%;}
-				article .head .logo { float:left; width:17%; height:72%; margin-top:3%; margin-left:13%;}
-			}
-</style>
+<link rel="stylesheet" type="text/css" href="/static/css/v2/reset.css">
+<link rel="stylesheet" type="text/css" href="/static/css/v2/app_vido.css">
 </head>
 
-<body>
-	<article>
-    	<div class="head"><img src="/static/img/head2.jpg" /></div>
-        <div class="main_title">{{.Vod.Title}}</div>
-        <div class="app_vido">
-        	<video height="100%" width="100%" id="player" poster="{{.Poster}}" autoplay="autoplay" controls="controls">
-				<source src="{{.Stream}}" type="video/mp4">
-			</video>
-        </div>
-        <div class="app_man">
-        	<div class="man_logo"><img src="{{.MAvatorUrl}}" /></div>
-            <div class="man_name">{{.MName}}</div>
-            <div class="sp">视频：<span>{{.MVods}}</span></div>
-            <div class="fans">粉丝：<span>{{.MFans}}</span></div>
-        </div>
-        <div class="footer" style="background-color:#0e1118;">
-        	 <div class="w_ios">iPhone玩家下载</div>
-             <div class="ios"><a href="http://m.dianjingquan.cn/download"><img src="/static/img/app_ios.png" /></a></div>
-             <div class="w_and">Android玩家下载</div>
-             <div class="and"><a href="{{.AND_DOWN}}"><img src="/static/img/app_and.png" /></a></div>
-
-             <div class="last">Copyright © 2015 <span>电竞圈</span></div>
-        </div>
-    </article>
-	<footer></footer>
+<body>	
+	<div class="warp">
+    	<div class="bg"><img src="/static/img/v2/app_viod_bj.jpg" /></div>
+        <div class="vido_title txt_hide">{{.Vod.Title}}</div>
+        <div class="vido_box">
+        	<div class="vido_bj">
+            	<div class="vido_con">
+					<video height="100%" width="100%" id="player" poster="{{.Poster}}" autoplay="autoplay" controls="controls">
+						<source src="{{.Stream}}" type="video/mp4">
+					</video>
+				</div>
+                <div class="vido_player_box">
+                	<div class="player_img">
+						<a href="javascript:;"><img src="{{.MAvatorUrl}}" /></a>
+						{{if .MVip}}
+						<span><img src="/static/img/v2/V.png" /></span>
+						{{end}}
+					</div>
+                   	<div class="player_intro">
+                    	<span class="player_big_txt txt_hide">{{.MName}}</span>
+                        <!--<span class="player_small_txt txt_hide">he famous e-sports gamer</span>-->
+                    </div>
+                    <div class="fllow">
+                    	<div>
+                        	<span class="fl_num">{{.MVods}}</span>
+                            <span class="fl_name">fllowing</span>
+                        </div>
+                        <span class="line">|</span>
+                        <div>
+                        	<span class="fl_num">{{.MFans}}</span>
+                            <span class="fl_name">followers</span>
+                        </div>
+                        <span class="line">|</span>
+                        <div>
+                        	<span class="fl_num">{{.MGil}}</span>
+                            <span class="fl_name">gil</span>
+                        </div>
+                    </div><!-- end fllow -->
+                </div><!-- end vido_player_box  -->
+            </div><!-- end vido_bj -->
+        </div><!-- end vido_box-->
+        <div class="get_txt">GET THE APP NOW</div>
+        <a href="http://m.dianjingquan.cn/download" class="app_btn_ios"><img src="/static/img/v2/app_ios_black.png" /></a>
+        <a href="{{.AND_DOWN}}" class="app_btn_and"><img src="/static/img/v2/app_and_black.png" /></a>
+        <div class="link_box">
+           <a href="#" target="_blank"><img src="/static/img/v2/link_1.png" /></a>
+           <a href="#" target="_blank"><img src="/static/img/v2/link_2.png" /></a>
+           <a href="#" target="_blank"><img src="/static/img/v2/link_3.png" /></a>
+           <a href="#" target="_blank"><img src="/static/img/v2/link_4.png" /></a>
+         </div>
+        <div class="page4_footer">Copyright © 2015 <span>www.dianjingquan.cn</span> Allright reserved.</div>
+    </div><!-- end warp -->
 </body>
 </html>

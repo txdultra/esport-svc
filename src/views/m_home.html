@@ -6,62 +6,91 @@
 <title>电竞圈</title>	
 <link rel="stylesheet" type="text/css" href="/static/css/reset.css">
 {{template "m_header.html" .}}
-<style>
-	article .head {float:left; width:100%; height:160px; background-color:#FFF; text-align:center; line-height:80px;}
-	@media screen and (orientation:portrait) {
-		img {
-			max-width: 100%;
-			height: auto;
-			width: auto\9; /* ie8 */
-			}
-	article {background:url(/static/img/app_bj_4.jpg) no-repeat 0 0; background-size:cover;  width:100%; height:100%; position:relative;}
-	article .head { float:left; width:100%; height:70px; background-color:#FFF; text-align:center; line-height:80px;}
-	article .w_ios { position:absolute; z-index:2; top:40%; left:62%; overflow:hidden; color:#FFF;}
-	article .w_and { position:absolute; z-index:2; top:51%; left:62%; color:#FFF;}
-	article .ios {position:absolute;z-index:2;top:44%;left:60%; width:37%; height:7%; border-radius:5px;}
-	article .and {position:absolute;z-index:2;top:55%;left:60%; width:37%; height:7%; border-radius:5px;}
-	article .wenzi { position:absolute; z-index:2; top:95%; left:30%; color:#FFF; width:70%; height:5%; bottom:0; font-family:"微软雅黑"; font-size:0.55em;}
-	article .wenzi span { color:#fd5353;}
-	}
-
-	@media screen and (max-device-width: 400px) {
-		img {
-			max-width: 100%;
-			height: auto;
-			width: auto\9; /* ie8 */
-		}
-	}
-	@media screen and (orientation:landscape) {
-			img {
-				max-width: 100%;
-				height: auto;
-				width: auto\9; /* ie8 */
-				}
-		article {background:url(/static/img/app_bj_3.jpg) no-repeat 0 0; background-size:cover;  width:100%; height:300%; position:relative;}
-		article .w_ios { position:absolute; z-index:2; top:47%; left:65%; overflow:hidden; color:#FFF;}
-		article .w_and { position:absolute; z-index:2; top:57%; left:65%; color:#FFF;}
-		article .ios {position:absolute;z-index:2;top:50%;left:65%; width:30%; height:20%; border-radius:5px;}
-		article .and {position:absolute;z-index:2;top:60%;left:65%; width:30%; height:20%; border-radius:5px;}
-		article .app_ma {position:absolute;z-index:2;top:75%;left:45%; width:15%; height:15%;}
-		article .wenzi { position:absolute; z-index:2; top:95%; left:37%; color:#FFF; width:50%; height:4%; bottom:0; font-family:"微软雅黑";}
-		article .wenzi span { color:#fd5353;}
-		
-	}
-</style>
+<link rel="stylesheet" type="text/css" href="/static/css/v2/reset.css">
+<link rel="stylesheet" type="text/css" href="/static/css/v2/jquery.fullPage.css">
+<link rel="stylesheet" type="text/css" href="/static/css/v2/app.css">
+<script src="/static/js/jquery-1.11.0.min.js"></script>
+<script src="/static/js/v2/jquery.fullPage.min.js"></script>
+<script src="/static/js/v2/jquery.easing.min.js"></script>
 </head>
 
 <body>
-	<article>
+	<div id="warp">
 		{{if .IN_WEIXIN}}
 		{{if .IS_ANDROID}}
     	<div class="head"><img src="/static/img/head2.jpg" /></div>
 		{{end}}
 		{{end}}
-        <div class="w_ios">iPhone玩家下载</div>
-        <div class="w_and">Android玩家下载</div>
-    	<div class="ios"><a href="http://m.dianjingquan.cn/download"><img src="/static/img/app_ios.png" /></a></div>
-    	<div class="and"><a href="{{.AND_DOWN}}"><img src="/static/img/app_and.png" /></a></div>
-        <div class="wenzi">Copyright © 2015 <span>电竞圈</span></div>
-    </article>
+    	<div class="section section1">
+        	<div class="bg"><img src="/static/img/v2/app_bj.jpg" /></div>
+            <div class="iphone"><img src="/static/img/v2/iphone.png" /></div>
+            <div class="one_txt"><img src="/static/img/v2/title.png" /></div>
+            <a href="http://m.dianjingquan.cn/download" class="ios_btn"><img src="/static/img/v2/app_ios_btn.png" /></a>
+            <a href="{{.AND_DOWN}}" class="and_btn"><img src="/static/img/v2/app_and_btn.png" /></a>
+            <div class="one_line"><img src="/static/img/v2/page_one_line.png" /></div>
+            <div class="one_txt_2">
+            	<div class="one_txt_2_title">选择你的游戏</div>
+                <div class="one_txt_2_con">定制功能&nbsp;只展示你感兴趣的<span>属于你</span>的游戏内容</div>
+            </div>
+            <div class="one_footer"><img src="/static/img/v2/one_footer.png" /></div>
+            <div class="go-btn"><a href="#page2" title=""><img src="/static/img/v2/next_icon.png" /></a></div>
+    	</div>
+    
+   		<div class="section section2">
+        	<div class="page2_left_phone"><img src="/static/img/v2/page2_iphone_2.png" /></div>
+            <div clsss="page2_right_phone" id="page2_right_phone"><img src="/static/img/v2/page2_iphone_1.png" /></div>
+            <div class="page2_topintro">
+            	<span class="page2_top_title">赛事直播</span>
+                <span class="page2_top_txt"><span>24小时全球顶级电竞赛事直播</span><br /><span class="page2_icon">&nbsp;</span><span style="color:#FFF; margin-left:3px;">提醒功能</span><span>让你不再错过</span></span>
+            </div>
+            <div class="page2_bottomintro">
+            	<span class="page2_bot_title">个人直播</span>
+                <span class="page2_bot_txt"><span style="color:#FFF;">明星大腕</span><span>个人直播全聚合</span></span>
+            </div>
+            <div class="go-btn"><a href="#page3" title=""><img src="/static/img/v2/next_icon.png" /></a></div>
+    	</div>
+    
+    	<div class="section section3">
+    		<div class="bg"><img src="/static/img/v2/app_bj_3.jpg" /></div>
+            <div class="page3_iphone1"><img src="/static/img/v2/page3_iphone1.png" /></div>
+            <div class="page3_iphone2"><img src="/static/img/v2/page3_iphone2.png" /></div>
+            <div class="page3_top_intro">
+            	<span class="page3_top_title">点播视频</span>
+                <span class="page3_top_txt">视频点播同步更新<br />随时随地观看<span>离线下载</span></span>
+            </div>
+            <div class="page3_bot_intro">
+            	<span class="page3_bot_title">全屏播放</span>
+                <span class="page3_bot_txt">画质线路自由切换体验<br /><span>流畅快感</span></span>
+            </div>
+            <div class="go-btn"><a href="#page4" title=""><img src="/static/img/v2/next_icon.png" /></a></div>
+    	</div>
+    	<div class="section section4">
+    		<div class="bg"><img src="/static/img/v2/app_bj_4.jpg" /></div>
+            <div class="page4_iphone"><img src="/static/img/v2/page4_iphone.png" /></div>
+            <div class="page4_iphone_img"><img src="/static/img/v2/page4_iphon4_2.png" /></div>
+            <div class="page4_top_inro">
+            	<div class="page4_top_title">社交功能</div>
+                <div class="page4_top_txt"><span>轻松结交你的兴趣伙伴<br />更多功能等你</span><span style="color:#FFF;">发现</span></div>
+            </div>
+            <div class="link_box">
+            	<span><img src="/static/img/v2/link_1.png" /></span>
+                <span><img src="/static/img/v2/link_2.png" /></span>
+                <span><img src="/static/img/v2/link_3.png" /></span>
+                <span><img src="/static/img/v2/link_4.png" /></span>
+            </div>
+            <div class="page4_footer">Copyright © 2015 <span>www.dianjingquan.cn</span> Allright reserved.</div>
+    	</div>
+    </div>
+    
+	<script>
+		$(function(){
+				$('#warp').fullpage({
+					verticalCentered: false,
+					sectionsColor: ['#1f1f1f', '#1f1f1f', '#1f1f1f', '#1f1f1f'],
+					anchors: ['page1', 'page2', 'page3', 'page4'],
+					});
+			});
+	
+	</script>
 </body>
 </html>

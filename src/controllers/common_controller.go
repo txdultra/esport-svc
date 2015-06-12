@@ -120,22 +120,24 @@ func (c *CommonController) Version() {
 	var last_out *outobjs.OutNewVersion = nil
 	if lastv != nil && lastv.Version > current_ver.Version {
 		last_out = &outobjs.OutNewVersion{
-			Ver:         lastv.Ver,
-			VerName:     lastv.VerName,
-			Description: lastv.Description,
-			Platform:    lastv.Platform,
-			IsExpried:   lastv.IsExpried,
-			DownloadUrl: lastv.DownloadUrl,
+			Ver:          lastv.Ver,
+			VerName:      lastv.VerName,
+			Description:  lastv.Description,
+			Platform:     lastv.Platform,
+			IsExpried:    lastv.IsExpried,
+			DownloadUrl:  lastv.DownloadUrl,
+			AllowVodDown: lastv.AllowVodDown,
 		}
 	}
 	out := outobjs.OutVersion{
-		Ver:         current_ver.Ver,
-		VerName:     current_ver.VerName,
-		Description: current_ver.Description,
-		Platform:    current_ver.Platform,
-		IsExpried:   current_ver.IsExpried,
-		DownloadUrl: current_ver.DownloadUrl,
-		NewVersion:  last_out,
+		Ver:          current_ver.Ver,
+		VerName:      current_ver.VerName,
+		Description:  current_ver.Description,
+		Platform:     current_ver.Platform,
+		IsExpried:    current_ver.IsExpried,
+		DownloadUrl:  current_ver.DownloadUrl,
+		AllowVodDown: current_ver.AllowVodDown,
+		NewVersion:   last_out,
 	}
 	c.Json(out)
 }

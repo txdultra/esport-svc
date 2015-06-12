@@ -1,0 +1,94 @@
+@charset "utf-8";
+/* CSS Document */
+/* 针对1440*900屏幕CSS */
+@media (max-width:1440px) and (max-height:900px) {
+		/* section 1*/
+		.section1 .logo {margin-top:40px;}
+		
+		/* section 2*/
+		.page2_title { margin-left:40px;}
+		.section2 .page2_icon1 {position:absolute; width:100px; height:100px; left:378px; top:329px;}
+		.section2 .page2_icon2 {position:absolute; width:100px; height:100px; left:378px; top:550px;}
+		.section2 .page2_icon3 {position:absolute; width:100px; height:100px; left:961px; top:331px;}
+		.section2 .page2_icon4 {position:absolute; width:100px; height:100px; left:961px; top:551px;}
+		.active .page2_txt1 { left:40px; opacity: 1; /*transition-delay: 0.5s; -webkit-transition-delay: 0.5s; -moz-transition-delay: 0.5s;*/}
+		.active .page2_txt2 { left:40px; opacity: 1; /*transition-delay: 0.5s; -webkit-transition-delay: 0.5s; -moz-transition-delay: 0.5s;*/ }
+		.active .page2_txt3 { right:50px; opacity: 1; /*transition-delay: 0.5s; -webkit-transition-delay: 0.5s; -moz-transition-delay: 0.5s;*/ }
+		.active .page2_txt4 { right:40px; opacity: 1; /*transition-delay: 0.5s; -webkit-transition-delay: 0.5s; -moz-transition-delay: 0.5s;*/}
+		.active .page3_con  { right:100px; top:300px; opacity:1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.active .page5_btn_iso { opacity: 1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.active .page5_btn_and { opacity: 1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.active .game_1 { opacity:1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		/* for lt ie 10 */
+		.ltie10 .page2_txt1 { left:40px; opacity: 1; transition-delay: 0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.ltie10 .page2_txt2 { left:40px; opacity: 1; transition-delay: 0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.ltie10 .page2_txt3 { right:40px; opacity: 1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.ltie10 .page2_txt4 { right:40px; opacity: 1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.ltie10 .page3_con  { right:100px; top:300px;  opacity:1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		
+		/* section 3 */c
+		.section3 .maps {position:absolute; width:860px; height:500px; left:50px; top: 280px;}
+		/* section 4 */
+		.section4 .page4_con .page4_txt{ position:absolute; width:740px; height:150px; left:375px; top:70px; overflow:hidden;}
+		/* section 5 */
+		.section5 .page5_bg .page5_title{ position:absolute; display:block; width:525px; height:70px; left:475px; top:30px;}
+		.section5 .page5_bg .page5_1 { position:absolute; top:135px; left:234px;}
+		.section5 .page5_bg .page5_2 { position:absolute; top:135px; left:737px;}
+		.section5 .page5_bg .page5_3 { position:absolute; top:297px; left:234px;}
+		.section5 .page5_bg .page5_4 { position:absolute; top:297px; left:737px;}
+		.section5 .page5_bg .get_now { position:absolute; width:500px; height:50px; top:430px; left:487px; text-align:center; font-size:36px; color:#3a3b3a;}
+		.page5_btn_iso { position:absolute; top:510px; left:487px; background:url(../images/spritebox-sprite3.png) no-repeat; background-position: -238px -120px; opacity:0; transition: all 1.5s;}
+		.page5_btn_and { position:absolute; top:510px; left:761px; background:url(../images/spritebox-sprite3.png) no-repeat; background-position: -242px -4px; opacity:0; transition: all 1.5s;}
+		.section5 .page5_footer .page5_footer_con .footer_3 { position:absolute; height:30px; font-size:14px; color:#ffffff; left:85px; top: 75%;}
+		.back-to-top { display:block; position:absolute; right:15px; top:35%; width:35px; height:35px; background:url(../images/go_top.png) no-repeat 0 0; cursor:pointer;}
+	}
+
+/* 前端：于广超-Yugc */
+
+@charset "utf-8";
+/* CSS Document */
+/* 针对1440*900屏幕CSS */
+@media (max-width:1440px) and (max-height:900px) {
+		/* section 1*/
+		.section1 .logo {margin-top:40px;}
+		
+		/* section 2*/
+		.page2_title { margin-left:40px;}
+		.section2 .page2_icon1 {position:absolute; width:100px; height:100px; left:378px; top:329px;}
+		.section2 .page2_icon2 {position:absolute; width:100px; height:100px; left:378px; top:550px;}
+		.section2 .page2_icon3 {position:absolute; width:100px; height:100px; left:961px; top:331px;}
+		.section2 .page2_icon4 {position:absolute; width:100px; height:100px; left:961px; top:551px;}
+		.active .page2_txt1 { left:40px; opacity: 1; /*transition-delay: 0.5s; -webkit-transition-delay: 0.5s; -moz-transition-delay: 0.5s;*/}
+		.active .page2_txt2 { left:40px; opacity: 1; /*transition-delay: 0.5s; -webkit-transition-delay: 0.5s; -moz-transition-delay: 0.5s;*/ }
+		.active .page2_txt3 { right:50px; opacity: 1; /*transition-delay: 0.5s; -webkit-transition-delay: 0.5s; -moz-transition-delay: 0.5s;*/ }
+		.active .page2_txt4 { right:40px; opacity: 1; /*transition-delay: 0.5s; -webkit-transition-delay: 0.5s; -moz-transition-delay: 0.5s;*/}
+		.active .page3_con  { right:100px; top:300px; opacity:1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.active .page5_btn_iso { opacity: 1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.active .page5_btn_and { opacity: 1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.active .game_1 { opacity:1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		/* for lt ie 10 */
+		.ltie10 .page2_txt1 { left:40px; opacity: 1; transition-delay: 0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.ltie10 .page2_txt2 { left:40px; opacity: 1; transition-delay: 0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.ltie10 .page2_txt3 { right:40px; opacity: 1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.ltie10 .page2_txt4 { right:40px; opacity: 1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		.ltie10 .page3_con  { right:100px; top:300px;  opacity:1; transition-delay:0.7s; -webkit-transition-delay: 0.7s; -moz-transition-delay: 0.7s;}
+		
+		/* section 3 */c
+		.section3 .maps {position:absolute; width:860px; height:500px; left:50px; top: 280px;}
+		/* section 4 */
+		.section4 .page4_con .page4_txt{ position:absolute; width:740px; height:150px; left:375px; top:70px; overflow:hidden;}
+		/* section 5 */
+		.section5 .page5_bg .page5_title{ position:absolute; display:block; width:525px; height:70px; left:475px; top:30px;}
+		.section5 .page5_bg .page5_1 { position:absolute; top:135px; left:234px;}
+		.section5 .page5_bg .page5_2 { position:absolute; top:135px; left:737px;}
+		.section5 .page5_bg .page5_3 { position:absolute; top:297px; left:234px;}
+		.section5 .page5_bg .page5_4 { position:absolute; top:297px; left:737px;}
+		.section5 .page5_bg .get_now { position:absolute; width:500px; height:50px; top:430px; left:487px; text-align:center; font-size:36px; color:#3a3b3a;}
+		.page5_btn_iso { position:absolute; top:510px; left:487px; background:url(../images/spritebox-sprite3.png) no-repeat; background-position: -238px -120px; opacity:0; transition: all 1.5s;}
+		.page5_btn_and { position:absolute; top:510px; left:761px; background:url(../images/spritebox-sprite3.png) no-repeat; background-position: -242px -4px; opacity:0; transition: all 1.5s;}
+		.section5 .page5_footer .page5_footer_con .footer_3 { position:absolute; height:30px; font-size:14px; color:#ffffff; left:85px; top: 75%;}
+		.back-to-top { display:block; position:absolute; right:15px; top:35%; width:35px; height:35px; background:url(../images/go_top.png) no-repeat 0 0; cursor:pointer;}
+	}
+
+/* 前端：于广超-Yugc */
+

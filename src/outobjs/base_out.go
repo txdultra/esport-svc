@@ -90,34 +90,37 @@ type OutMatch struct {
 }
 
 type OutVersion struct {
-	Ver         string                  `json:"ver"`
-	VerName     string                  `json:"ver_name"`
-	Description string                  `json:"desc"`
-	Platform    version.MOBILE_PLATFORM `json:"plat"`
-	IsExpried   bool                    `json:"is_expries"`
-	DownloadUrl string                  `json:"down_url"`
-	NewVersion  *OutNewVersion          `json:"new_version"`
+	Ver          string                  `json:"ver"`
+	VerName      string                  `json:"ver_name"`
+	Description  string                  `json:"desc"`
+	Platform     version.MOBILE_PLATFORM `json:"plat"`
+	IsExpried    bool                    `json:"is_expries"`
+	DownloadUrl  string                  `json:"down_url"`
+	AllowVodDown bool                    `json:"allow_vod_down"`
+	NewVersion   *OutNewVersion          `json:"new_version"`
 }
 
 type OutVersionForAdmin struct {
-	Id          int64                   `json:"id"`
-	Version     float64                 `json:"version"`
-	Ver         string                  `json:"ver"`
-	VerName     string                  `json:"ver_name"`
-	Description string                  `json:"desc"`
-	PostTime    time.Time               `json:"post_time"`
-	Platform    version.MOBILE_PLATFORM `json:"plat"`
-	IsExpried   bool                    `json:"is_expries"`
-	DownloadUrl string                  `json:"down_url"`
+	Id           int64                   `json:"id"`
+	Version      float64                 `json:"version"`
+	Ver          string                  `json:"ver"`
+	VerName      string                  `json:"ver_name"`
+	Description  string                  `json:"desc"`
+	PostTime     time.Time               `json:"post_time"`
+	Platform     version.MOBILE_PLATFORM `json:"plat"`
+	IsExpried    bool                    `json:"is_expries"`
+	DownloadUrl  string                  `json:"down_url"`
+	AllowVodDown bool                    `json:"allow_vod_down"`
 }
 
 type OutNewVersion struct {
-	Ver         string                  `json:"ver"`
-	VerName     string                  `json:"ver_name"`
-	Description string                  `json:"desc"`
-	Platform    version.MOBILE_PLATFORM `json:"plat"`
-	IsExpried   bool                    `json:"is_expries"`
-	DownloadUrl string                  `json:"down_url"`
+	Ver          string                  `json:"ver"`
+	VerName      string                  `json:"ver_name"`
+	Description  string                  `json:"desc"`
+	Platform     version.MOBILE_PLATFORM `json:"plat"`
+	IsExpried    bool                    `json:"is_expries"`
+	DownloadUrl  string                  `json:"down_url"`
+	AllowVodDown bool                    `json:"allow_vod_down"`
 }
 
 type OutApiModHost struct {

@@ -24,15 +24,6 @@ function callback(str){
 	alert(str);
 } 
 $(document).ready(function(){
-	$(".bug").click(function(){
-			 $('.box').show();
-			 $("#bd").addClass("full_bg");
-			});
-			
-		$(".close").click(function(){
-				$(".box").hide();
-				$("#bd").removeClass("full_bg");
-			});
 	$('#feedback_submit').click(function(){
 		if($('#atxt').length == 0){
 			alert("内容不能为空");

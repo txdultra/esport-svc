@@ -1,33 +1,82 @@
 <!DOCTYPE html>
 <html>
-{{template "header.html" .}}
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>电竞圈</title>
+<meta name="keywords" content="" />
+<meta name="description" content="" />
+<link rel="shortcut icon" href="/static/favicon.ico" />
+<link rel="stylesheet" type="text/css" href="/static/css/www_v2/reset.css">
+<link rel="stylesheet" type="text/css" href="/static/css/www_v2/style_vido.css">
+<script src="/static/js/jquery-1.8.3.min.js"></script>
+<style>
+	@media (max-width:1440px) and (max-height:900px) {
+		.wrap .vido_tit { margin-top:10px;}
+		.wrap .vido_bg { margin-top:5px;}
+		.wrap .get_txt { margin-top:10px;}
+		.wrap .footer { margin-top:20px;}
+		.wrap .share { margin-top:15px;}
+	}
+</style>
+</head>
 
-<body>
-	<header>
-    	<div><a href="#"><img src="/static/img/logo.png" width="74" height="74" /></a><span>电竞圈，电竞人的生活必备。</span></div>
-    </header>
-	<div class="content">
-    	<div class="article">
-        	<div class="vido_title">{{.Vod.Title}}</div>
-            <div class="vido" id="vplayer">				
-			</div>
-            <div class="vido_man">
-           		<a href="#"><img src="{{.MAvatorUrl}}" width="86" height="86" /></a>
-                <div class="vido_name">{{.MName}}</div>
-                <div class="vido_fen"><span>视频：{{.MVods}}</span><span class="fans">粉丝：{{.MFans}}</span></div>
-            </div>
+<body>	
+	<div class="wrap">
+    	<div class="vido_tit txt_hide">{{.Vod.Title}}</div>
+        <div class="vido_bg">
+        	<div class="bofang" id="vplayer">            
+            </div><!-- 视频播放框 -->
+            <div class="player_info">
+            	<div class="play_th">
+					<a href="javascript:;" ><img src="{{.MAvatorUrl}}" /></a>
+					{{if .MVip}}
+					<span><img src="/static/img/www_v2/V.png" /></span>
+					{{end}}
+				</div>
+                <div class="play_txt">
+                	<span class="txt_1 txt_hide">{{.MName}}</span>
+                    <!--<span class="txt_2 txt_hide">the famous e-sports gamer</span>-->
+                </div>
+      			<div class="fllow">
+                	<div>
+                    	<span class="fl_num">{{.MVods}}</span>
+                        <span class="fl_name">following</span>
+                    </div>
+                    <span class="line_1">|</span>
+                    <div>
+                    	<span class="fl_num">{{.MFans}}</span>
+                        <span class="fl_name">followers</span>
+                    </div>
+                    <span class="line_2">|</span>
+                    <div>
+                    	<span class="fl_num">{{.MGil}}</span>
+                        <span class="fl_name">gil</span>
+                    </div>
+                </div>
+            </div><!--end player_info -->
+        </div><!--end vido_bg -->
+        <div class="get_txt">立即下载</div>
+        <div class="btn_con">
+        	<a href="{{.IOS_DOWN}}" class="pc_ios_btn"></a>
+            <a href="{{.AND_DOWN}}" class="pc_and_btn"></a>	
         </div>
-    </div>
-    <footer>
-    	<div class="f_con">
-        	<span><img src="/static/img/erweima.jpg" /></span>
-            <a href="{{.IOS_DOWN}}" class="IOS"></a>
-            <a href="{{.AND_DOWN}}" class="And"></a>
-            <div class="wenzi">保存二维码到手机扫描下载电竞圈APP</div>
+        <div class="footer">
+                    	<a href="#" target="_blank">关于我们</a>
+                        <span>|</span>
+                        <a href="#" target="_blank">联系我们</a>
+                        <span>|</span>
+                        <a href="#" class="bug">BUG 反馈</a>
+                        <span>|</span>
+                        <a href="#" target="_blank">加入我们</a>
         </div>
-        <div class="f_last">Copyright © 2015 <span style="color:#F00;">电竞圈</span></div>
-        <div class="r_last"></span><a href="#" class="bug">BUG反馈</a></div>
-    </footer>
+        <div class="share">
+                    	<a href="#" target="_blank" class="share1"><img src="/static/img/www_v2/share_01.png" /></a>
+                        <a href="#" target="_blank" class="share2"><img src="/static/img/www_v2/share_02.png" /></a>
+                        <a href="#" target="_blank" class="share3"><img src="/static/img/www_v2/share_03.png" /></a>
+                        <a href="#" target="_blank" class="share4"><img src="/static/img/www_v2/share_04.png" /></a>
+        </div>
+       	<div class="last">Copyright © 2015 <a href="javascript:;" target="_blank">www.dianjingquan.cn</a>. Allright reserved.</div>        
+    </div><!--end wrap -->
 	{{template "feedbackbox.html" .}}
 	<script src="/static/fplayer/vplayer.js"></script>
 	<script type="text/javascript">
@@ -38,7 +87,42 @@
 			s:2,
 		};
 		var params={bgcolor:'#FFF',allowFullScreen:true,allowScriptAccess:'always',wmode:'transparent'};
-		CKobject.embedSWF('/static/fplayer/vplayer.swf','vplayer','vplayer_v1','800','500',flashvars,params);
+		CKobject.embedSWF('/static/fplayer/vplayer.swf','vplayer','vplayer_v1','600','335',flashvars,params);
 	</script>
+    <script>
+	 $(function(){
+			var aa=$(document).height();
+			$(".wrap").css("height", aa);
+		 });
+		 $(function(){
+			$(".box").hide();
+			 
+			 var maskHeight=$(document).height();
+			 var maskWidth=$(document).width();
+			
+			$(".bug").click(function(){
+				//添加遮罩层
+				$('<div class="mask"></div>').appendTo($('body'));
+				$('div.mask').css({
+						'opacity':0.4,
+						'background':'#000',
+						'position':'absolute',
+						'left':0,
+						'top':0,
+						'width':maskWidth,
+						'height':maskHeight,
+						'z-index':88
+					});
+				
+				 $('.box').show();
+				});
+				
+			$(".close").click(function(){
+					$(".box").hide();
+					$('.mask').remove();
+				});
+	});
+	</script>
+	
 </body>
 </html>

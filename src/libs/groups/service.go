@@ -703,6 +703,10 @@ func (s *GroupService) Update(group *Group) error {
 	}
 	cache := utils.GetCache()
 	cache.Replace(s.GetCacheKey(group.Id), *group, 1*time.Hour)
+
+	go func() {
+		go s.UpdateBaseSearchEngineAttrs([]*Group{group})
+	}()
 	return nil
 }
 

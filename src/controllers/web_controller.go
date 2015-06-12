@@ -185,6 +185,8 @@ func (c *WebController) VodPlay() {
 		c.Data["MName"] = out_m.NickName
 		c.Data["MVods"] = out_m.Vods
 		c.Data["MFans"] = out_m.Fans
+		c.Data["MGil"] = out_m.Credits
+		c.Data["MVip"] = out_m.IsCertified
 	}
 	if c.IsMobile {
 		flvs := vods.GetPlayFlvs(id, true)
@@ -251,6 +253,8 @@ func (c *WebController) PeronalLive() {
 		c.Data["MName"] = out_m.NickName
 		c.Data["MVods"] = out_m.Vods
 		c.Data["MFans"] = out_m.Fans
+		c.Data["MGil"] = out_m.Credits
+		c.Data["MVip"] = out_m.IsCertified
 	}
 	c.Data["ViewHtml"] = html
 	c.Data["Title"] = per.Name
@@ -288,7 +292,7 @@ func (c *WebController) JigouLive() {
 		c.StopRun()
 	}
 	rep := reflect.New(t).Interface().(reptile.ILiveViewOnPc)
-	html := rep.ViewHtmlOnPc(liveStream.ReptileUrl, 600, 800)
+	html := rep.ViewHtmlOnPc(liveStream.ReptileUrl, 800, 600)
 	if len(html) == 0 {
 		c.Redirect("/", 302)
 		c.StopRun()
@@ -299,10 +303,46 @@ func (c *WebController) JigouLive() {
 		c.Data["MName"] = out_m.NickName
 		c.Data["MVods"] = out_m.Vods
 		c.Data["MFans"] = out_m.Fans
+		c.Data["MGil"] = out_m.Credits
+		c.Data["MVip"] = out_m.IsCertified
 	}
 	c.Data["ViewHtml"] = html
 	c.Data["Title"] = channel.Name
 	c.TplNames = "www_plive.html"
+}
+
+func (c *WebController) pc_qx2(opts []vod.VideoOpt, defMode reptile.VOD_STREAM_MODE) *vod.VideoOpt {
+	vsts := make(map[reptile.VOD_STREAM_MODE]*vod.VideoOpt)
+	for _, opt := range opts {
+		if opt.Mode == reptile.VOD_STREAM_MODE_STANDARD_SP ||
+			opt.Mode == reptile.VOD_STREAM_MODE_HIGH_SP ||
+			opt.Mode == reptile.VOD_STREAM_MODE_SUPER_SP ||
+			opt.Mode == reptile.VOD_STREAM_MODE_1080P_SP ||
+			opt.Mode == reptile.VOD_STREAM_MODE_M1080P ||
+			opt.Mode == reptile.VOD_STREAM_MODE_MSUPER ||
+			opt.Mode == reptile.VOD_STREAM_MODE_MHIGH ||
+			opt.Mode == reptile.VOD_STREAM_MODE_MSTD {
+			if len(opt.Flvs) > 0 {
+				vsts[opt.Mode] = &opt
+			}
+		}
+	}
+	if opt, ok := vsts[defMode]; ok {
+		return opt
+	}
+	if opt, ok := vsts[reptile.VOD_STREAM_MODE_1080P_SP]; ok {
+		return opt
+	}
+	if opt, ok := vsts[reptile.VOD_STREAM_MODE_SUPER_SP]; ok {
+		return opt
+	}
+	if opt, ok := vsts[reptile.VOD_STREAM_MODE_HIGH_SP]; ok {
+		return opt
+	}
+	if opt, ok := vsts[reptile.VOD_STREAM_MODE_STANDARD_SP]; ok {
+		return opt
+	}
+	return nil
 }
 
 func (c *WebController) pc_qx(vpf *vod.VideoPlayFlvs, defMode reptile.VOD_STREAM_MODE) *vod.VideoOpt {
