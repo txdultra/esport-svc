@@ -218,3 +218,9 @@ func IsChineseChar(r rune) bool {
 	}
 	return false
 }
+
+func ReplaceRepeatString(sourceStr string, repStr string, n int, newStr string) string {
+	patten := fmt.Sprintf("[%s]{%d,}", repStr, n)
+	rep := regexp.MustCompile(patten)
+	return rep.ReplaceAllString(sourceStr, newStr)
+}

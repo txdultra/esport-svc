@@ -374,6 +374,7 @@ func (c *MemberCPController) GetMemberGames() {
 // @Title 查询播主
 // @Description 查询播主
 // @Param   query   path	string true  "关键字"
+// @Param   certified  path	bool false  "认证用户"
 // @Param   page  path	int true  "page"
 // @Param   size  path	int false  "页数量(默认20)"
 // @Success 200  {object} outobjs.OutMemberPageList
@@ -382,6 +383,7 @@ func (c *MemberCPController) Search() {
 	query, _ := utils.UrlDecode(c.GetString("query"))
 	page, _ := c.GetInt("page")
 	size, _ := c.GetInt("size")
+	certified, _ := c.GetBool("certified")
 	if page <= 0 {
 		page = 1
 	}
@@ -402,7 +404,7 @@ func (c *MemberCPController) Search() {
 	//}
 
 	mp := passport.NewMemberProvider()
-	total, uids := mp.QueryForAdmin(query, int(page), int(size))
+	total, uids := mp.QueryForAdmin(query, certified, int(page), int(size))
 	out_members := []*outobjs.OutMember{}
 	for _, uid := range uids {
 		m := outobjs.GetOutMember(uid, 0)

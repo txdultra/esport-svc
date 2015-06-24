@@ -4,6 +4,7 @@ import (
 	"dbs"
 	"errors"
 	"libs/vars"
+	"logs"
 
 	"github.com/astaxie/beego/orm"
 )
@@ -62,14 +63,15 @@ func (p *PushManager) SetState(eventId int, eventClass string, state PUSH_STATE)
 		}
 		_, err := o.Insert(&s)
 		if err != nil {
+			logs.Errorf("insert push state fail:%+v", err)
 			return err
 		}
 	} else {
-		_state.EventId = eventId
 		_state.EventClass = eventClass
 		_state.State = state
 		_, err := o.Update(&_state)
 		if err != nil {
+			logs.Errorf("update push state fail:%+v", err)
 			return err
 		}
 	}

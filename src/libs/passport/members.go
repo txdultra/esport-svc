@@ -1103,13 +1103,17 @@ func (m *MemberProvider) Query(words string, p int, s int, match_mode string, so
 	return total, ids
 }
 
-func (m *MemberProvider) QueryForAdmin(words string, p int, s int) (int, []int64) {
+func (m *MemberProvider) QueryForAdmin(words string, certified bool, p int, s int) (int, []int64) {
 	offset := (p - 1) * s
 	o := dbs.NewDefaultOrm()
-	total, _ := o.QueryTable(Member{}).Filter("nick_name__icontains", words).Count()
+	query := o.QueryTable(Member{}).Filter("nick_name__icontains", words)
+	if certified {
+		query = query.Filter("certified", true)
+	}
+	total, _ := query.Count()
 	uids := []int64{}
 	var maps []orm.Params
-	num, err := o.QueryTable(Member{}).Filter("nick_name__icontains", words).OrderBy("-uid").Limit(s, offset).Values(&maps, "uid")
+	num, err := query.OrderBy("-uid").Limit(s, offset).Values(&maps, "uid")
 	if err == nil && num > 0 {
 		for _, row := range maps {
 			_id := row["Uid"].(int64)

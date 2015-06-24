@@ -97,6 +97,8 @@ func (c *Commentor) Create(data map[string]interface{}, atId func(string) int64,
 	comment.ID = bson.NewObjectId()
 	comment.PostTime = time.Now()
 	comment.Nano = time.Now().UnixNano()
+	comment.Text = utils.ReplaceRepeatString(comment.Text, `\n`, 1, " ")
+
 	if replyComment != nil {
 		comment.Reply = &ReplyComment{
 			ID:        replyComment.ID.Hex(),

@@ -2179,6 +2179,7 @@ func (s *PostService) Create(post *Post) error {
 	}
 	post.Subject = utils.CensorWords(post.Subject) //过滤关键字
 	post.Message = utils.CensorWords(post.Message) //过滤关键字
+	post.Message = utils.ReplaceRepeatString(post.Message, `\n`, 3, "\n\n")
 	post.DateLine = time.Now().Unix()
 	post.Position = s.MaxPosition(post.ThreadId) + 1 //设置楼层
 	post.Id = NewPostId(thread.PostTableId)          //设置id

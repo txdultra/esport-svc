@@ -132,6 +132,7 @@ func (s *ShareComments) Create(sc *ShareComment) (int64, error) {
 	sc.SUNickname = pst.GetNicknameByUid(sc.SUid)
 	sc.UNickname = pst.GetNicknameByUid(sc.Uid)
 	sc.RUNickname = pst.GetNicknameByUid(sc.RUid)
+	sc.Content = utils.ReplaceRepeatString(sc.Content, `\n`, 1, " ")
 
 	//加入nosql库
 	_, err := ssdb.New(use_ssdb_cmt_db).Zadd(fmt.Sprintf(SHARE_COMMENT_LIST_KEY, sc.Sid), sc.Id, sc.Ts)

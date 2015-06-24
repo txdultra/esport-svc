@@ -204,6 +204,7 @@ func (n *Shares) Create(s *Share, msg_notice bool) (error, int64) {
 
 	////过滤敏感字
 	s.Text = utils.CensorWords(utils.StripSQLInjection(s.Text))
+	s.Text = utils.ReplaceRepeatString(s.Text, `\n`, 3, "\n\n")
 
 	oa := dbs.NewOrm(share_db)
 	tbl_a := n.Hash_tbl(s.Uid, share_tbl)

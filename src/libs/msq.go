@@ -8,7 +8,6 @@ import (
 	"errors"
 	//"fmt"
 	"logs"
-	"utils"
 	//"github.com/astaxie/beego"
 	"reflect"
 
@@ -104,8 +103,7 @@ func (s *AmpqMsqService) Config() *MsqQueueConfig {
 
 func (s *AmpqMsqService) Init(config *MsqQueueConfig) error {
 	s._config = config
-	_, _, err := s.createConn(config, nil)
-	return err
+	return nil
 }
 
 func (s *AmpqMsqService) DelQueue() error {
@@ -260,22 +258,17 @@ func (s *AmpqMsqService) Receive(handler IMsqMsgProcesser) (<-chan string, error
 			} else {
 				channel <- MSQ_RECEIVE_SUCC
 			}
-			utils.Try(func() {
-				var m MsqMessage
-				err = json.Unmarshal(msg.Body, &m)
-				if err == nil {
-					err = handler.Do(&m)
-					if err != nil { //打印错误,写入log
-						logs.Errorf("msq fail:%s", err.Error())
-					}
+			var m MsqMessage
+			err = json.Unmarshal(msg.Body, &m)
+			if err == nil {
+				err = handler.Do(&m)
+				if err != nil { //打印错误,写入log
+					logs.Errorf("msq fail:%s", err.Error())
 				}
-				if s._config.AutoAck {
-					msg.Ack(false)
-				}
-			}, func(e interface{}) {
-				//记录错误,保证继续执行
-			}, func() {
-			})
+			}
+			if s._config.AutoAck {
+				msg.Ack(false)
+			}
 		}
 	}(cc, conn, c)
 	return (<-chan string)(cc), nil

@@ -117,6 +117,7 @@ type OutThreadPagedListForAdmin struct {
 type OutPostPagedList struct {
 	CurrentPage int        `json:"current_page"`
 	TotalPages  int        `json:"total_pages"`
+	Total 		int 	   `json:"total"`
 	PageSize    int        `json:"page_size"`
 	Posts       []*OutPost `json:"posts"`
 	MaxDingPost *OutPost   `json:"max_ding_post"`

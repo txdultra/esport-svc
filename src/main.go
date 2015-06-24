@@ -8,11 +8,9 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/url"
 	//"strings"
 
 	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/httplib"
 	_ "github.com/astaxie/beego/toolbox"
 	"github.com/glycerine/go-capnproto"
 	//"github.com/golang/groupcache"
@@ -61,7 +59,6 @@ import (
 	//"logs"
 	//"encoding/json"
 	//"github.com/huichen/sego"
-	"github.com/m3u8"
 
 	//加载钩子程序
 
@@ -74,28 +71,12 @@ import (
 
 func main() {
 
-	m3u8txt, _ := httplib.Get("http://pl.youku.com/playlist/m3u8?ctype=12&ep=cSaXGU2NUcsJ5CPZjj8bYi7icSQHXJZ1kn7N%2F5g1SMRAKezQkTzSzg%3D%3D&ev=1&keyframe=1&oip=2032745641&sid=3433407591066125205c8&token=8239&type=mp4&vid=XOTQxNzgxOTQ4").String()
-	buf := bytes.NewBufferString(m3u8txt)
-	pl, ts, _ := m3u8.Decode(*buf, false)
-	fmt.Println(ts)
-	pls := pl.(*m3u8.MediaPlaylist)
-	flvs := make(map[string]int)
-	for _, p := range pls.Segments {
-		if p == nil {
-			continue
-		}
-		uri, err := url.Parse(p.URI)
-		if err != nil {
-			fmt.Println(err)
-			continue
-		}
-		url := fmt.Sprintf("%s://%s%s", uri.Scheme, uri.Host, uri.Path)
-		if _, ok := flvs[url]; !ok {
-			flvs[url] = 1
-		}
-	}
-	fmt.Println(flvs)
+	str := "就哦few及\r即佛鳄冏\r\r\r\r加哦ifewj\r"
 
+	//rep := regexp.MustCompile("[\\r]{2,}")
+	//fmt.Println(rep.ReplaceAllString(str, "\r\r"))
+
+	fmt.Println(utils.ReplaceRepeatString(str, `\r`, 3, "\r\r"))
 	return
 
 	//	//	o := dbs.NewOrm("group_db")

@@ -394,7 +394,7 @@ func (c *GroupCPController) GetThread() {
 // @Param   group_id  path  int  true  "组id"
 // @Param   page  path  int  false  "页"
 // @Param   size  path  int  false  "页数量"
-// @Success 200 {object} outobjs.OutThreadPagedList
+// @Success 200 {object} outobjs.OutThreadPagedListForAdmin
 // @router /thread/list [get]
 func (c *GroupCPController) GetThreads() {
 	group_id, _ := c.GetInt64("group_id")
@@ -536,6 +536,7 @@ func (c *GroupCPController) GetPosts() {
 	out_p := &outobjs.OutPostPagedList{
 		CurrentPage: page,
 		TotalPages:  utils.TotalPages(total, size),
+		Total:       total,
 		PageSize:    size,
 		Posts:       out_posts,
 		MaxDingPost: maxding,
