@@ -109,10 +109,11 @@ func (s *Shops) CreateItem(item *Item) error {
 	item.Ts = time.Now().Unix()
 	item.ModifyTs = time.Now().Unix()
 
-	//虚拟物品通过商品码同步库存
-	if item.ItemType == ITEM_TYPE_VIRTUAL {
+	//虚拟物品和电子票通过商品码同步库存
+	if item.ItemType == ITEM_TYPE_VIRTUAL || item.ItemType == ITEM_TYPE_TICKET {
 		item.Stocks = 0
 	}
+	item.updateAttrs()
 
 	o := dbs.NewOrm(db_aliasname)
 	id, err := o.Insert(item)
@@ -142,9 +143,11 @@ func (s *Shops) UpdateItem(item *Item) error {
 	defer locker.Unlock()
 
 	item.ModifyTs = time.Now().Unix()
+
+	item.updateAttrs()
 	o := dbs.NewOrm(db_aliasname)
 	_, err = o.Update(item, "name", "description", "pricetype", "price", "oprice", "rprice", "img", "imgs", "itemstate",
-		"modifyts", "displayorder", "isview")
+		"modifyts", "displayorder", "isview", "exattrs", "tagid")
 	if err != nil {
 		return err
 	}
@@ -276,6 +279,10 @@ func (s *Shops) ItemSnap(item *Item) (int64, error) {
 		Price:       item.Price,
 		Img:         item.Img,
 		Imgs:        item.Imgs,
+		TagId:       item.TagId,
+		ItemId:      item.ItemId,
+		ExAttrs:     item.ExAttrs,
+		RmbPrice:    item.RmbPrice,
 	}
 	o := dbs.NewOrm(db_aliasname)
 	id, err := o.Insert(snap)
@@ -499,6 +506,11 @@ func (s *Shops) UpdateOrderStatus(orderNo string, status ORDER_STATUS) error {
 	cache := utils.GetCache()
 	cache.Delete(s.orderCacheKey(orderNo))
 	cache.Delete(s.ordersByUidFirstPage(order.Uid))
+
+	if status == ORDER_STATUS_COMPLETED || status == ORDER_STATUS_SENDED {
+		go s.UpdateMemberCount(order.Uid, 1, MEMBER_COUNT_UPDATE_ITEM_PURCHASEDS)
+	}
+
 	return err
 }
 
@@ -561,4 +573,217 @@ func (s *Shops) GetOrdersByStatus(uid int64, page int, size int, orderStatus str
 	total, _ := query.Count()
 	query.OrderBy("-ts").Limit(size, (page-1)*size).All(&orders)
 	return int(total), orders
+}
+
+const (
+	cache_mobile_shop_counts_uid = "mobile_shop_counts_uid_%d"
+)
+
+func (s *Shops) UpdateMemberCount(uid int64, n int, item MEMBER_COUNT_UPDATE_ITEM) {
+	o := dbs.NewOrm(db_aliasname)
+	mc := &ShopMemberCount{}
+	existed := o.QueryTable(mc).Filter("uid", uid).Exist()
+	colname := ""
+	switch item {
+	case MEMBER_COUNT_UPDATE_ITEM_PURCHASEDS:
+		colname = "count1"
+		break
+	default:
+		break
+	}
+	if len(colname) == 0 {
+		panic("shop count update item not existed")
+	}
+	if existed {
+		o.QueryTable(mc).Filter("uid", uid).Update(orm.Params{
+			colname: orm.ColValue(orm.Col_Add, n),
+		})
+	} else {
+		tblname := mc.TableName()
+		insertsql := fmt.Sprintf("insert into %s(uid,%s) values(%d,%d)", tblname, colname, uid, n)
+		o.Raw(insertsql).Exec()
+	}
+	ckey := fmt.Sprintf(cache_mobile_shop_counts_uid, uid)
+	cache := utils.GetCache()
+	cache.Delete(ckey)
+}
+
+func (s *Shops) GetMemberCount(uid int64, item MEMBER_COUNT_UPDATE_ITEM) int {
+	ckey := fmt.Sprintf(cache_mobile_shop_counts_uid, uid)
+	cc := &ShopMemberCount{}
+	cache := utils.GetCache()
+	mc := func(_c *ShopMemberCount, _item MEMBER_COUNT_UPDATE_ITEM) int {
+		if _c == nil {
+			return 0
+		}
+		switch _item {
+		case MEMBER_COUNT_UPDATE_ITEM_PURCHASEDS:
+			return _c.Count1
+		default:
+			return 0
+		}
+	}
+	err := cache.Get(ckey, cc)
+	if err == nil {
+		return mc(cc, item)
+	} else {
+		o := dbs.NewOrm(db_aliasname)
+		_mc := &ShopMemberCount{Uid: uid}
+		err := o.Read(_mc)
+		cache.Add(ckey, _mc, 24*time.Hour)
+		if err == nil {
+			return mc(_mc, item)
+		}
+	}
+	return 0
+}
+
+func (s *Shops) itemTagCacheKey(id int) string {
+	return fmt.Sprintf("mobile_shop_itemtag_%d", id)
+}
+
+func (s *Shops) checkItemTag(tt *ItemTag) error {
+	if len(tt.Title) == 0 {
+		return fmt.Errorf("标题不能为空")
+	}
+	return nil
+}
+
+func (s *Shops) CreateItemTag(tt *ItemTag) error {
+	err := s.checkItemTag(tt)
+	if err != nil {
+		return err
+	}
+	tt.PostTime = time.Now().Unix()
+	o := dbs.NewOrm(db_aliasname)
+	id, err := o.Insert(tt)
+	if err == nil {
+		tt.Id = int(id)
+		cache := utils.GetCache()
+		cache.Add(s.itemTagCacheKey(tt.Id), *tt, 48*time.Hour)
+		return nil
+	}
+	return err
+}
+
+func (s *Shops) UpdateItemTag(tt *ItemTag) error {
+	err := s.checkItemTag(tt)
+	if err != nil {
+		return err
+	}
+	o := dbs.NewOrm(db_aliasname)
+	_, err = o.Update(tt)
+	if err != nil {
+		return err
+	}
+	cache := utils.GetCache()
+	cache.Set(s.itemTagCacheKey(tt.Id), *tt, 48*time.Hour)
+	return nil
+}
+
+func (s *Shops) GetItemTag(id int) *ItemTag {
+	if id <= 0 {
+		return nil
+	}
+	ckey := s.itemTagCacheKey(id)
+	cache := utils.GetCache()
+	tt := &ItemTag{}
+	err := cache.Get(ckey, tt)
+	if err == nil {
+		return tt
+	}
+	o := dbs.NewOrm(db_aliasname)
+	tt.Id = id
+	err = o.Read(tt)
+	if err == nil {
+		cache.Add(ckey, *tt, 48*time.Hour)
+		return tt
+	}
+	return nil
+}
+
+func (s *Shops) GetItemTags() []*ItemTag {
+	o := dbs.NewOrm(db_aliasname)
+	var tags []*ItemTag
+	o.QueryTable(&ItemTag{}).OrderBy("-posttime").All(&tags)
+	return tags
+}
+
+func (s *Shops) CreateItemTicket(it *ItemTicket) error {
+	if it.ItemId == 0 {
+		return fmt.Errorf("商品id未指定")
+	}
+	o := dbs.NewOrm(db_aliasname)
+	id, err := o.Insert(it)
+	if err != nil {
+		return err
+	}
+	it.Id = id
+	return nil
+}
+
+func (s *Shops) MultiCreateItemTickets(itemId int64, its []*ItemTicket) error {
+	if len(its) == 0 {
+		return nil
+	}
+	o := dbs.NewOrm(db_aliasname)
+	n, err := o.InsertMulti(len(its), its)
+
+	//更新库存
+	s.UpdateItemStocks(itemId, int(n), 0, false)
+
+	return err
+}
+
+func (s *Shops) GetNoUseItemTicket(itemId int64, uid int64, orderNo string) (*ItemTicket, error) {
+	item := s.GetItem(itemId)
+	if item == nil {
+		return nil, fmt.Errorf("商品不存在")
+	}
+	if item.ItemType != ITEM_TYPE_TICKET {
+		return nil, fmt.Errorf("商品必须是电子票")
+	}
+	//分布式锁
+	lock := dlock.NewDistributedLock()
+	locker, err := lock.Lock(fmt.Sprintf("get_itemticket_%d", itemId))
+	if err != nil {
+		logs.Errorf("shop service use item code get lock fail:%s", err.Error())
+		return nil, fmt.Errorf("系统繁忙,请稍后再试")
+	}
+	defer locker.Unlock()
+
+	o := dbs.NewOrm(db_aliasname)
+	var it ItemTicket
+	err = o.QueryTable(&ItemTicket{}).Filter("uid", 0).OrderBy("-id").Limit(1).One(&it)
+	if err != nil {
+		return nil, fmt.Errorf("商品已售罄")
+	}
+	it.Uid = uid
+	it.BuyTime = time.Now().Unix()
+	it.OrderNo = orderNo
+	num, _ := o.Update(&it)
+	if num <= 0 {
+		return nil, fmt.Errorf("购买失败")
+	}
+	return &it, nil
+}
+
+func (s *Shops) UpdateItemTicket(it *ItemTicket) error {
+	o := dbs.NewOrm(db_aliasname)
+	_, err := o.Update(it, "receive_uid", "receive_time", "status")
+	return err
+}
+
+func (s *Shops) DeleteItemTicket(id int64) error {
+	o := dbs.NewOrm(db_aliasname)
+	o.QueryTable(&ItemTicket{}).Filter("id", id).Delete()
+	return nil
+}
+
+func (s *Shops) GetItemTickets(uid int64, page int, size int) []*ItemTicket {
+	o := dbs.NewOrm(db_aliasname)
+	offset := (page - 1) * size
+	var its []*ItemTicket
+	o.QueryTable(&ItemTicket{}).Filter("uid", uid).OrderBy("status", "end_time").Limit(size, offset).All(&its)
+	return its
 }

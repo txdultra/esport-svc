@@ -437,11 +437,11 @@ func (c *VideoController) Download() {
 		c.Json(libs.NewError("vod_flvs_not_exist", "V1304", "视频的文件不存在", ""))
 		return
 	}
+	out_flvs := []*outobjs.OutVideoFlv{}
 	for _, v := range vpf.OptFlvs {
 		if v.Mode != mode {
 			continue
 		}
-		out_flvs := []*outobjs.OutVideoFlv{}
 		for _, fv := range v.Flvs {
 			_f := &outobjs.OutVideoFlv{
 				Url:     fv.Url,
@@ -454,6 +454,27 @@ func (c *VideoController) Download() {
 		go stat.GetCounter(vod.MOD_NAME).DoC(vid, 1, "download")
 		c.Json(out_flvs)
 		return
+	}
+	//进行m3u8解析
+	if len(out_flvs) == 0 {
+		opts := vs.GetM3u8Flvs(vid, false)
+		for _, v := range opts {
+			if v.Mode != mode {
+				continue
+			}
+			for _, fv := range v.Flvs {
+				_f := &outobjs.OutVideoFlv{
+					Url:     fv.Url,
+					No:      fv.No,
+					Size:    fv.Size,
+					Seconds: fv.Seconds,
+				}
+				out_flvs = append(out_flvs, _f)
+			}
+			go stat.GetCounter(vod.MOD_NAME).DoC(vid, 1, "download")
+			c.Json(out_flvs)
+			return
+		}
 	}
 
 	c.Json(libs.NewError("vod_stream_mode_notexist", "V1305", "需要的清晰度格式文件不存在", ""))

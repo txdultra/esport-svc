@@ -28,6 +28,8 @@ func (c *ShopController) URLMapping() {
 	c.Mapping("Stocks", c.Stocks)
 	c.Mapping("Buy", c.Buy)
 	c.Mapping("OrderCancel", c.OrderCancel)
+	c.Mapping("Purchaseds", c.Purchaseds)
+	c.Mapping("MyTickets", c.MyTickets)
 }
 
 // @Title 获取所有省份
@@ -270,8 +272,16 @@ func (c *ShopController) Buy() {
 			c.Json(libs.NewError("shop_buy_success", RESPONSE_SUCCESS, buyResult.OrderNo, ""))
 			return
 		}
+		if buyResult.ItemType == shop.ITEM_TYPE_TICKET {
+			c.Json(libs.NewError("shop_buy_success", RESPONSE_SUCCESS, buyResult.OrderNo, ""))
+			return
+		}
 	}
-	c.Json(libs.NewError("shop_buy_fail", REPSONSE_FAIL, buyResult.Error.Error(), ""))
+	errMsg := ""
+	if buyResult.Error != nil {
+		errMsg = buyResult.Error.Error()
+	}
+	c.Json(libs.NewError("shop_buy_fail", REPSONSE_FAIL, errMsg, ""))
 }
 
 // @Title 取消已购买的订单
@@ -308,4 +318,45 @@ func (c *ShopController) OrderCancel() {
 		return
 	}
 	c.Json(libs.NewError("shop_order_cancel_success", RESPONSE_SUCCESS, "订单取消成功", ""))
+}
+
+// @Title 获取用户购买数
+// @Description 获取用户购买数
+// @Param   access_token   path  string  true  "access_token"
+// @Success 200 {object} libs.Error
+// @router /purchaseds [get]
+func (c *ShopController) Purchaseds() {
+	uid := c.CurrentUid()
+	if uid <= 0 {
+		c.Json(libs.NewError("shop_purchaseds_premission_denied", UNAUTHORIZED_CODE, "必须登录后才能查询", ""))
+		return
+	}
+	shopp := shop.NewShop()
+	counts := shopp.GetMemberCount(uid, shop.MEMBER_COUNT_UPDATE_ITEM_PURCHASEDS)
+	c.Json(libs.NewError("shop_purchaseds", RESPONSE_SUCCESS, strconv.Itoa(counts), ""))
+}
+
+// @Title 已购买的电子票
+// @Description 已购买的电子票
+// @Param   access_token   path  string  true  "access_token"
+// @Param   page   path  int  false  "page"
+// @Success 200 {object} outobjs.OutShopTicketPagedList
+// @router /my_tickets [get]
+func (c *ShopController) MyTickets() {
+	uid := c.CurrentUid()
+	if uid <= 0 {
+		c.Json(libs.NewError("shop_mytickets_premission_denied", UNAUTHORIZED_CODE, "必须登录后才能查询", ""))
+		return
+	}
+	page, _ := c.GetInt("page", 1)
+	shopp := shop.NewShop()
+	tickets := shopp.GetItemTickets(uid, page, 20)
+	out_t := make([]*outobjs.OutShopTicket, len(tickets), len(tickets))
+	for i, t := range tickets {
+		out_t[i] = outobjs.GetOutShopTicket(t)
+	}
+	c.Json(&outobjs.OutShopTicketPagedList{
+		CurrentPage: page,
+		Tickets:     out_t,
+	})
 }

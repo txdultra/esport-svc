@@ -382,7 +382,7 @@ func (c *LiveCPController) LiveChannelUpdate() {
 	title, _ := utils.UrlDecode(c.GetString("title"))
 	img_id, _ := c.GetInt64("img_id")
 	uid, _ := c.GetInt64("uid")
-	enabled, err := c.GetBool("enbaled")
+	enabled, err := c.GetBool("enabled")
 	if err != nil {
 		enabled = true
 	}
@@ -447,7 +447,7 @@ func (c *LiveCPController) LiveChannelStreamAdd() {
 	rep_url, _ := utils.UrlDecode(c.GetString("rep_url"))
 	img_id, _ := c.GetInt64("img_id")
 	is_def, _ := c.GetBool("is_def")
-	enabled, err := c.GetBool("enbaled")
+	enabled, err := c.GetBool("enabled")
 	allow_rep, _ := c.GetBool("allow_rep")
 	if err != nil {
 		enabled = true
@@ -491,7 +491,7 @@ func (c *LiveCPController) LiveChannelStreamUpdate() {
 	rep_url, _ := utils.UrlDecode(c.GetString("rep_url"))
 	img_id, _ := c.GetInt64("img_id")
 	is_def, _ := c.GetBool("is_def")
-	enabled, err := c.GetBool("enbaled")
+	enabled, err := c.GetBool("enabled")
 	allow_rep, _ := c.GetBool("allow_rep")
 	if err != nil {
 		enabled = true

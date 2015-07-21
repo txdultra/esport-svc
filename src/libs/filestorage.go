@@ -173,6 +173,14 @@ func (f *WeedFsFileStorage) SaveFile(data []byte, fileName string, source int64)
 	mimeType, _ext := "", ""
 	if len(ext) > 0 {
 		_ext = ext[1:]
+		//如果是图片，读取图片格式
+		if utils.IsImage(_ext) {
+			imgfmt := utils.ImageFormat(data)
+			if len(imgfmt) > 0 {
+				ext = "." + imgfmt
+				_ext = imgfmt
+			}
+		}
 		mimeType = mime.TypeByExtension(ext)
 	}
 	weedfs_master_addr := f.scheme() + f.fileMasterServer() + "/dir/assign?ts=" + strconv.Itoa(int(time.Now().Unix()))

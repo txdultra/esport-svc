@@ -1,6 +1,7 @@
 package shop
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -10,6 +11,7 @@ type ITEM_TYPE int
 const (
 	ITEM_TYPE_ENTITY  ITEM_TYPE = 1
 	ITEM_TYPE_VIRTUAL ITEM_TYPE = 2
+	ITEM_TYPE_TICKET  ITEM_TYPE = 3
 )
 
 type ITEM_STATE int
@@ -54,24 +56,27 @@ const (
 var PAYID_CREDIT int = 1
 
 type Item struct {
-	ItemId        int64      `orm:"column(itemid);pk"`
-	Name          string     `orm:"column(name)"`
-	Description   string     `orm:"column(description)"`
-	PriceType     PRICE_TYPE `orm:"column(pricetype)"`
-	Price         float64    `orm:"column(price)"`
-	OriginalPrice float64    `orm:"column(oprice)"`
-	RmbPrice      float64    `orm:"column(rprice)"`
-	Img           int64      `orm:"column(img)"`
-	Imgs          string     `orm:"column(imgs)"`
-	ItemType      ITEM_TYPE  `orm:"column(itemtype)"`
-	ItemState     ITEM_STATE `orm:"column(itemstate)"`
-	Ts            int64      `orm:"column(ts)"`
-	ModifyTs      int64      `orm:"column(modifyts)"`
-	DisplayOrder  int        `orm:"column(displayorder)"`
-	Stocks        int        `orm:"column(stocks)"`
-	Sells         int        `orm:"column(sells)"`
-	Enabled       bool       `orm:"column(enabled)"`
-	IsView        bool       `orm:"column(isview)"`
+	ItemId        int64                  `orm:"column(itemid);pk"`
+	Name          string                 `orm:"column(name)"`
+	Description   string                 `orm:"column(description)"`
+	PriceType     PRICE_TYPE             `orm:"column(pricetype)"`
+	Price         float64                `orm:"column(price)"`
+	OriginalPrice float64                `orm:"column(oprice)"`
+	RmbPrice      float64                `orm:"column(rprice)"`
+	Img           int64                  `orm:"column(img)"`
+	Imgs          string                 `orm:"column(imgs)"`
+	ItemType      ITEM_TYPE              `orm:"column(itemtype)"`
+	ItemState     ITEM_STATE             `orm:"column(itemstate)"`
+	Ts            int64                  `orm:"column(ts)"`
+	ModifyTs      int64                  `orm:"column(modifyts)"`
+	DisplayOrder  int                    `orm:"column(displayorder)"`
+	Stocks        int                    `orm:"column(stocks)"`
+	Sells         int                    `orm:"column(sells)"`
+	Enabled       bool                   `orm:"column(enabled)"`
+	IsView        bool                   `orm:"column(isview)"`
+	ExAttrs       string                 `orm:"column(exattrs)"`
+	TagId         int                    `orm:"column(tagid)"`
+	attrs         map[string]interface{} `orm:"-"`
 }
 
 func (self *Item) TableName() string {
@@ -82,9 +87,42 @@ func (self *Item) TableEngine() string {
 	return "INNODB"
 }
 
+func (self *Item) updateAttrs() {
+	data, _ := json.Marshal(self.attrs)
+	self.ExAttrs = string(data)
+}
+
+func (self *Item) SetAttr(name string, val interface{}) {
+	if self.attrs == nil {
+		self.attrs = make(map[string]interface{})
+	}
+	self.attrs[name] = val
+	self.updateAttrs()
+}
+
+func (self *Item) GetAttr(name string) interface{} {
+	if self.attrs == nil {
+		self.attrs = make(map[string]interface{})
+		json.Unmarshal([]byte(self.ExAttrs), &self.attrs)
+	}
+	if obj, ok := self.attrs[name]; ok {
+		return obj
+	}
+	return nil
+}
+
+func (self *Item) GetAttrsMap() map[string]interface{} {
+	if self.attrs == nil {
+		self.attrs = make(map[string]interface{})
+		json.Unmarshal([]byte(self.ExAttrs), &self.attrs)
+	}
+	return self.attrs
+}
+
 type Order struct {
 	OrderNo     string       `orm:"column(orderno);pk"`
 	ItemId      int64        `orm:"column(itemid)"`
+	ItemType    ITEM_TYPE    `orm:"column(itemtype)"` //新增
 	IssueType   ISSUE_TYPE   `orm:"column(issuetype)"`
 	Ts          int64        `orm:"column(ts)"`
 	Uid         int64        `orm:"column(uid)"`
@@ -167,14 +205,19 @@ func (self *ItemCode) TableEngine() string {
 }
 
 type OrderItemSnap struct {
-	SnapId      int64      `orm:"column(snapid);pk"`
-	Ts          int64      `orm:"column(ts)"`
-	Name        string     `orm:"column(name)"`
-	Description string     `orm:"column(description)"`
-	PriceType   PRICE_TYPE `orm:"column(pricetype)"`
-	Price       float64    `orm:"column(price)"`
-	Img         int64      `orm:"column(img)"`
-	Imgs        string     `orm:"column(imgs)"`
+	SnapId      int64                  `orm:"column(snapid);pk"`
+	Ts          int64                  `orm:"column(ts)"`
+	Name        string                 `orm:"column(name)"`
+	Description string                 `orm:"column(description)"`
+	PriceType   PRICE_TYPE             `orm:"column(pricetype)"`
+	Price       float64                `orm:"column(price)"`
+	Img         int64                  `orm:"column(img)"`
+	Imgs        string                 `orm:"column(imgs)"`
+	TagId       int                    `orm:"column(tagid)"`
+	ItemId      int64                  `orm:"column(itemid)"`
+	ExAttrs     string                 `orm:"column(exattrs)"`
+	attrs       map[string]interface{} `orm:"-"`
+	RmbPrice    float64                `orm:"column(rmbprice)"`
 }
 
 func (self *OrderItemSnap) TableName() string {
@@ -183,6 +226,38 @@ func (self *OrderItemSnap) TableName() string {
 
 func (self *OrderItemSnap) TableEngine() string {
 	return "INNODB"
+}
+
+func (self *OrderItemSnap) updateAttrs() {
+	data, _ := json.Marshal(self.attrs)
+	self.ExAttrs = string(data)
+}
+
+func (self *OrderItemSnap) GetAttrsMap() map[string]interface{} {
+	if self.attrs == nil {
+		self.attrs = make(map[string]interface{})
+		json.Unmarshal([]byte(self.ExAttrs), &self.attrs)
+	}
+	return self.attrs
+}
+
+func (self *OrderItemSnap) SetAttr(name string, val interface{}) {
+	if self.attrs == nil {
+		self.attrs = make(map[string]interface{})
+	}
+	self.attrs[name] = val
+	self.updateAttrs()
+}
+
+func (self *OrderItemSnap) GetAttr(name string) interface{} {
+	if self.attrs == nil {
+		self.attrs = make(map[string]interface{})
+		json.Unmarshal([]byte(self.ExAttrs), &self.attrs)
+	}
+	if obj, ok := self.attrs[name]; ok {
+		return obj
+	}
+	return nil
 }
 
 type Province struct {
@@ -233,4 +308,88 @@ func (self *Area) TableEngine() string {
 func buildOrderNo(orderId int64) string {
 	now := time.Now()
 	return fmt.Sprintf("%d%02d%02d001%09d", now.Year(), now.Month(), now.Day(), orderId)
+}
+
+type MEMBER_COUNT_UPDATE_ITEM int
+
+const (
+	MEMBER_COUNT_UPDATE_ITEM_PURCHASEDS MEMBER_COUNT_UPDATE_ITEM = 1
+)
+
+type ShopMemberCount struct {
+	Uid    int64 `orm:"column(uid);pk"`
+	Count1 int   `orm:"column(count1)"`
+	Count2 int   `orm:"column(count2)"`
+	Count3 int   `orm:"column(count3)"`
+	Count4 int   `orm:"column(count4)"`
+	Count5 int   `orm:"column(count5)"`
+}
+
+func (self *ShopMemberCount) TableName() string {
+	return "shop_member_count"
+}
+
+func (self *ShopMemberCount) TableEngine() string {
+	return "INNODB"
+}
+
+type ItemTag struct {
+	Id          int    `orm:"column(id);pk"`
+	Title       string `orm:"column(title)"`
+	Description string `orm:"column(description)"`
+	Img1        int64  `orm:"column(img1)"`
+	Img2        int64  `orm:"column(img2)"`
+	Img3        int64  `orm:"column(img3)"`
+	PostTime    int64  `orm:"column(posttime)"`
+}
+
+func (self *ItemTag) TableName() string {
+	return "item_tag"
+}
+
+func (self *ItemTag) TableEngine() string {
+	return "INNODB"
+}
+
+type ITEM_TICKET_STATUS int
+
+const (
+	ITEM_TICKET_STATUS_NOUSE   ITEM_TICKET_STATUS = 1
+	ITEM_TICKET_STATUS_USED    ITEM_TICKET_STATUS = 2
+	ITEM_TICKET_STATUS_EXPIRED ITEM_TICKET_STATUS = 3
+)
+
+type ITEM_TICKET_TYPE int
+
+const (
+	ITEM_TICKET_TYPE_REAL   ITEM_TICKET_TYPE = 1
+	ITEM_TICKET_TYPE_VIRUAL ITEM_TICKET_TYPE = 2
+)
+
+type ItemTicket struct {
+	Id        int64              `orm:"column(id);pk"`
+	ItemId    int64              `orm:"column(itemid)"`
+	Code      string             `orm:"column(code)"`
+	Pwd       string             `orm:"column(pwd)"`
+	Uid       int64              `orm:"column(uid)"`
+	FUid      int64              `orm:"column(f_uid)"`
+	FTime     int                `orm:"column(f_time)"`
+	Img1      int64              `orm:"column(img_1)"`
+	Img2      int64              `orm:"column(img_2)"`
+	Img3      int64              `orm:"column(img_3)"`
+	StartTime int64              `orm:"column(start_time)"`
+	EndTime   int64              `orm:"column(end_time)"`
+	TagId     int                `orm:"column(tag_id)"`
+	Status    ITEM_TICKET_STATUS `orm:"column(status)"`
+	TType     ITEM_TICKET_TYPE   `orm:"column(ttype)"`
+	OrderNo   string             `orm:"column(orderno)"`
+	BuyTime   int64              `orm:"column(buytime)"`
+}
+
+func (self *ItemTicket) TableName() string {
+	return "item_tickets"
+}
+
+func (self *ItemTicket) TableEngine() string {
+	return "INNODB"
 }

@@ -3,13 +3,10 @@ package utils
 import (
 	"bufio"
 	"bytes"
-	"code.google.com/p/go.image/bmp"
-	"code.google.com/p/go.image/tiff"
 	"errors"
 	"fmt"
 	"image"
 	_ "image/color"
-	_ "image/gif"
 	"image/jpeg"
 	"image/png"
 	"io"
@@ -18,6 +15,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"code.google.com/p/go.image/bmp"
+	"code.google.com/p/go.image/tiff"
 )
 
 func IsImage(extName string) bool {
@@ -27,6 +27,73 @@ func IsImage(extName string) bool {
 	default:
 		return false
 	}
+}
+
+func ImageFormat(data []byte) string {
+	if len(data) < 4 {
+		return ""
+	}
+	bytes := data[:4]
+	if bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47 {
+		return "png"
+	}
+	if bytes[0] == 0xFF && bytes[1] == 0xD8 {
+		return "jpg"
+	}
+	if bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46 && bytes[3] == 0x38 {
+		return "gif"
+	}
+	if bytes[0] == 0x42 && bytes[1] == 0x4D {
+		return "bmp"
+	}
+	return ""
+}
+
+func GetGifDimensions(file *os.File) (width int, height int) {
+	bytes := make([]byte, 4)
+	file.ReadAt(bytes, 6)
+	width = int(bytes[0]) + int(bytes[1])*256
+	height = int(bytes[2]) + int(bytes[3])*256
+	return
+}
+
+func GetBmpDimensions(file *os.File) (width int, height int) {
+	bytes := make([]byte, 8)
+	file.ReadAt(bytes, 18)
+	width = int(bytes[3])<<24 | int(bytes[2])<<16 | int(bytes[1])<<8 | int(bytes[0])
+	height = int(bytes[7])<<24 | int(bytes[6])<<16 | int(bytes[5])<<8 | int(bytes[4])
+	return
+}
+
+func GetPngDimensions(file *os.File) (width int, height int) {
+	bytes := make([]byte, 8)
+	file.ReadAt(bytes, 16)
+	width = int(bytes[0])<<24 | int(bytes[1])<<16 | int(bytes[2])<<8 | int(bytes[3])
+	height = int(bytes[4])<<24 | int(bytes[5])<<16 | int(bytes[6])<<8 | int(bytes[7])
+	return
+}
+
+func GetJpgDimensions(file *os.File) (width int, height int) {
+	fi, _ := file.Stat()
+	fileSize := fi.Size()
+
+	position := int64(4)
+	bytes := make([]byte, 4)
+	file.ReadAt(bytes[:2], position)
+	length := int(bytes[0]<<8) + int(bytes[1])
+	for position < fileSize {
+		position += int64(length)
+		file.ReadAt(bytes, position)
+		length = int(bytes[2])<<8 + int(bytes[3])
+		if (bytes[1] == 0xC0 || bytes[1] == 0xC2) && bytes[0] == 0xFF && length > 7 {
+			file.ReadAt(bytes, position+5)
+			width = int(bytes[2])<<8 + int(bytes[3])
+			height = int(bytes[0])<<8 + int(bytes[1])
+			return
+		}
+		position += 2
+	}
+	return 0, 0
 }
 
 func ByteToImage(data []byte) *image.Image {
@@ -41,10 +108,10 @@ func ByteToImage(data []byte) *image.Image {
 	return &img
 }
 
-func ImageToBytes(img image.Image, filename string) (data []byte, err error) {
-	format := strings.ToLower(filepath.Ext(filename))
+func ImageToBytes(img image.Image, filename string, format string) (data []byte, err error) {
+	//format := strings.ToLower(filepath.Ext(filename))
 	okay := false
-	for _, ext := range []string{".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp"} {
+	for _, ext := range []string{"jpg", "jpeg", "png", "tif", "tiff", "bmp", "gif"} {
 		if format == ext {
 			okay = true
 			break
@@ -53,7 +120,7 @@ func ImageToBytes(img image.Image, filename string) (data []byte, err error) {
 	if okay {
 		buf := &bytes.Buffer{}
 		switch format {
-		case ".jpg", ".jpeg":
+		case "jpg", "jpeg", "gif":
 			var rgba *image.RGBA
 			if nrgba, ok := img.(*image.NRGBA); ok {
 				if nrgba.Opaque() {
@@ -70,11 +137,11 @@ func ImageToBytes(img image.Image, filename string) (data []byte, err error) {
 				err = jpeg.Encode(buf, img, &jpeg.Options{Quality: 95})
 			}
 
-		case ".png":
+		case "png":
 			err = png.Encode(buf, img)
-		case ".tif", ".tiff":
+		case "tif", "tiff":
 			err = tiff.Encode(buf, img, &tiff.Options{Compression: tiff.Deflate, Predictor: true})
-		case ".bmp":
+		case "bmp":
 			err = bmp.Encode(buf, img)
 		}
 		if err == nil {

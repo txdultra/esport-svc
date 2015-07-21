@@ -160,7 +160,7 @@ func (s *ShareViewPics) resize(data []byte, file *libs.File, size int) (int64, e
 		}
 		var dstImage image.Image
 		dstImage = imaging.Resize(srcImg, size, 0, imaging.Lanczos)
-		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 		if err != nil {
 			logs.Errorf("share pic thumbnail by width's ratio image to bytes fail:%s", err.Error())
 			return 0, err
@@ -183,7 +183,7 @@ func (s *ShareViewPics) resize(data []byte, file *libs.File, size int) (int64, e
 		}
 		var dstImage image.Image
 		dstImage = imaging.Resize(srcImg, 0, size, imaging.Lanczos)
-		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 		if err != nil {
 			logs.Errorf("share pic thumbnail by height's ratio image to bytes fail:%s", err.Error())
 			return 0, err

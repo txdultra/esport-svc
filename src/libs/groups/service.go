@@ -12,6 +12,7 @@ import (
 	"libs/vars"
 	"strings"
 	//"libs/dlock"
+	"libs/hook"
 	"libs/message"
 	"libs/passport"
 	"libs/search"
@@ -134,7 +135,7 @@ func imgResize(data []byte, file *libs.File, size int) (int64, error) {
 		}
 		var dstImage image.Image
 		dstImage = imaging.Resize(srcImg, size, 0, imaging.Lanczos)
-		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 		if err != nil {
 			logs.Errorf("group pic thumbnail by width's ratio image to bytes fail:%s", err.Error())
 			return 0, err
@@ -157,7 +158,7 @@ func imgResize(data []byte, file *libs.File, size int) (int64, error) {
 		}
 		var dstImage image.Image
 		dstImage = imaging.Resize(srcImg, 0, size, imaging.Lanczos)
-		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 		if err != nil {
 			logs.Errorf("group pic thumbnail by height's ratio image to bytes fail:%s", err.Error())
 			return 0, err
@@ -693,11 +694,12 @@ func (s *GroupService) Update(group *Group) error {
 		if err != nil {
 			return err
 		}
+		go hook.Do("group_modify_bgimg", group.Uid, 1)
 	}
 
 	o := dbs.NewOrm(db_aliasname)
 	_, err := o.Update(group, "groupname", "description", "uid", "country", "city", "gameids", "displayorder", "img", "bgimg",
-		"belong", "type", "searchkeyword")
+		"belong", "type", "searchkeyword", "recommend")
 	if err != nil {
 		return err
 	}
@@ -1645,6 +1647,10 @@ func (c *ThreadService) Create(thread *Thread, post *Post) error {
 		gs := NewGroupService(c.cfg)
 		gs.AsyncActionCount(thread.GroupId, []GP_PROPERTY{GP_PROPERTY_THREADS}, []int{1})
 	}()
+	//事件钩子
+	go func() {
+		hook.Do("group_new_thread", thread.AuthorId, 1)
+	}()
 	return err
 }
 
@@ -1928,6 +1934,7 @@ func (s *PostService) Action(postId string, uid int64, action POST_ACTION) error
 	switch action {
 	case POST_ACTION_DING:
 		i = 1
+		go hook.Do("group_ding_post", uid, 1)
 		break
 	case POST_ACTION_CANCEL_DING:
 		i = -1
@@ -2145,9 +2152,9 @@ func (s *PostService) Create(post *Post) error {
 				if file == nil {
 					return
 				}
-				if file.ExtName == "gif" { //gif不支持
-					return
-				}
+				//				if file.ExtName == "gif" { //gif不支持
+				//					return
+				//				}
 				ir := s.imgToRes(_id, []vars.PIC_SIZE{
 					vars.PIC_SIZE_ORIGINAL,
 					vars.PIC_SIZE_THUMBNAIL,
@@ -2242,6 +2249,7 @@ func (s *PostService) Create(post *Post) error {
 	if post.Position > 1 {
 		go tservice.ActionProperty([]TH_PROPERTY{TH_PROPERTY_REPLIES}, []int64{1}, post.ThreadId)
 		go tservice.SetLastPost(post)
+		go hook.Do("group_new_post", post.AuthorId, 1)
 	}
 
 	return nil

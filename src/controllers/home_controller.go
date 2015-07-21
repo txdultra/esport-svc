@@ -115,6 +115,11 @@ func (c *HomeController) ApiUrls() {
 				BaseUrl: host_maps["shop"], //"http://192.168.0.33:8080",
 				Version: "v1",
 			},
+			&outobjs.OutApiModHost{
+				ModName: "qrcode",
+				BaseUrl: host_maps["com"], //"http://192.168.0.33:8080",
+				Version: "v1",
+			},
 		}
 	}
 	c.Json(out_api_mod_hosts)

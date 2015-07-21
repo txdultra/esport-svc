@@ -652,7 +652,7 @@ func (m *MemberProvider) avatarThumbnail(fileId int64, maxPx int) (*libs.FileNod
 	if file.Width >= file.Height && file.Width > maxPx {
 		var dstImage image.Image
 		dstImage = imaging.Thumbnail(srcImg, maxPx, maxPx, imaging.Lanczos)
-		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 		if err != nil {
 			logs.Errorf("member avatar pic thumbnail by width's ratio image to bytes fail:%s", err.Error())
 			return nil, err
@@ -669,7 +669,7 @@ func (m *MemberProvider) avatarThumbnail(fileId int64, maxPx int) (*libs.FileNod
 	if file.Width < file.Height && file.Height > maxPx {
 		var dstImage image.Image
 		dstImage = imaging.Thumbnail(srcImg, maxPx, maxPx, imaging.Lanczos)
-		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+		fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 		if err != nil {
 			logs.Errorf("member avatar  pic thumbnail by height's ratio image to bytes fail:%s", err.Error())
 			return nil, err
@@ -1061,7 +1061,7 @@ func (m *MemberProvider) SetMemberBackgroundImg(uid int64, bgId int64) (fn *libs
 	}
 	sigma := 3.0
 	dstImage := imaging.Blur(srcImg, sigma)
-	fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+	fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 	if err != nil {
 		logs.Errorf("member background pic convert fail:%s", err.Error())
 		return nil, err

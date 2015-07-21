@@ -26,6 +26,7 @@ func (c *CreditService) GetCredit(uid int64) int64 {
 	var i int64 = 0
 	err := ssdb.New(use_ssdb_credit_db).Get(c.creditKey(uid), &i)
 	if err != nil {
+		logs.Errorf("credit service get credit fail:%s", err.Error())
 		return 0
 	}
 	return i
@@ -650,5 +651,8 @@ func (c *CreditService) unlockCredit(op *OperationCreditParameter) *Result {
 }
 
 func (c *CreditService) updateCredit(uid int64, points int64) {
-	ssdb.New(use_ssdb_credit_db).Set(c.creditKey(uid), points)
+	err := ssdb.New(use_ssdb_credit_db).Set(c.creditKey(uid), points)
+	if err != nil {
+		logs.Errorf("credit service update credit fail:%s", err.Error())
+	}
 }

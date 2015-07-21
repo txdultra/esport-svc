@@ -111,7 +111,7 @@ func (f *ImageController) Resize() {
 		break
 	}
 
-	fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+	fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 	if err != nil {
 		f.Json(libs.NewError("img_resize_convert_fail", "F6007", err.Error(), ""))
 		return
@@ -191,7 +191,7 @@ func (f *ImageController) Crop() {
 		dstImage = imaging.Crop(srcImg, image.Rect(int(x1), int(y1), int(x2), int(y2)))
 	}
 
-	fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+	fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 	if err != nil {
 		f.Json(libs.NewError("img_crop_convert_fail", "F6017", err.Error(), ""))
 		return
@@ -255,7 +255,7 @@ func (f *ImageController) Blur() {
 		return
 	}
 	dstImage := imaging.Blur(srcImg, sigma)
-	fileData, err := utils.ImageToBytes(dstImage, file.OriginalName)
+	fileData, err := utils.ImageToBytes(dstImage, file.OriginalName, file.ExtName)
 	if err != nil {
 		f.Json(libs.NewError("img_blur_convert_fail", "F6027", err.Error(), ""))
 		return

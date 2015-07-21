@@ -191,9 +191,9 @@ func (n *Shares) Create(s *Share, msg_notice bool) (error, int64) {
 				if file == nil {
 					return
 				}
-				if file.ExtName == "gif" { //gif不支持
-					return
-				}
+				//				if file.ExtName == "gif" { //gif不支持
+				//					return
+				//				}
 				sspic := NewShareViewPics()
 				//创建预览图
 				sspic.Create(file, NeedSharePicSizes)

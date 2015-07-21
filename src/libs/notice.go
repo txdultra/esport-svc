@@ -216,7 +216,6 @@ func (n *Noticer) StartNoticeTimer(eventId int, eventKey string, afterDuration t
 				return
 			}
 			defer msvc.EndMulti()
-			defer pusher.SetState(eventId, eventKey, PUSH_STATE_SENDED)
 			for {
 				_, events := pn.GetObservers(i, 200, map[string]interface{}{"event_id": eventId}, "")
 				if len(events) == 0 {
@@ -236,6 +235,7 @@ func (n *Noticer) StartNoticeTimer(eventId int, eventKey string, afterDuration t
 				}
 				i++
 			}
+			pusher.SetState(eventId, eventKey, PUSH_STATE_SENDED)
 			delete(noticeTasks, event_identifier) //删除任务引用
 		})
 		noticeTasks[event_identifier] = timer

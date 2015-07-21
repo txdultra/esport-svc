@@ -11,6 +11,7 @@ import (
 	"labix.org/v2/mgo/bson"
 	//"sync"
 	"encoding/json"
+	"libs/hook"
 	"libs/passport"
 	"time"
 	"utils"
@@ -285,6 +286,8 @@ func (n *ProgramNoticer) SubscribeNoticeSingle(uid int64, programId int64, subsc
 	n.addToCache(uid, []int64{subscribeEventId})
 	//新提醒计数器
 	n.incrMemberNotice(uid, 1)
+	//hook
+	go hook.Do("live_sub_program", uid, 1)
 	return nil
 }
 

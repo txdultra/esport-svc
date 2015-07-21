@@ -4,6 +4,7 @@ import (
 	"controllers"
 	"fmt"
 	"libs"
+	"libs/qrcode"
 	"libs/shop"
 	"outobjs"
 	"strconv"
@@ -53,6 +54,8 @@ func (c *ShopCPController) getItem(item *shop.Item) *outobjs.OutShopItemForAdmin
 		DisplayOrder:  item.DisplayOrder,
 		Enabled:       item.Enabled,
 		IsView:        item.IsView,
+		Attrs:         item.GetAttrsMap(),
+		TagId:         item.TagId,
 	}
 }
 
@@ -105,6 +108,8 @@ func (c *ShopCPController) GetItems() {
 // @Param   stocks   path	int true  "库存"
 // @Param   display_order   path	int true  "排序"
 // @Param   is_view   path	bool true  "是否显示"
+// @Param   tag_id   path	int false  "标签编号"
+// @Param   attrs   path	string false  "其他参数(格式:name1|value2,name1|value3)"
 // @Success 200 {object} libs.Error
 // @router /item/add [post]
 func (c *ShopCPController) AddItem() {
@@ -121,6 +126,8 @@ func (c *ShopCPController) AddItem() {
 	stocks, _ := c.GetInt("stocks")
 	display_order, _ := c.GetInt("display_order")
 	is_view, _ := c.GetBool("is_view")
+	tag_id, _ := c.GetInt("tag_id")
+	attrstr, _ := utils.UrlDecode(c.GetString("attrs"))
 
 	if len(name) == 0 {
 		c.Json(libs.NewError("admincp_shop_add_fail", "GM030_001", "参数name错误", ""))
@@ -146,8 +153,9 @@ func (c *ShopCPController) AddItem() {
 		c.Json(libs.NewError("admincp_shop_add_fail", "GM030_006", "参数item_state错误", ""))
 		return
 	}
+
 	shopp := shop.NewShop()
-	err := shopp.CreateItem(&shop.Item{
+	item := &shop.Item{
 		Name:          name,
 		Description:   description,
 		PriceType:     shop.PRICE_TYPE(price_type),
@@ -164,7 +172,16 @@ func (c *ShopCPController) AddItem() {
 		Stocks:        stocks,
 		Enabled:       true,
 		IsView:        is_view,
-	})
+		TagId:         tag_id,
+	}
+	attrkvs := strings.Split(attrstr, ",")
+	for _, kv := range attrkvs {
+		_kv := strings.Split(kv, "|")
+		if len(_kv) == 2 {
+			item.SetAttr(_kv[0], _kv[1])
+		}
+	}
+	err := shopp.CreateItem(item)
 	if err == nil {
 		c.Json(libs.NewError("admincp_shop_add_succ", controllers.RESPONSE_SUCCESS, "新商品添加成功", ""))
 		return
@@ -186,12 +203,17 @@ func (c *ShopCPController) AddItem() {
 // @Param   item_state   path	int true  "商品状态"
 // @Param   display_order   path	int true  "排序"
 // @Param   is_view   path	bool true  "是否显示"
+// @Param   tag_id   path	int false  "标签编号"
+// @Param   attrs   path	string false  "其他参数(格式:name1|value2,name1|value3)"
 // @Success 200 {object} libs.Error
 // @router /item/update [post]
 func (c *ShopCPController) UpdateItem() {
 	item_id, _ := c.GetInt64("item_id")
 	name, _ := utils.UrlDecode(c.GetString("name"))
+	//&nbsp; bug
 	description, _ := utils.UrlDecode(c.GetString("description"))
+	description, _ = utils.UrlDecode(description)
+
 	price_type, _ := c.GetInt("price_type")
 	price, _ := c.GetFloat("price")
 	ori_price, _ := c.GetFloat("original_price")
@@ -202,6 +224,8 @@ func (c *ShopCPController) UpdateItem() {
 	item_state, _ := c.GetInt("item_state")
 	display_order, _ := c.GetInt("display_order")
 	is_view, _ := c.GetBool("is_view")
+	tag_id, _ := c.GetInt("tag_id")
+	attrstr, _ := utils.UrlDecode(c.GetString("attrs"))
 
 	if item_id <= 0 {
 		c.Json(libs.NewError("admincp_shop_update_fail", "GM030_020", "参数item_id错误", ""))
@@ -250,6 +274,16 @@ func (c *ShopCPController) UpdateItem() {
 	item.ModifyTs = time.Now().Unix()
 	item.DisplayOrder = display_order
 	item.IsView = is_view
+	item.TagId = tag_id
+
+	attrkvs := strings.Split(attrstr, ",")
+	for _, kv := range attrkvs {
+		_kv := strings.Split(kv, "|")
+		if len(_kv) == 2 {
+			item.SetAttr(_kv[0], _kv[1])
+		}
+	}
+
 	err := shopp.UpdateItem(item)
 	if err == nil {
 		c.Json(libs.NewError("admincp_shop_update_succ", controllers.RESPONSE_SUCCESS, "商品更新成功", ""))
@@ -386,6 +420,7 @@ func (c *ShopCPController) GetOrders() {
 		out_orders = append(out_orders, &outobjs.OutShopOrderForAdmin{
 			OrderNo:     order.OrderNo,
 			ItemId:      order.ItemId,
+			ItemType:    order.ItemType,
 			IssueType:   order.IssueType,
 			Ts:          order.Ts,
 			Uid:         order.Uid,
@@ -436,6 +471,7 @@ func (c *ShopCPController) GetOrder() {
 	c.Json(&outobjs.OutShopOrderForAdmin{
 		OrderNo:     order.OrderNo,
 		ItemId:      order.ItemId,
+		ItemType:    order.ItemType,
 		IssueType:   order.IssueType,
 		Ts:          order.Ts,
 		Uid:         order.Uid,
@@ -521,4 +557,201 @@ func (c *ShopCPController) Snap() {
 	}
 	out_snap := outobjs.GetOutShopItemSnap(snap)
 	c.Json(out_snap)
+}
+
+// @Title 生成电子票
+// @Description 生成电子票
+// @Param   item_id   path	int true  "商品id"
+// @Param   nums   path	int true  "电子票数量"
+// @Param   img1   path	int false  "电子票图片1"
+// @Param   img2   path	int false  "电子票图片2"
+// @Param   img3   path	int false  "电子票图片3"
+// @Param   start_time_attrname   path	string true  "开始时间名称"
+// @Param   end_time_attrname   path	string true  "结束时间名称"
+// @Success 200 {object} libs.Error
+// @router /item/build_tickets [post]
+func (c *ShopCPController) BuildTickets() {
+	itemId, _ := c.GetInt64("item_id", 0)
+	nums, _ := c.GetInt("nums", 0)
+	img1, _ := c.GetInt64("img1", 0)
+	img2, _ := c.GetInt64("img2", 0)
+	img3, _ := c.GetInt64("img3", 0)
+	stimeName := c.GetString("start_time_attrname")
+	etimeName := c.GetString("end_time_attrname")
+
+	if itemId <= 0 || nums <= 0 {
+		c.Json(libs.NewError("admincp_shop_build_ticket_fail", "GM030_080", "参数错误", ""))
+		return
+	}
+	if len(stimeName) == 0 || len(etimeName) == 0 {
+		c.Json(libs.NewError("admincp_shop_build_ticket_fail", "GM030_081", "时间名称错误", ""))
+		return
+	}
+	shopp := shop.NewShop()
+	item := shopp.GetItem(itemId)
+	if item == nil || item.ItemType != shop.ITEM_TYPE_TICKET {
+		c.Json(libs.NewError("admincp_shop_build_ticket_fail", "GM030_082", "商品不存在或不是电子票", ""))
+		return
+	}
+	loc, _ := time.LoadLocation("Local")
+	_val := item.GetAttr(stimeName).(string)
+	stime, terr := time.ParseInLocation("2006-01-02 15:04", _val, loc) //time.Parse("2006-01-02 15:04", _val)
+	_val = item.GetAttr(etimeName).(string)
+	etime, terr := time.ParseInLocation("2006-01-02 15:04", _val, loc) //time.Parse("2006-01-02 15:04", _val)
+	if terr != nil {
+		c.Json(libs.NewError("admincp_shop_build_ticket_fail", "GM030_083", "日期转换失败", ""))
+		return
+	}
+
+	tickets := []*shop.ItemTicket{}
+	for i := 0; i < nums; i++ {
+		_code, _ := qrcode.GetClientCode(shop.QRCODE_TICKET_FLAG, utils.RandomStrings(10))
+		tickets = append(tickets, &shop.ItemTicket{
+			ItemId:    item.ItemId,
+			Code:      _code,
+			Img1:      img1,
+			Img2:      img2,
+			Img3:      img3,
+			StartTime: stime.Unix(),
+			EndTime:   etime.Unix(),
+			TagId:     item.TagId,
+			Status:    shop.ITEM_TICKET_STATUS_NOUSE,
+			TType:     shop.ITEM_TICKET_TYPE_VIRUAL,
+		})
+	}
+	err := shopp.MultiCreateItemTickets(itemId, tickets)
+	if err == nil {
+		c.Json(libs.NewError("admincp_shop_build_ticket_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_shop_build_ticket_fail", "GM030_084", "添加失败:"+err.Error(), ""))
+}
+
+// @Title 添加商品标签
+// @Description 添加商品标签
+// @Param   title   path  string  true  "标题"
+// @Param   description   path	string true  "描述"
+// @Param   img1   path	int false  "图片1"
+// @Param   img2   path	int false  "图片2"
+// @Param   img3   path	int false  "图片3"
+// @Success 200 {object} libs.Error
+// @router /tag/add [post]
+func (c *ShopCPController) AddTag() {
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	description, _ := utils.UrlDecode(c.GetString("description"))
+	img1, _ := c.GetInt64("img1")
+	img2, _ := c.GetInt64("img2")
+	img3, _ := c.GetInt64("img3")
+
+	if len(title) == 0 || len(description) == 0 {
+		c.Json(libs.NewError("admincp_shop_addtag_fail", "GM030_090", "参数错误", ""))
+		return
+	}
+	tag := &shop.ItemTag{
+		Title:       title,
+		Description: description,
+		Img1:        img1,
+		Img2:        img2,
+		Img3:        img3,
+	}
+	shopp := shop.NewShop()
+	err := shopp.CreateItemTag(tag)
+	if err == nil {
+		c.Json(libs.NewError("admincp_shop_addtag_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_shop_addtag_fail", "GM030_091", "添加失败:"+err.Error(), ""))
+}
+
+// @Title 更新商品标签
+// @Description 更新商品标签
+// @Param   id   path  int  true  "标签id"
+// @Param   title   path  string  true  "标题"
+// @Param   description   path	string true  "描述"
+// @Param   img1   path	int false  "图片1"
+// @Param   img2   path	int false  "图片2"
+// @Param   img3   path	int false  "图片3"
+// @Success 200 {object} libs.Error
+// @router /tag/update [post]
+func (c *ShopCPController) UpdateTag() {
+	id, _ := c.GetInt("id")
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	description, _ := utils.UrlDecode(c.GetString("description"))
+	img1, _ := c.GetInt64("img1")
+	img2, _ := c.GetInt64("img2")
+	img3, _ := c.GetInt64("img3")
+
+	if id <= 0 || len(title) == 0 || len(description) == 0 {
+		c.Json(libs.NewError("admincp_shop_updatetag_fail", "GM030_100", "参数错误", ""))
+		return
+	}
+	shopp := shop.NewShop()
+	tag := shopp.GetItemTag(id)
+	if tag == nil {
+		c.Json(libs.NewError("admincp_shop_updatetag_fail", "GM030_101", "参数错误", ""))
+		return
+	}
+	tag.Title = title
+	tag.Description = description
+	tag.Img1 = img1
+	tag.Img2 = img2
+	tag.Img3 = img3
+	err := shopp.UpdateItemTag(tag)
+	if err == nil {
+		c.Json(libs.NewError("admincp_shop_updatetag_succ", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_shop_updatetag_fail", "GM030_102", "更新失败:"+err.Error(), ""))
+}
+
+func (c *ShopCPController) getOutItemTag(tag *shop.ItemTag) *outobjs.OutShopItemTagForAdmin {
+	if tag == nil {
+		return nil
+	}
+	return &outobjs.OutShopItemTagForAdmin{
+		Id:          tag.Id,
+		Title:       tag.Title,
+		Description: tag.Description,
+		Img1:        tag.Img1,
+		Img1Url:     c.storage.GetFileUrl(tag.Img1),
+		Img2:        tag.Img2,
+		Img2Url:     c.storage.GetFileUrl(tag.Img2),
+		Img3:        tag.Img3,
+		Img3Url:     c.storage.GetFileUrl(tag.Img3),
+		PostTime:    time.Unix(tag.PostTime, 0),
+	}
+}
+
+// @Title 获取商品标签
+// @Description 获取商品标签
+// @Param   id   path  int  true  "标签id"
+// @Success 200 {object} outobjs.OutShopItemTagForAdmin
+// @router /tag/:id([0-9]+) [get]
+func (c *ShopCPController) GetTag() {
+	id, _ := c.GetInt(":id")
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_shop_get_fail", "GM030_110", "参数错误", ""))
+		return
+	}
+	shopp := shop.NewShop()
+	tag := shopp.GetItemTag(id)
+	if tag == nil {
+		c.Json(libs.NewError("admincp_shop_get_fail", "GM030_111", "标签不存在", ""))
+		return
+	}
+	c.Json(c.getOutItemTag(tag))
+}
+
+// @Title 获取商品标签集合
+// @Description 获取商品标签集合
+// @Success 200 {object} outobjs.OutShopItemTagForAdmin
+// @router /tag/all [get]
+func (c *ShopCPController) GetTags() {
+	shopp := shop.NewShop()
+	tags := shopp.GetItemTags()
+	out_t := make([]*outobjs.OutShopItemTagForAdmin, len(tags), len(tags))
+	for i, tag := range tags {
+		out_t[i] = c.getOutItemTag(tag)
+	}
+	c.Json(out_t)
 }

@@ -225,6 +225,8 @@ func (c *GroupCPController) GetGroup() {
 // @Param   invite_uids   path  string  false  "用户uids(用,分隔)"
 // @Param   belong   path  string  true  "所属类型"
 // @Param   uid  path  int  true  "所属uid"
+// @Param   recommend   path  bool  false  "推荐"
+// @Param   displayorder   path  int  false  "排序"
 // @Success 200 {object} libs.Error
 // @router /group/create [post]
 func (c *GroupCPController) CreateGroup() {
@@ -239,6 +241,8 @@ func (c *GroupCPController) CreateGroup() {
 	inviteuids := c.GetString("invite_uids")
 	uid, _ := c.GetInt64("uid")
 	bl, _ := c.GetInt("belong")
+	remd, _ := c.GetBool("recommend")
+	displayorder, _ := c.GetInt("displayorder")
 
 	var belong groups.GROUP_BELONG
 	switch bl {
@@ -264,18 +268,20 @@ func (c *GroupCPController) CreateGroup() {
 
 	gs := groups.NewGroupService(groups.GetDefaultCfg())
 	group := &groups.Group{
-		Name:        name,
-		Description: desc,
-		Uid:         uid,
-		Country:     country,
-		City:        city,
-		GameIds:     gameids,
-		BgImg:       bgimg,
-		Belong:      belong,
-		Type:        groups.GROUP_TYPE_NORMAL,
-		LongiTude:   float32(longitude),
-		LatiTude:    float32(latitude),
-		InviteUids:  inv_uids,
+		Name:         name,
+		Description:  desc,
+		Uid:          uid,
+		Country:      country,
+		City:         city,
+		GameIds:      gameids,
+		BgImg:        bgimg,
+		Belong:       belong,
+		Type:         groups.GROUP_TYPE_NORMAL,
+		LongiTude:    float32(longitude),
+		LatiTude:     float32(latitude),
+		InviteUids:   inv_uids,
+		Recommend:    remd,
+		DisplarOrder: displayorder,
 	}
 	err := gs.Create(group)
 	if err != nil {

@@ -66,6 +66,11 @@ func init() {
 				&controllers.ShopController{},
 			),
 		),
+		beego.NSNamespace("/qrcode",
+			beego.NSInclude(
+				&controllers.QRCodeController{},
+			),
+		),
 		beego.NSNamespace("/openid",
 			beego.NSInclude(
 				&controllers.OpenIDController{},

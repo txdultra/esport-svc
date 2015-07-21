@@ -45,6 +45,9 @@ func (sp *ShopPurchaser) issueType(itemType ITEM_TYPE) ISSUE_TYPE {
 	if itemType == ITEM_TYPE_VIRTUAL {
 		return ISSUE_TYPE_DIRECT
 	}
+	if itemType == ITEM_TYPE_TICKET {
+		return ISSUE_TYPE_DIRECT
+	}
 	panic("商品类型没有对应的发货方式")
 }
 
@@ -192,6 +195,7 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 
 	order := &Order{
 		ItemId:      item.ItemId,
+		ItemType:    item.ItemType,
 		IssueType:   sp.issueType(item.ItemType),
 		Ts:          time.Now().Unix(),
 		Uid:         uid,
@@ -216,18 +220,18 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 		}
 	}
 
-	if item.ItemType == ITEM_TYPE_VIRTUAL {
-		//扣款
-		no, err := sp.lockCredit(int64(totalPrice), uid, credit_proxy.OPERATION_ACTOIN_LOCKDECR, item.Name)
-		if err != nil {
-			return &BuyResult{
-				OrderNo:  "",
-				Code:     "",
-				ItemType: item.ItemType,
-				Error:    fmt.Errorf("扣除积分失败,无法购买商品"),
-			}
+	//扣款
+	no, err := sp.lockCredit(int64(totalPrice), uid, credit_proxy.OPERATION_ACTOIN_LOCKDECR, item.Name)
+	if err != nil {
+		return &BuyResult{
+			OrderNo:  "",
+			Code:     "",
+			ItemType: item.ItemType,
+			Error:    fmt.Errorf("扣除积分失败,无法购买商品"),
 		}
+	}
 
+	if item.ItemType == ITEM_TYPE_VIRTUAL {
 		code, err := shopp.UseItemCode(itemId, orderNo)
 		if err != nil {
 			sp.rollbackCredit(no)
@@ -253,6 +257,9 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 		//扣除库存和销量
 		shopp.UpdateItemStocks(itemId, -nums, nums, true)
 
+		//添加用户计数
+		go shopp.UpdateMemberCount(uid, 1, MEMBER_COUNT_UPDATE_ITEM_PURCHASEDS)
+
 		return &BuyResult{
 			OrderNo:  orderNo,
 			Code:     code,
@@ -262,16 +269,6 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 	}
 
 	if item.ItemType == ITEM_TYPE_ENTITY {
-		//扣款
-		no, err := sp.lockCredit(int64(totalPrice), uid, credit_proxy.OPERATION_ACTOIN_LOCKDECR, item.Name)
-		if err != nil {
-			return &BuyResult{
-				OrderNo:  "",
-				Code:     "",
-				ItemType: item.ItemType,
-				Error:    fmt.Errorf("扣除积分失败,无法购买商品"),
-			}
-		}
 		shopp.CreateOrderTransport(&OrderTransport{
 			OrderNo:  orderNo,
 			Country:  "zh",
@@ -300,7 +297,49 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 			Error:    nil,
 		}
 	}
+	if item.ItemType == ITEM_TYPE_TICKET {
+		it, err := shopp.GetNoUseItemTicket(itemId, uid, orderNo)
+		if err != nil {
+			sp.rollbackCredit(no)
+			shopp.DeleteOrder(orderNo)
+			//需加修正库存机制
+			return &BuyResult{
+				OrderNo:  "",
+				Code:     "",
+				ItemType: item.ItemType,
+				Error:    fmt.Errorf("商品码已无货"),
+			}
+		}
+		//确定扣除积分
+		sp.enterCredit(no)
+		//更新订单状态
+		order.PayId = PAYID_CREDIT
+		order.PayNo = no
+		order.PayStatus = PAY_STATUS_PAIED
+		order.OrderStatus = ORDER_STATUS_COMPLETED
+		ttype := "real"
+		if it.TType != ITEM_TICKET_TYPE_REAL {
+			ttype = "virual"
+		}
+		order.Ex1 = it.Code
+		order.Ex2 = ttype
+		shopp.UpdateOrder(order)
+
+		//扣除库存和销量
+		shopp.UpdateItemStocks(itemId, -nums, nums, true)
+
+		//添加用户计数
+		go shopp.UpdateMemberCount(uid, 1, MEMBER_COUNT_UPDATE_ITEM_PURCHASEDS)
+
+		return &BuyResult{
+			OrderNo:  orderNo,
+			Code:     it.Code,
+			ItemType: item.ItemType,
+			Error:    nil,
+		}
+	}
 	//商品类型没有可用流程
+	sp.rollbackCredit(no)
 	shopp.DeleteOrder(orderNo)
 	return &BuyResult{
 		OrderNo:  "",

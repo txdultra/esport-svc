@@ -21,8 +21,12 @@ func init() {
 	hook.RegisterHook("share_qt_comment", "utask_share_qt_comment", ac)
 	hook.RegisterHook("subscr_vuser", "utask_subscr_vuser", ac)
 	hook.RegisterHook("fx_vod", "utask_fx_vod", ac)
-	hook.RegisterHook("live_vod_view_time", "utask_vod_comment", ac)
-
+	hook.RegisterHook("live_vod_view_time", "utask_live_vod_view_time", ac)
+	hook.RegisterHook("live_sub_program", "utask_live_sub_program", ac)
+	hook.RegisterHook("group_modify_bgimg", "utask_group_modify_bgimg", ac)
+	hook.RegisterHook("group_new_thread", "utask_group_new_thread", ac)
+	hook.RegisterHook("group_new_post", "utask_group_new_post", ac)
+	hook.RegisterHook("group_ding_post", "utask_group_ding_post", ac)
 	fmt.Println("utask hook registed")
 }
 

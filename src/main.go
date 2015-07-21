@@ -6,6 +6,7 @@ import (
 	_ "docs"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	//"strings"
@@ -21,8 +22,6 @@ import (
 
 	//"libs/reptile"
 	//"libs/collect"
-
-	//"libs/credits/proxy"
 
 	_ "libs/version"
 	//"outobjs"
@@ -62,6 +61,10 @@ import (
 
 	//加载钩子程序
 
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+
 	_ "libs/utask/hook"
 
 	cmd "github.com/Lupino/periodic/cmd/periodic/subcmd"
@@ -71,12 +74,14 @@ import (
 
 func main() {
 
-	str := "就哦few及\r即佛鳄冏\r\r\r\r加哦ifewj\r"
+	f, err := os.Open("d:\\{2D3CC08C-285D-4A2B-8824-A76F4E94EF64}.jpg")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	data, _ := ioutil.ReadAll(f)
+	fmt.Println(utils.ImageFormat(data))
 
-	//rep := regexp.MustCompile("[\\r]{2,}")
-	//fmt.Println(rep.ReplaceAllString(str, "\r\r"))
-
-	fmt.Println(utils.ReplaceRepeatString(str, `\r`, 3, "\r\r"))
 	return
 
 	//	//	o := dbs.NewOrm("group_db")

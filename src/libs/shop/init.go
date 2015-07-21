@@ -2,6 +2,7 @@ package shop
 
 import (
 	"dbs"
+	"libs/qrcode"
 	"strconv"
 	"sync"
 
@@ -26,6 +27,9 @@ func init() {
 		new(Province),
 		new(City),
 		new(Area),
+		new(ShopMemberCount),
+		new(ItemTag),
+		new(ItemTicket),
 	)
 	register_db()
 	//初始化地区
@@ -36,6 +40,9 @@ func init() {
 	if len(credit_service_host) == 0 {
 		panic("未配置参数:shop.credit.host参数")
 	}
+
+	//注册二维码服务
+	qrcode.RegisterQRProcessor(QRCODE_TICKET_FLAG, &ShopTicketQRCodeService{})
 }
 
 func init_areas() {
