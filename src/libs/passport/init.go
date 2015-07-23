@@ -55,7 +55,7 @@ func init() {
 	}
 	_friend_limit_counts, _ := beego.AppConfig.Int("friend.limit.counts")
 	if _friend_limit_counts <= 0 {
-		friend_limit_counts = 500
+		friend_limit_counts = 200
 	} else {
 		friend_limit_counts = _friend_limit_counts
 	}

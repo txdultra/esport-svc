@@ -43,8 +43,6 @@ func (c *MemberController) URLMapping() {
 	c.Mapping("SetNickname", c.SetNickname)
 	c.Mapping("SetAvatar", c.SetAvatar)
 	c.Mapping("FrequentAts", c.FrequentAts)
-	c.Mapping("FrequentAts", c.FrequentAts)
-	c.Mapping("FrequentAts", c.FrequentAts)
 	c.Mapping("GetMyConfig", c.GetMyConfig)
 	c.Mapping("SetMyConfig", c.SetMyConfig)
 	c.Mapping("SetMemberBackgroundImg", c.SetMemberBackgroundImg)

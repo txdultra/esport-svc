@@ -138,16 +138,16 @@ func (m *FriendShips) FriendTo(source_uid int64, target_uid int64) error {
 		ssdb.New(use_ssdb_passport_db).Zrem(fmt.Sprintf(friendship_friend_sets, source_uid), target_uid) //回滚删除好友Set
 		return fmt.Errorf("关注失败")
 	}
-	stat.GetCounter(MOD_NAME).DoC(source_uid, 1, "friends")
-	stat.GetCounter(MOD_NAME).DoC(target_uid, 1, "fans")
 	//新粉丝
 	ssdb.New(use_ssdb_passport_db).Zadd(fmt.Sprintf(friendship_new_followers_sets, target_uid), source_uid, utils.TimeMillisecond(now))
-
 	//互粉
 	if IsFriend(target_uid, source_uid) {
 		ssdb.New(use_ssdb_passport_db).Zadd(fmt.Sprintf(friendship_friend_both_sets, source_uid), target_uid, utils.TimeMillisecond(now))
 		ssdb.New(use_ssdb_passport_db).Zadd(fmt.Sprintf(friendship_friend_both_sets, target_uid), source_uid, utils.TimeMillisecond(now))
 	}
+	//数据库更新
+	stat.GetCounter(MOD_NAME).DoC(source_uid, 1, "friends")
+	stat.GetCounter(MOD_NAME).DoC(target_uid, 1, "fans")
 
 	//删除py关注列表缓存
 	cache := utils.GetCache()
@@ -202,15 +202,16 @@ func (m *FriendShips) DestroyFriend(source_uid int64, target_uid int64) error {
 	ssdb.New(use_ssdb_passport_db).Zrem(fmt.Sprintf(friendship_friend_sets, source_uid), target_uid)   //删除好友Set
 	ssdb.New(use_ssdb_passport_db).Zrem(fmt.Sprintf(friendship_follower_sets, target_uid), source_uid) //删除粉丝Set
 
-	stat.GetCounter(MOD_NAME).DoC(source_uid, -1, "friends")
-	stat.GetCounter(MOD_NAME).DoC(target_uid, -1, "fans")
-
 	//删除新粉丝
 	ssdb.New(use_ssdb_passport_db).Zrem(fmt.Sprintf(friendship_new_followers_sets, target_uid), source_uid)
 
 	//互粉
 	ssdb.New(use_ssdb_passport_db).Zrem(fmt.Sprintf(friendship_friend_both_sets, source_uid), target_uid)
 	ssdb.New(use_ssdb_passport_db).Zrem(fmt.Sprintf(friendship_friend_both_sets, target_uid), source_uid)
+
+	//数据库更新
+	stat.GetCounter(MOD_NAME).DoC(source_uid, -1, "friends")
+	stat.GetCounter(MOD_NAME).DoC(target_uid, -1, "fans")
 
 	//删除py关注列表缓存
 	cache := utils.GetCache()
@@ -281,6 +282,9 @@ func (m *FriendShips) py(uids []int64) map[string][]int64 {
 	}
 	pymap := make(map[string][]int64)
 	toF := func(char string) string {
+		if len(char) == 0 {
+			return "*"
+		}
 		if char[0] < 65 || char[0] > 90 {
 			return "*"
 		}
@@ -289,7 +293,10 @@ func (m *FriendShips) py(uids []int64) map[string][]int64 {
 	for k, v := range idnks {
 		py := utils.PYConvert(v, 1)
 		py = strings.ToUpper(py)
-		fpy := py[:1]
+		fpy := ""
+		if len(py) > 0 {
+			fpy = py[:1]
+		}
 		fpy = toF(fpy)
 		if ids, ok := pymap[fpy]; ok {
 			ids = append(ids, k)
