@@ -9,7 +9,15 @@ import (
 type IQRCodeService interface {
 	Flag() string
 	EncodeCode(code string) string
-	Process(qrCode string)
+	DecodeCode(fromUid int64, code string) (*QRCodeResult, error)
+}
+
+type QRCodeResult struct {
+	Mod    string
+	Action string
+	Result string
+	Msg    string
+	Args   []interface{}
 }
 
 var qrcodeServices map[string]IQRCodeService = make(map[string]IQRCodeService)
@@ -28,18 +36,26 @@ func RegisterQRProcessor(flag string, service IQRCodeService) {
 	}
 }
 
-func Processor(qrCode string) (IQRCodeService, error) {
+func processor(qrCode string) (IQRCodeService, error) {
 	lock.RLock()
 	defer lock.RUnlock()
 	args := strings.Split(qrCode, ":")
 	if len(args) < 2 {
-		return nil, fmt.Errorf("没有对应额处理器")
+		return nil, fmt.Errorf("没有对应的处理器")
 	}
 	flag := strings.ToLower(args[0])
 	if service, ok := qrcodeServices[flag]; ok {
 		return service, nil
 	}
-	return nil, fmt.Errorf("没有对应额处理器")
+	return nil, fmt.Errorf("没有对应的处理器")
+}
+
+func DecodeCode(fromUid int64, qrCode string) (*QRCodeResult, error) {
+	service, err := processor(qrCode)
+	if err != nil {
+		return nil, err
+	}
+	return service.DecodeCode(fromUid, qrCode)
 }
 
 func GetClientCode(flag string, srcCode string) (string, error) {

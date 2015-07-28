@@ -104,6 +104,7 @@ type OutThread struct {
 	Closed             bool                 `json:"closed"`
 	Highlight          bool                 `json:"highlight"`
 	Heats              int                  `json:"heats"`
+	DisplayOrder       int                  `json:"displayorder"`
 }
 
 type OutThreadPagedListForAdmin struct {
@@ -117,7 +118,7 @@ type OutThreadPagedListForAdmin struct {
 type OutPostPagedList struct {
 	CurrentPage int        `json:"current_page"`
 	TotalPages  int        `json:"total_pages"`
-	Total 		int 	   `json:"total"`
+	Total       int        `json:"total"`
 	PageSize    int        `json:"page_size"`
 	Posts       []*OutPost `json:"posts"`
 	MaxDingPost *OutPost   `json:"max_ding_post"`
@@ -282,6 +283,7 @@ func GetOutThread(thread *groups.Thread) *OutThread {
 		Closed:             thread.Closed,
 		Highlight:          thread.Highlight,
 		Heats:              thread.Heats,
+		DisplayOrder:       thread.DisplayOrder,
 	}
 }
 

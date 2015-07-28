@@ -375,6 +375,28 @@ func (c *GroupCPController) CloseThread() {
 	c.Json(libs.NewError("admincp_thread_close_success", controllers.RESPONSE_SUCCESS, "关闭成功", ""))
 }
 
+// @Title 设置帖子排序
+// @Description 设置帖子排序
+// @Param   thread_id  path  int  true  "帖子id"
+// @Param   displayorder  path  int  true  "排序数(越大排越前)"
+// @Success 200 {object} libs.Error
+// @router /thread/set_displayorder [post]
+func (c *GroupCPController) SetThreadOrder() {
+	threadid, _ := c.GetInt64("thread_id")
+	if threadid <= 0 {
+		c.Json(libs.NewError("admincp_thread_setorder_fail", "GM040_110", "id错误", ""))
+		return
+	}
+	displayorder, _ := c.GetInt("displayorder")
+	ts := groups.NewThreadService(groups.GetDefaultCfg())
+	err := ts.SetDisplayOrder(threadid, displayorder)
+	if err != nil {
+		c.Json(libs.NewError("admincp_thread_setorder_fail", "GM040_111", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_thread_setorder_success", controllers.RESPONSE_SUCCESS, "设置成功", ""))
+}
+
 // @Title 获取帖子信息
 // @Description 获取帖子信息
 // @Param   thread_id  path  int  true  "帖子id"
@@ -430,6 +452,68 @@ func (c *GroupCPController) GetThreads() {
 		Pages:       utils.TotalPages(total, size),
 	}
 	c.Json(out_p)
+}
+
+// @Title 新建帖子
+// @Description 新建帖子
+// @Param   uid  path  int  true  "uid"
+// @Param   group_id   path  int  true  "组id"
+// @Param   subject   path  string  true  "标题"
+// @Param   message   path  string  true  "内容"
+// @Param   img_ids   path  string  true  "图片集(最大9张 逗号,分隔)"
+// @Param   longitude   path  float  false  "经度"
+// @Param   latitude   path  float  false  "维度"
+// @Param   fromdev   path  string  false  "设备标识(android,ios,ipad,wphone,web)"
+// @Success 200 {object} libs.Error
+// @router /thread/submit [post]
+func (c *GroupCPController) CreateThread() {
+	uid, _ := c.GetInt64("uid")
+	groupid, _ := c.GetInt64("group_id")
+	subject, _ := utils.UrlDecode(c.GetString("subject"))
+	message, _ := utils.UrlDecode(c.GetString("message"))
+	imgids := c.GetString("img_ids")
+	fromdev := c.GetString("fromdev")
+	longitude, _ := c.GetFloat("longitude")
+	latitude, _ := c.GetFloat("latitude")
+	if uid <= 0 {
+		c.Json(libs.NewError("admincp_createthread_fail", "GM040_120", "uid错误", ""))
+		return
+	}
+
+	ths := groups.NewThreadService(groups.GetDefaultCfg())
+	thread := &groups.Thread{
+		GroupId:  groupid,
+		Subject:  subject,
+		AuthorId: uid,
+	}
+	img_ids := []int64{}
+	arrImg := strings.Split(imgids, ",")
+	for _, _ai := range arrImg {
+		_id, _ := strconv.ParseInt(_ai, 10, 64)
+		if _id > 0 {
+			img_ids = append(img_ids, _id)
+		}
+	}
+	if len(img_ids) > 9 {
+		c.Json(libs.NewError("group_createthread_fail", "GM040_121", "图片数量不能大于9张", ""))
+		return
+	}
+	post := &groups.Post{
+		AuthorId:   uid,
+		Subject:    subject,
+		Message:    message,
+		Ip:         c.Ctx.Input.IP(),
+		FromDevice: groups.GetFromDevice(fromdev),
+		ImgIds:     img_ids,
+		LongiTude:  float32(longitude),
+		LatiTude:   float32(latitude),
+	}
+	err := ths.Create(thread, post)
+	if err != nil {
+		c.Json(libs.NewError("group_createthread_fail", "GM040_122", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("group_createthread_success", controllers.RESPONSE_SUCCESS, "新建帖子成功", ""))
 }
 
 // @Title 隐藏评论

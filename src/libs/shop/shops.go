@@ -768,10 +768,20 @@ func (s *Shops) GetNoUseItemTicket(itemId int64, uid int64, orderNo string) (*It
 	return &it, nil
 }
 
-func (s *Shops) UpdateItemTicket(it *ItemTicket) error {
+func (s *Shops) UsedItemTicket(it *ItemTicket) error {
 	o := dbs.NewOrm(db_aliasname)
-	_, err := o.Update(it, "receive_uid", "receive_time", "status")
+	_, err := o.Update(it, "f_uid", "f_time", "status")
 	return err
+}
+
+func (s *Shops) GetItemTicket(code string) *ItemTicket {
+	it := ItemTicket{}
+	o := dbs.NewOrm(db_aliasname)
+	err := o.QueryTable(&it).Filter("code", code).One(&it)
+	if err == nil {
+		return &it
+	}
+	return nil
 }
 
 func (s *Shops) DeleteItemTicket(id int64) error {

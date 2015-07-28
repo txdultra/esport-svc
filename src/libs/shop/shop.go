@@ -373,7 +373,7 @@ type ItemTicket struct {
 	Pwd       string             `orm:"column(pwd)"`
 	Uid       int64              `orm:"column(uid)"`
 	FUid      int64              `orm:"column(f_uid)"`
-	FTime     int                `orm:"column(f_time)"`
+	FTime     int64              `orm:"column(f_time)"`
 	Img1      int64              `orm:"column(img_1)"`
 	Img2      int64              `orm:"column(img_2)"`
 	Img3      int64              `orm:"column(img_3)"`

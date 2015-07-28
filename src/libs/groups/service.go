@@ -1739,7 +1739,7 @@ func (c *ThreadService) Gets(groupId int64, page int, size int, uid int64) (int,
 	}
 	o := dbs.NewOrm(db_aliasname)
 	var maps []orm.Params
-	_, err := o.QueryTable(&Thread{}).Filter("groupid", groupId).Filter("closed", false).OrderBy("-lastpost").Limit(size).Offset((page-1)*size).Values(&maps, "id")
+	_, err := o.QueryTable(&Thread{}).Filter("groupid", groupId).Filter("closed", false).OrderBy("-displayorder", "-lastpost").Limit(size).Offset((page-1)*size).Values(&maps, "id")
 	if err == nil {
 		strids := make([]string, len(maps), len(maps))
 		for i, m := range maps {
@@ -1835,6 +1835,21 @@ func (c *ThreadService) CloseThread(threadId int64) error {
 		gs := NewGroupService(c.cfg)
 		gs.ActionCount(thread.GroupId, []GP_PROPERTY{GP_PROPERTY_THREADS}, []int{-1})
 	}()
+	return nil
+}
+
+func (c *ThreadService) SetDisplayOrder(threadId int64, displayOrder int) error {
+	thread := c.Get(threadId)
+	if thread == nil {
+		return fmt.Errorf("帖子不存在")
+	}
+	o := dbs.NewOrm(db_aliasname)
+	o.QueryTable(&Thread{}).Filter("id", threadId).Update(orm.Params{
+		"displayorder": displayOrder,
+	})
+	thread.DisplayOrder = displayOrder
+	ckey := c.getCacheKey(threadId)
+	ssdb.New(use_ssdb_group_db).Set(ckey, thread)
 	return nil
 }
 
