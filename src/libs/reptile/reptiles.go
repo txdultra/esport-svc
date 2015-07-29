@@ -901,7 +901,7 @@ func (r TwitchTVLive) ProxyReptile(parameter string, cmd string) (clientReqUrl s
 		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误")
 	}
 	room_id := parameter[__index+1:]
-	url := fmt.Sprintf("http://api.twitch.tv/api/channels/%s/access_token?on_site=1", room_id)
+	url := fmt.Sprintf("http://api.twitch.tv/api/channels/%s/access_token?as3=t", room_id)
 	return url, "get_stream_params", nil
 }
 

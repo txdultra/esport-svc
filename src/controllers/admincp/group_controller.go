@@ -475,8 +475,8 @@ func (c *GroupCPController) CreateThread() {
 	fromdev := c.GetString("fromdev")
 	longitude, _ := c.GetFloat("longitude")
 	latitude, _ := c.GetFloat("latitude")
-	if uid <= 0 {
-		c.Json(libs.NewError("admincp_createthread_fail", "GM040_120", "uid错误", ""))
+	if uid <= 0 || groupid <= 0 {
+		c.Json(libs.NewError("admincp_createthread_fail", "GM040_120", "参数错误", ""))
 		return
 	}
 

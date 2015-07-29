@@ -557,7 +557,7 @@ func (c *GroupController) GetThreads() {
 
 // @Title 新建帖子
 // @Description 新建帖子
-// @Param   access_token  path  string  false  "access_token"
+// @Param   access_token  path  string  true  "access_token"
 // @Param   group_id   path  int  true  "组id"
 // @Param   subject   path  string  true  "标题"
 // @Param   message   path  string  true  "内容"
@@ -569,6 +569,10 @@ func (c *GroupController) GetThreads() {
 // @router /thread/submit [post]
 func (c *GroupController) CreateThread() {
 	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_newthread_premission_denied", UNAUTHORIZED_CODE, "必须登录后才能发表", ""))
+		return
+	}
 	groupid, _ := c.GetInt64("group_id")
 	subject, _ := utils.UrlDecode(c.GetString("subject"))
 	message, _ := utils.UrlDecode(c.GetString("message"))
@@ -591,7 +595,7 @@ func (c *GroupController) CreateThread() {
 		}
 	}
 	if len(img_ids) > 9 {
-		c.Json(libs.NewError("group_newthread_fail", "GP1300", "图片数量不能大于9张", ""))
+		c.Json(libs.NewError("group_newthread_fail", "GP1210", "图片数量不能大于9张", ""))
 		return
 	}
 	post := &groups.Post{
@@ -606,10 +610,47 @@ func (c *GroupController) CreateThread() {
 	}
 	err := ths.Create(thread, post)
 	if err != nil {
-		c.Json(libs.NewError("group_newthread_fail", "GP1301", err.Error(), ""))
+		c.Json(libs.NewError("group_newthread_fail", "GP1211", err.Error(), ""))
 		return
 	}
 	c.Json(libs.NewError("group_newthread_success", RESPONSE_SUCCESS, "新建帖子成功", ""))
+}
+
+// @Title 关闭帖子
+// @Description 关闭帖子
+// @Param   access_token  path  string  true  "access_token"
+// @Param   thread_id  path  int  true  "帖子id"
+// @Success 200 {object} libs.Error
+// @router /thread/close [post]
+func (c *GroupController) CloseThread() {
+	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_thread_close_premission_denied", UNAUTHORIZED_CODE, "必须登录后才能关闭", ""))
+		return
+	}
+	threadid, _ := c.GetInt64("thread_id")
+	if threadid <= 0 {
+		c.Json(libs.NewError("group_thread_close_fail", "GP1220", "id错误", ""))
+		return
+	}
+	gs := groups.NewGroupService(groups.GetDefaultCfg())
+	ts := groups.NewThreadService(groups.GetDefaultCfg())
+	thread := ts.Get(threadid)
+	if thread == nil {
+		c.Json(libs.NewError("group_thread_close_fail", "GP1221", "帖子不存在", ""))
+		return
+	}
+	group := gs.Get(thread.GroupId)
+	if group != nil && group.Uid != current_uid {
+		c.Json(libs.NewError("group_thread_close_fail", "GP1222", "必须群主才能删除帖子", ""))
+		return
+	}
+	err := ts.CloseThread(threadid)
+	if err != nil {
+		c.Json(libs.NewError("group_thread_closee_fail", "GP1223", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("group_thread_close_success", RESPONSE_SUCCESS, "关闭成功", ""))
 }
 
 // @Title 获取单个评论
