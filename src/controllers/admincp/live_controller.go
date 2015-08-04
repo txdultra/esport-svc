@@ -52,6 +52,7 @@ func (c *LiveCPController) LivePersonalAdd() {
 	uid, _ := c.GetInt64("uid")
 	desc, _ := utils.UrlDecode(c.GetString("desc"))
 	rep_url, _ := utils.UrlDecode(c.GetString("rep_url"))
+	rep_url, _ = utils.UrlDecode(rep_url) //框架bug
 	do_rep, _ := c.GetBool("do_rep")
 	online_min, _ := c.GetInt("show_online_min")
 	online_max, _ := c.GetInt("show_online_max")
@@ -118,6 +119,7 @@ func (c *LiveCPController) LivePersonalUpate() {
 	uid, _ := c.GetInt64("uid")
 	desc, _ := utils.UrlDecode(c.GetString("desc"))
 	rep_url, _ := utils.UrlDecode(c.GetString("rep_url"))
+	rep_url, _ = utils.UrlDecode(rep_url) //框架bug
 	online_min, _ := c.GetInt("show_online_min")
 	online_max, _ := c.GetInt("show_online_max")
 
@@ -445,6 +447,7 @@ func (c *LiveCPController) LiveChannelStreamList() {
 func (c *LiveCPController) LiveChannelStreamAdd() {
 	channel_id, _ := c.GetInt64("channel_id")
 	rep_url, _ := utils.UrlDecode(c.GetString("rep_url"))
+	rep_url, _ = utils.UrlDecode(rep_url)
 	img_id, _ := c.GetInt64("img_id")
 	is_def, _ := c.GetBool("is_def")
 	enabled, err := c.GetBool("enabled")
@@ -489,6 +492,7 @@ func (c *LiveCPController) LiveChannelStreamAdd() {
 func (c *LiveCPController) LiveChannelStreamUpdate() {
 	id, _ := c.GetInt64("id")
 	rep_url, _ := utils.UrlDecode(c.GetString("rep_url"))
+	rep_url, _ = utils.UrlDecode(rep_url)
 	img_id, _ := c.GetInt64("img_id")
 	is_def, _ := c.GetBool("is_def")
 	enabled, err := c.GetBool("enabled")

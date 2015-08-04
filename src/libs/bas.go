@@ -141,3 +141,43 @@ func (b *Bas) GetSmileies(category string) []Smiley {
 	o.QueryTable(&Smiley{}).Filter("category", category).All(&smileys)
 	return smileys
 }
+
+//home ads
+func (b *Bas) lastHomeAdCacheKey() string {
+	return "mobile_base_last_homead"
+}
+func (b *Bas) CreateHomeAd(ad *HomeAd) error {
+	o := dbs.NewDefaultOrm()
+	_, err := o.Insert(ad)
+	if err == nil {
+		cache := utils.GetCache()
+		cache.Delete(b.lastHomeAdCacheKey())
+	}
+	return err
+}
+
+func (b *Bas) DeleteHomeAd(id int64) error {
+	o := dbs.NewDefaultOrm()
+	c, err := o.QueryTable(&HomeAd{}).Filter("id", id).Delete()
+	if c > 0 {
+		cache := utils.GetCache()
+		cache.Delete(b.lastHomeAdCacheKey())
+	}
+	return err
+}
+
+func (b *Bas) LastNewHomeAd() *HomeAd {
+	cache := utils.GetCache()
+	ha := HomeAd{}
+	err := cache.Get(b.lastHomeAdCacheKey(), &ha)
+	if err == nil {
+		return &ha
+	}
+	o := dbs.NewDefaultOrm()
+	err = o.QueryTable(&ha).OrderBy("-end_time").Limit(1).One(&ha)
+	if err == nil {
+		cache.Add(b.lastHomeAdCacheKey(), ha, 24*time.Hour)
+		return &ha
+	}
+	return nil
+}

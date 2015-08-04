@@ -780,7 +780,7 @@ func (org *LiveOrgs) SetDefaultStream(defStream *LiveStream) {
 	for _, strm := range streams {
 		if strm.Id != defStream.Id && strm.Default {
 			strm.Default = false
-			o.Update(&strm)
+			o.Update(strm, "def")
 			cache.Delete(org.sk(strm.ChannelId))
 			cache.Delete(org.sk_bysid(strm.Id))
 		}

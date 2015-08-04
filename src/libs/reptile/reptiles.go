@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"libs/reptile/douyuapi"
 	"logs"
+	"net/url"
 	"reflect"
 	"regexp"
 	"strings"
@@ -34,6 +35,7 @@ const (
 	REP_SUPPORT_HUOMAO REP_SUPPORT = "huomao"
 	REP_SUPPORT_MLGTV  REP_SUPPORT = "mlgtv" //majorleaguegaming
 	REP_SUPPORT_HITBOX REP_SUPPORT = "hitbox"
+	REP_SUPPORT_QQOPEN REP_SUPPORT = "qqopen"
 )
 
 type REP_METHOD string
@@ -69,6 +71,7 @@ var LIVE_REPTILE_MODULES = map[string]reflect.Type{
 	//string(REP_SUPPORT_FYZB):   reflect.TypeOf(FyzbLive{}),
 	string(REP_SUPPORT_MLGTV):  reflect.TypeOf(MLGTVLive{}),
 	string(REP_SUPPORT_HITBOX): reflect.TypeOf(HitboxLive{}),
+	string(REP_SUPPORT_QQOPEN): reflect.TypeOf(QQOpenLive{}),
 }
 
 func SupportReptilePlatforms() []string {
@@ -89,7 +92,8 @@ func RegisterReptileModule(name string, t reflect.Type) error {
 
 func LiveRepMethod(support REP_SUPPORT) REP_METHOD {
 	switch support {
-	case REP_SUPPORT_17173, REP_SUPPORT_DOUYU, REP_SUPPORT_QQ, REP_SUPPORT_ZHANQI, REP_SUPPORT_HUOMAO, REP_SUPPORT_TWITCH, REP_SUPPORT_MLGTV, REP_SUPPORT_HITBOX:
+	case REP_SUPPORT_17173, REP_SUPPORT_DOUYU, REP_SUPPORT_QQ, REP_SUPPORT_ZHANQI,
+		REP_SUPPORT_HUOMAO, REP_SUPPORT_TWITCH, REP_SUPPORT_MLGTV, REP_SUPPORT_HITBOX, REP_SUPPORT_QQOPEN:
 		return REP_METHOD_SERANDCLT
 	default:
 		return REP_METHOD_DIRECT
@@ -129,6 +133,10 @@ func Get_REP_SUPPORT(url string) (REP_SUPPORT, error) {
 	matched, _ = regexp.MatchString("http://www.hitbox.tv/(\\w+)", lowerUrl)
 	if matched {
 		return REP_SUPPORT_HITBOX, nil
+	}
+	matched, _ = regexp.MatchString("qq_id=(\\d+)", lowerUrl)
+	if matched {
+		return REP_SUPPORT_QQOPEN, nil
 	}
 	return "", errors.New("not exist support rep")
 }
@@ -740,14 +748,15 @@ func (r HuomaoLive) ProxyReptile(parameter string, cmd string) (clientReqUrl str
 		if err != nil || len(content) == 0 {
 			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:003")
 		}
-		re := regexp.MustCompile(`VideoIDS:"([a-z0-9A-Z_/=\\\-]+)"`)
+		re := regexp.MustCompile(`video_name = '([a-z0-9A-Z_/=\\\-]+)'`)
 		us := re.FindAllString(content, -1)
 		if len(us) == 0 {
 			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:004")
 		}
 		mstr := us[0]
-		mstr = strings.Replace(mstr, "\"", "", -1)
-		__idx := strings.LastIndex(mstr, ":")
+		mstr = strings.Replace(mstr, "'", "", -1)
+		mstr = strings.Replace(mstr, " ", "", -1)
+		__idx := strings.LastIndex(mstr, "=")
 		vids := mstr[__idx+1:]
 
 		req = httplib.Post("http://www.huomaotv.com/swf/live_data")
@@ -1198,5 +1207,62 @@ func (r HitboxLive) GetStatus(parameter string) (LIVE_STATUS, error) {
 }
 
 func (r HitboxLive) Reptile(parameter string) (string, error) {
+	return "", errors.New("此方法无效")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//qqopen
+////////////////////////////////////////////////////////////////////////////////
+type QQOpenLive struct{}
+
+func (r QQOpenLive) ViewHtmlOnPc(url string, width int, height int) string {
+	return ""
+}
+
+func (r QQOpenLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string, nextCmd string, err error) {
+	support, _ := Get_REP_SUPPORT(parameter)
+	if support != REP_SUPPORT_QQOPEN {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:00")
+	}
+
+	v, err := url.ParseRequestURI(parameter)
+	if err != nil {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:01")
+	}
+	u := v.RawQuery
+	vals, _ := url.ParseQuery(u)
+	roomId := vals.Get("qq_id")
+	if len(roomId) == 0 {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:02")
+	}
+	roomId = fmt.Sprintf("qqopen_%s", roomId)
+
+	cache := utils.GetLocalCache()
+	ckey := fmt.Sprintf("reptile_qqopen_stream_url:%s", parameter)
+	var playurl string
+	err = cache.Get(ckey, &playurl)
+	if err != nil {
+		//远程服务调用
+		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+		transport, _ := thrift.NewTSocketTimeout(douyu_api_host, 1*time.Minute)
+		client := douyuapi.NewDouyuApiServiceClientFactory(transport, protocolFactory)
+		if err := transport.Open(); err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:005")
+		}
+		defer transport.Close()
+		url, err := client.GetData(roomId, parameter)
+		if len(url) == 0 || err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:006")
+		}
+		return url, REP_CALLBACK_COMMAND_COMPLETED, nil
+	}
+	return playurl, REP_CALLBACK_COMMAND_COMPLETED, nil
+}
+
+func (r QQOpenLive) GetStatus(parameter string) (LIVE_STATUS, error) {
+	return LIVE_STATUS_NOTHING, nil
+}
+
+func (r QQOpenLive) Reptile(parameter string) (string, error) {
 	return "", errors.New("此方法无效")
 }

@@ -304,6 +304,8 @@ func (c *LiveController) streamName(rep reptile.REP_SUPPORT) string {
 		return "直播流5"
 	case reptile.REP_SUPPORT_TWITCH:
 		return "直播流6"
+	case reptile.REP_SUPPORT_QQOPEN:
+		return "直播流7"
 	default:
 		return "未知流"
 	}

@@ -34,6 +34,7 @@ func (c *CommonController) URLMapping() {
 	c.Mapping("Version", c.Version)
 	//c.Mapping("ApiHosts", c.ApiHosts)
 	c.Mapping("Expressions", c.Expressions)
+	c.Mapping("HomeAd", c.HomeAd)
 }
 
 // @Title 随机验证图片
@@ -241,4 +242,40 @@ func (c *CommonController) Expressions() {
 	}
 	utils.SetLocalFastExpriesTimePartCache(24*time.Hour, cache_key, out_smileies)
 	c.Json(out_smileies)
+}
+
+// @Title 获取最新首页广告
+// @Description 获取最新首页广告
+// @Success 200 {object} outobjs.OutHomeAd
+// @router /homead [get]
+func (c *CommonController) HomeAd() {
+	//缓存
+	cache_key := "front_fast_cache.common_homead.last"
+	c_obj := utils.GetLocalFastExpriesTimePartCache(cache_key)
+	if c_obj != nil {
+		c.Json(c_obj)
+		return
+	}
+	bas := &libs.Bas{}
+	ad := bas.LastNewHomeAd()
+	if ad == nil {
+		c.Json(libs.NewError("common_homead_notnew", "C1010", "没有最新的广告", ""))
+		return
+	}
+	if ad.EndTime.Before(time.Now()) {
+		c.Json(libs.NewError("common_homead_notnew", "C1010", "没有最新的广告", ""))
+		return
+	}
+	out_c := &outobjs.OutHomeAd{
+		Id:      ad.Id,
+		Title:   ad.Title,
+		Img:     ad.Img,
+		ImgUrl:  file_storage.GetFileUrl(ad.Img),
+		Action:  ad.Action,
+		Args:    ad.Args,
+		Waits:   ad.Waits,
+		EndTime: ad.EndTime,
+	}
+	utils.SetLocalFastExpriesTimePartCache(1*time.Minute, cache_key, out_c)
+	c.Json(out_c)
 }

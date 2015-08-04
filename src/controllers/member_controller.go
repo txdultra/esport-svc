@@ -40,6 +40,7 @@ func (c *MemberController) URLMapping() {
 	c.Mapping("RemoveMemberGameSingle", c.RemoveMemberGameSingle)
 	c.Mapping("GetMemberGames", c.GetMemberGames)
 	c.Mapping("SetPushId", c.SetPushId)
+	c.Mapping("IsSetPushId", c.IsSetPushId)
 	c.Mapping("SetNickname", c.SetNickname)
 	c.Mapping("SetAvatar", c.SetAvatar)
 	c.Mapping("FrequentAts", c.FrequentAts)
@@ -741,6 +742,24 @@ func (c *MemberController) SetPushId() {
 		return
 	}
 	c.Json(libs.NewError("member_set_pushid_succ", RESPONSE_SUCCESS, "更新成功", ""))
+}
+
+// @Title 是否已绑定第三方推送
+// @Description 是否已绑定第三方推送
+// @Param   access_token   path   string  true  "access_token"
+// @Success 200 已绑定返回error_code:REP000
+// @router /isset_pushid [get]
+func (c *MemberController) IsSetPushId() {
+	member := c.CurrentUser()
+	if member == nil {
+		c.Json(libs.NewError("member_isset_pushid_premission_denied", UNAUTHORIZED_CODE, "你没有操作的权限", ""))
+		return
+	}
+	if member.PushProxy > 0 {
+		c.Json(libs.NewError("member_isset_pushid_success", RESPONSE_SUCCESS, "已绑定推送服务", ""))
+		return
+	}
+	c.Json(libs.NewError("member_isset_pushid_fail", REPSONSE_FAIL, "未绑定推送服务", ""))
 }
 
 // @Title 设置用户昵称

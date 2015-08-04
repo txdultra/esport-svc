@@ -152,6 +152,17 @@ type OutPicture struct {
 	Views        int    `json:"views"`
 }
 
+type OutHomeAd struct {
+	Id      int64     `json:"id"`
+	Title   string    `json:"title"`
+	Img     int64     `json:"img"`
+	ImgUrl  string    `json:"img_url"`
+	Action  string    `json:"action"`
+	Args    string    `json:"args"`
+	Waits   int       `json:"waits"`
+	EndTime time.Time `json:"end_time"`
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // for admin
 ////////////////////////////////////////////////////////////////////////////////
@@ -190,4 +201,18 @@ type OutRecommendForAdmin struct {
 	DisplayOrder int        `json:"no"`
 	PostTime     time.Time  `json:"post_time"`
 	PostMember   *OutMember `json:"member"`
+}
+
+type OutHomeAdForAdmin struct {
+	Id         int64            `json:"id"`
+	Title      string           `json:"title"`
+	Img        int64            `json:"img"`
+	ImgUrl     string           `json:"img_url"`
+	Action     string           `json:"action"`
+	Args       string           `json:"args"`
+	Waits      int              `json:"waits"`
+	EndTime    time.Time        `json:"end_time"`
+	PostTime   time.Time        `json:"post_time"`
+	PostUid    int64            `json:"post_uid"`
+	PostMember *OutSimpleMember `json:"post_member"`
 }

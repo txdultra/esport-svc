@@ -192,3 +192,27 @@ func (self *Smiley) TableName() string {
 func (self *Smiley) TableEngine() string {
 	return "INNODB"
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// home ad
+////////////////////////////////////////////////////////////////////////////////
+
+type HomeAd struct {
+	Id       int64     `orm:"pk"`
+	Title    string    `orm:"column(title)"`
+	Img      int64     `orm:"column(img)"`
+	Action   string    `orm:"column(action)"`
+	Args     string    `orm:"column(args)"`
+	EndTime  time.Time `orm:"column(end_time)"`
+	Waits    int       `orm:"column(waits)"`
+	PostTime time.Time `orm:"column(post_time)"`
+	PostUid  int64     `orm:"column(post_uid)"`
+}
+
+func (self *HomeAd) TableName() string {
+	return "common_homeads"
+}
+
+func (self *HomeAd) TableEngine() string {
+	return "INNODB"
+}

@@ -634,3 +634,105 @@ func (c *CommonCPController) VersionDel() {
 	}
 	c.Json(libs.NewError("admincp_common_version_update_fail", "GM004_043", "删除失败:"+err.Error(), ""))
 }
+
+// @Title 新增首页广告
+// @Description 新增首页广告
+// @Param   title   path	string true  "标题"
+// @Param   img   path	int true  "图片"
+// @Param   action   path	string true  "事件"
+// @Param   args   path	string true  "参数"
+// @Param   end_time   path	int true  "结束时间"
+// @Param   waits   path	int true  "等待时间"
+// @Success 200 {object} libs.Error
+// @router /homead/add [post]
+func (c *CommonCPController) HomeAdAdd() {
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	img, _ := c.GetInt64("img")
+	action := c.GetString("action")
+	args, _ := utils.UrlDecode(c.GetString("args"))
+	end_time, _ := c.GetInt64("end_time")
+	waits, _ := c.GetInt("waits")
+	if len(title) == 0 {
+		c.Json(libs.NewError("admincp_common_homead_add_fail", "GM004_051", "标题不能为空", ""))
+		return
+	}
+	if img <= 0 {
+		c.Json(libs.NewError("admincp_common_homead_add_fail", "GM004_052", "图片未设置", ""))
+		return
+	}
+	if len(action) == 0 {
+		c.Json(libs.NewError("admincp_common_homead_add_fail", "GM004_053", "事件不能为空", ""))
+		return
+	}
+	if end_time <= 0 {
+		c.Json(libs.NewError("admincp_common_homead_add_fail", "GM004_054", "结束时间未设置", ""))
+		return
+	}
+	if waits <= 0 {
+		waits = 3
+	}
+	ad := &libs.HomeAd{
+		Title:    title,
+		Img:      img,
+		Action:   action,
+		Args:     args,
+		EndTime:  time.Unix(end_time, 0),
+		Waits:    waits,
+		PostTime: time.Now(),
+		PostUid:  c.CurrentUid(),
+	}
+	bas := &libs.Bas{}
+	err := bas.CreateHomeAd(ad)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_homead_add_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_homead_add_fail", "GM004_055", err.Error(), ""))
+}
+
+// @Title 获取最新首页广告
+// @Description 获取最新首页广告
+// @Success 200 {object} outobjs.OutHomeAdForAdmin
+// @router /homead/get [get]
+func (c *CommonCPController) GetLastHomeAd() {
+	bas := &libs.Bas{}
+	ad := bas.LastNewHomeAd()
+	if ad == nil {
+		c.Json(libs.NewError("admincp_common_homead_get_fail", "GM004_060", "不存在", ""))
+		return
+	}
+	out_c := &outobjs.OutHomeAdForAdmin{
+		Id:         ad.Id,
+		Title:      ad.Title,
+		Img:        ad.Img,
+		ImgUrl:     c.storage.GetFileUrl(ad.Img),
+		Action:     ad.Action,
+		Args:       ad.Args,
+		Waits:      ad.Waits,
+		EndTime:    ad.EndTime,
+		PostTime:   ad.PostTime,
+		PostUid:    ad.PostUid,
+		PostMember: outobjs.GetOutSimpleMember(ad.PostUid),
+	}
+	c.Json(out_c)
+}
+
+// @Title 删除首页广告
+// @Description 删除首页广告
+// @Param   id   path	int true  "id"
+// @Success 200 {object} libs.Error
+// @router /homead/del [delete]
+func (c *CommonCPController) DeleteHomeAd() {
+	id, _ := c.GetInt64("id")
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_common_homead_dle_fail", "GM004_070", "id非法", ""))
+		return
+	}
+	bas := &libs.Bas{}
+	err := bas.DeleteHomeAd(id)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_homead_del_succ", controllers.RESPONSE_SUCCESS, "删除成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_homead_del_fail", "GM004_071", err.Error(), ""))
+}

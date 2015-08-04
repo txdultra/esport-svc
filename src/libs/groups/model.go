@@ -326,3 +326,12 @@ func (self *MemberCount) TableName() string {
 func (self *MemberCount) TableEngine() string {
 	return "INNODB"
 }
+
+type UserPost struct {
+	Id       int64  `orm:"column(id);pk"`
+	Uid      int64  `orm:"column(uid)"`
+	ThreadId int64  `orm:"column(tid)"`
+	PostId   string `orm:"column(postid)"`
+	Subject  string `orm:"column(subject)"`
+	DateLine int64  `orm:"column(dateline)"`
+}

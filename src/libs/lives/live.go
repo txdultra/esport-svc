@@ -63,16 +63,16 @@ func (self *LiveChannel) TableEngine() string {
 //)
 
 type LiveStream struct {
-	Id         int64
-	Rep        reptile.REP_SUPPORT
-	Img        int64
-	ReptileUrl string
-	StreamUrl  string
-	LastTime   time.Time
-	ChannelId  int64 `orm:"column(pid)"`
-	Default    bool  `orm:"column(def)"`
-	Enabled    bool
-	AllowRep   bool
+	Id         int64               `orm:"pk"`
+	Rep        reptile.REP_SUPPORT `orm:"column(rep)"`
+	Img        int64               `orm:"column(img)"`
+	ReptileUrl string              `orm:"column(reptile_url)"`
+	StreamUrl  string              `orm:"column(stream_url)"`
+	LastTime   time.Time           `orm:"column(last_time)"`
+	ChannelId  int64               `orm:"column(pid)"`
+	Default    bool                `orm:"column(def)"`
+	Enabled    bool                `orm:"column(enabled)"`
+	AllowRep   bool                `orm:"column(allow_rep)"`
 }
 
 func (self *LiveStream) TableName() string {

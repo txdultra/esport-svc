@@ -6,7 +6,6 @@ import (
 	_ "docs"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	//"strings"
@@ -23,6 +22,7 @@ import (
 	//"libs/reptile"
 	//"libs/collect"
 
+	"libs/reptile"
 	_ "libs/version"
 	//"outobjs"
 	//"modules/jobs"
@@ -74,13 +74,10 @@ import (
 
 func main() {
 
-	f, err := os.Open("d:\\{2D3CC08C-285D-4A2B-8824-A76F4E94EF64}.jpg")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
-	data, _ := ioutil.ReadAll(f)
-	fmt.Println(utils.ImageFormat(data))
+	rephm := &reptile.HuomaoLive{}
+	fmt.Println(rephm.ProxyReptile("http://www.huomaotv.com/live/34", ""))
+
+	fmt.Println(regexp.MatchString("qq_id=(\\d+)", "http://star.longzhu.com/101136?from=challcontent&qq_id=230627002"))
 
 	return
 
