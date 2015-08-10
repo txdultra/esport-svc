@@ -177,7 +177,29 @@ type OutReportPagedList struct {
 	Reports     []*OutReport `json:"reports"`
 }
 
-type OutConfig struct {
+//type OutUserPostNote struct {
+//	Id       int64                 `json:"id"`
+//	Uid      int64                 `json:"uid"`
+//	ThreadId int64                 `json:"thread_id"`
+//	PostId   string                `json:"post_id"`
+//	Subject  string                `json:"subject"`
+//	DateLine time.Time             `json:"dateline"`
+//	T        groups.USER_POST_TYPE `json:"t"`
+//}
+
+type OutUserPostNotePagedList struct {
+	CurrentPage int          `json:"current_page"`
+	Ts          int64        `json:"ts"`
+	Threads     []*OutThread `json:"threads"`
+}
+
+type OutUserPostNoteCount struct {
+	Publishs int       `json:"publishs"`
+	Replys   int       `json:"replys"`
+	LastTime time.Time `json:"lasttime"`
+}
+
+type OutGroupConfig struct {
 	Id                           int64                `json:"id"`
 	GroupNameLen                 int                  `json:"groupname_len"`
 	GroupDescMaxLen              int                  `json:"groupdesc_maxlen"`

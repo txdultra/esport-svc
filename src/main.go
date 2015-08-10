@@ -77,8 +77,6 @@ func main() {
 	rephm := &reptile.HuomaoLive{}
 	fmt.Println(rephm.ProxyReptile("http://www.huomaotv.com/live/34", ""))
 
-	fmt.Println(regexp.MatchString("qq_id=(\\d+)", "http://star.longzhu.com/101136?from=challcontent&qq_id=230627002"))
-
 	return
 
 	//	//	o := dbs.NewOrm("group_db")

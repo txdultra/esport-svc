@@ -1646,6 +1646,8 @@ func (c *ThreadService) Create(thread *Thread, post *Post) error {
 	go func() {
 		gs := NewGroupService(c.cfg)
 		gs.AsyncActionCount(thread.GroupId, []GP_PROPERTY{GP_PROPERTY_THREADS}, []int{1})
+		//用户发帖日志
+		NewUserPostNoteService().AddNote(thread)
 	}()
 	//事件钩子
 	go func() {
@@ -2265,6 +2267,8 @@ func (s *PostService) Create(post *Post) error {
 		go tservice.ActionProperty([]TH_PROPERTY{TH_PROPERTY_REPLIES}, []int64{1}, post.ThreadId)
 		go tservice.SetLastPost(post)
 		go hook.Do("group_new_post", post.AuthorId, 1)
+		//用户发帖日志
+		NewUserPostNoteService().AddNote(post)
 	}
 
 	return nil

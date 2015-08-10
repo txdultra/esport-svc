@@ -74,7 +74,9 @@ func init() {
 
 	orm.RegisterModel(new(GroupCfg), new(Group), new(Thread), new(Post),
 		new(Report), new(MemberCount),
-		new(GroupMemberTable), new(MemberGroupTable), new(PostTable))
+		new(GroupMemberTable), new(MemberGroupTable),
+		new(PostTable), new(UserPostNoteCount),
+	)
 	register_db()
 
 	//初始化消息模块配置

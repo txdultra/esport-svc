@@ -144,6 +144,8 @@ func generateDocs(curpath string) {
 					rootapi.Infos.License = strings.TrimSpace(s[len("@License"):])
 				} else if strings.HasPrefix(s, "@LicenseUrl") {
 					rootapi.Infos.LicenseUrl = strings.TrimSpace(s[len("@LicenseUrl"):])
+				} else if strings.HasPrefix(s, "@Detail") {
+					rootapi.Infos.Detail = strings.TrimSpace(s[len("@Detail"):])
 				}
 			}
 		}
@@ -333,12 +335,12 @@ func isSystemPackage(pkgpath string) bool {
 	if utils.FileExists(wg) {
 		return true
 	}
-	
-        //TODO(zh):support go1.4
-        wg, _ = filepath.EvalSymlinks(filepath.Join(goroot, "src", pkgpath))
-        if utils.FileExists(wg) {
-            return true
-        }
+
+	//TODO(zh):support go1.4
+	wg, _ = filepath.EvalSymlinks(filepath.Join(goroot, "src", pkgpath))
+	if utils.FileExists(wg) {
+		return true
+	}
 
 	return false
 }
@@ -363,6 +365,8 @@ func parserComments(comments *ast.CommentGroup, funcName, controllerName, pkgpat
 				} else {
 					opts.HttpMethod = "GET"
 				}
+			} else if strings.HasPrefix(t, "@Detail") {
+				innerapi.Description = strings.TrimSpace(t[len("@Detail"):])
 			} else if strings.HasPrefix(t, "@Title") {
 				opts.Nickname = strings.TrimSpace(t[len("@Title"):])
 			} else if strings.HasPrefix(t, "@Description") {

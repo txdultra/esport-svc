@@ -24,7 +24,7 @@ func (c *GroupCPController) Prepare() {
 // @Title 获取配置参数
 // @Description 获取配置参数
 // @Param   id   path  int  false  "配置参数,默认1"
-// @Success 200  {object} outobjs.OutConfig
+// @Success 200  {object} outobjs.OutGroupConfig
 // @router /config/get [get]
 func (c *GroupCPController) GetConfig() {
 	id, _ := c.GetInt64("id")
@@ -35,7 +35,7 @@ func (c *GroupCPController) GetConfig() {
 		config = groups.GetGroupCfg(id)
 	}
 	if config != nil {
-		c.Json(&outobjs.OutConfig{
+		c.Json(&outobjs.OutGroupConfig{
 			Id:                           config.Id,
 			GroupNameLen:                 config.GroupNameLen,
 			GroupDescMaxLen:              config.GroupDescMaxLen,

@@ -327,11 +327,48 @@ func (self *MemberCount) TableEngine() string {
 	return "INNODB"
 }
 
-type UserPost struct {
-	Id       int64  `orm:"column(id);pk"`
-	Uid      int64  `orm:"column(uid)"`
-	ThreadId int64  `orm:"column(tid)"`
-	PostId   string `orm:"column(postid)"`
-	Subject  string `orm:"column(subject)"`
-	DateLine int64  `orm:"column(dateline)"`
+type UserPostNoteCount struct {
+	Uid      int64 `orm:"column(uid);pk"`
+	Publishs int   `orm:"column(publishs)"`
+	Replys   int   `orm:"column(replys)"`
+	LastTime int64 `orm:"column(lasttime)"`
 }
+
+func (self *UserPostNoteCount) TableName() string {
+	return "user_postnote_counts"
+}
+
+func (self *UserPostNoteCount) TableEngine() string {
+	return "INNODB"
+}
+
+//type UserPostNoteTable struct {
+//	Id      int64  `orm:"column(id);pk"`
+//	TblName string `orm:"column(tablename)"`
+//	Ts      int64  `orm:"column(ts)"`
+//}
+
+//func (self *UserPostNoteTable) TableName() string {
+//	return "tables_userpostnote"
+//}
+
+//func (self *UserPostNoteTable) TableEngine() string {
+//	return "INNODB"
+//}
+
+type USER_POST_TYPE int
+
+const (
+	USER_POST_TYPE_THREAD USER_POST_TYPE = 1
+	USER_POST_TYPE_POST   USER_POST_TYPE = 2
+)
+
+//type UserPostNote struct {
+//	Id       int64          `orm:"column(id);pk"`
+//	Uid      int64          `orm:"column(uid)"`
+//	ThreadId int64          `orm:"column(tid)"`
+//	PostId   string         `orm:"column(postid)"`
+//	Subject  string         `orm:"column(subject)"`
+//	DateLine int64          `orm:"column(dateline)"`
+//	T        USER_POST_TYPE `orm:"column(t)"`
+//}

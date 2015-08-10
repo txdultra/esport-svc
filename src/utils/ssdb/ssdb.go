@@ -660,7 +660,7 @@ func (c *Cluster) ZrscanKS(key string, max int64, min int64, limit int, keyType 
 	if err != nil {
 		return nil, err
 	}
-	resp, err := db.Do("zrscan", key, "", min, max, limit)
+	resp, err := db.Do("zrscan", key, "", max, min, limit)
 	if err != nil {
 		return nil, err
 	}

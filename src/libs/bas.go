@@ -30,6 +30,9 @@ func (b *Bas) Games() []Game {
 }
 
 func (b *Bas) GetGame(id int) *Game {
+	if id <= 0 {
+		return nil
+	}
 	games := b.Games()
 	for _, v := range games {
 		if v.Id == id {

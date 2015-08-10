@@ -16,10 +16,30 @@ func (f *FileController) Prepare() {
 }
 
 func (f *FileController) URLMapping() {
+	f.Mapping("D", f.D)
 	f.Mapping("Get", f.Get)
 	f.Mapping("GetUrl", f.GetUrl)
 	f.Mapping("Delete", f.Delete)
 	f.Mapping("Upload", f.Upload)
+}
+
+// @Title 文件下载
+// @Description 文件下载
+// @Param   id     path    int  true        "文件id"
+// @Success 200
+// @router /d/:id([0-9]+) [get]
+func (f *FileController) D() {
+	id, err := f.GetInt64(":id")
+	if err != nil || id <= 0 {
+		f.Abort("404")
+		return
+	}
+	fileUrl := file_storage.GetFileUrl(id)
+	if len(fileUrl) == 0 {
+		f.Abort("404")
+		return
+	}
+	f.Redirect(fileUrl, 301)
 }
 
 // @Title 获取文件信息

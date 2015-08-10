@@ -37,6 +37,7 @@ type Infomation struct {
 	TermsOfServiceUrl string `json:"termsOfServiceUrl,omitempty"`
 	License           string `json:"license,omitempty"`
 	LicenseUrl        string `json:"licenseUrl,omitempty"`
+	Detail            string `json:"detail,omitempty"`
 }
 
 // https://github.com/wordnik/swagger-core/blob/scala_2.10-1.3-RC3/schemas/api-declaration-schema.json

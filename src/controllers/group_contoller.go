@@ -44,6 +44,7 @@ func (c *GroupController) URLMapping() {
 	c.Mapping("Report", c.Report)
 	c.Mapping("Share", c.Share)
 	c.Mapping("MsgCount", c.MsgCount)
+	c.Mapping("MyNotes", c.MyNotes)
 }
 
 // @Title 申请组的设定值
@@ -1027,4 +1028,80 @@ func (c *GroupController) MsgCount() {
 		gcm = 99
 	}
 	c.Json(libs.NewError("group_msgcount_succ", RESPONSE_SUCCESS, fmt.Sprintf("%d", gcm), ""))
+}
+
+// @Title 我的发表日志
+// @Description 我的发表日志
+// @Param   access_token  path  string  true  "access_token"
+// @Param   t   path  int  true  "查询类型(1=帖子,2=评论)"
+// @Param   page   path  int  false  "页码"
+// @Param   ts   path  int  false  "下一页的时间戳"
+// @Success 200 {object} outobjs.OutUserPostNotePagedList
+// @router /my_notes [get]
+func (c *GroupController) MyNotes() {
+	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_mynotes_premission_denied", UNAUTHORIZED_CODE, "请登陆后重新尝试", ""))
+		return
+	}
+	page, _ := c.GetInt("page")
+	t, _ := c.GetInt("t")
+	ts, _ := c.GetInt64("ts")
+	if page <= 0 {
+		page = 1
+	}
+	size := 20
+	if t != 1 && t != 2 {
+		c.Json(libs.NewError("group_mynotes_fail", "GP1800", "t参数错误", ""))
+		return
+	}
+	if ts <= 0 {
+		ts = time.Now().Unix()
+	}
+	ups := groups.NewUserPostNoteService()
+	gts := groups.NewThreadService(groups.GetDefaultCfg())
+	tids, nextTs := ups.Gets(current_uid, groups.USER_POST_TYPE(t), ts, size)
+	out_c := []*outobjs.OutThread{}
+	for _, tid := range tids {
+		thread := gts.Get(tid)
+		if thread == nil {
+			continue
+		}
+		out_thread := outobjs.GetOutThread(thread)
+		out_c = append(out_c, out_thread)
+	}
+	out_p := &outobjs.OutUserPostNotePagedList{
+		CurrentPage: page,
+		Ts:          nextTs,
+		Threads:     out_c,
+	}
+	c.Json(out_p)
+}
+
+// @Title 我的发表数
+// @Description 我的发表数
+// @Param   access_token  path  string  true  "access_token"
+// @Success 200 {object} outobjs.OutUserPostNoteCount
+// @router /my_notes_count [get]
+func (c *GroupController) MyNotesCount() {
+	current_uid := c.CurrentUid()
+	if current_uid <= 0 {
+		c.Json(libs.NewError("group_mynotecounts_premission_denied", UNAUTHORIZED_CODE, "请登陆后重新尝试", ""))
+		return
+	}
+	out_c := &outobjs.OutUserPostNoteCount{
+		Publishs: 0,
+		Replys:   0,
+		LastTime: time.Unix(0, 0),
+	}
+	ups := groups.NewUserPostNoteService()
+	uc := ups.GetNoteCount(current_uid)
+	if uc == nil {
+		c.Json(out_c)
+		return
+	}
+	out_c.Publishs = uc.Publishs
+	out_c.Replys = uc.Replys
+	out_c.LastTime = time.Unix(uc.LastTime, 0)
+	c.Json(out_c)
 }
