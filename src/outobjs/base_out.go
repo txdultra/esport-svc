@@ -187,6 +187,7 @@ type OutMatchForAdmin struct {
 	Des1     string `json:"des1"`
 	Des2     string `json:"des2"`
 	Des3     string `json:"des3"`
+	Enabled  bool   `json:"enabled"`
 }
 
 type OutRecommendForAdmin struct {

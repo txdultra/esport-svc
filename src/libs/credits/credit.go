@@ -159,5 +159,5 @@ func credit_record_tbl_byno(no string) (tbl string, uid int64, err error) {
 func credit_record_no(uid int64) string {
 	tag := credit_records_tbl_tag(uid)
 	utag := fmt.Sprintf("%010d", uid)
-	return fmt.Sprintf("%sA%sN%d", tag, utag, utils.TimeMillisecond(time.Now()))
+	return fmt.Sprintf("%s%s%sN%d", tag, NO_pfx, utag, utils.TimeMillisecond(time.Now()))
 }

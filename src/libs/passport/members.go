@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"image"
 	"libs"
+	"libs/credits/proxy"
 	"libs/search"
 	"libs/vars"
 	"log"
@@ -20,6 +21,7 @@ import (
 	"utils/ssdb"
 
 	"github.com/astaxie/beego/orm"
+	"github.com/thrift"
 
 	"github.com/astaxie/beego/httplib"
 	"github.com/disintegration/imaging"
@@ -1346,4 +1348,59 @@ func (m *MemberProvider) UpdateMemberGames(uid int64, gameIds []int) error {
 	cache := utils.GetCache()
 	cache.Replace(m.cacheKeyGames(uid), mgs, 60*time.Hour)
 	return nil
+}
+
+func (m *MemberProvider) getCreditHost(priceType libs.PRICE_TYPE) string {
+	switch priceType {
+	case libs.PRICE_TYPE_CREDIT:
+		return credit_service_host
+	case libs.PRICE_TYPE_JING:
+		return jing_service_host
+	default:
+		return ""
+	}
+}
+
+//操作积分
+func (m *MemberProvider) ActionCredit(fuid int64, uid int64, ptype libs.PRICE_TYPE, credits int64, desc string) (string, error) {
+	if credits == 0 {
+		return "", fmt.Errorf("积分不能等于0")
+	}
+	if fuid <= 0 {
+		return "", fmt.Errorf("操作人不存在")
+	}
+	action := proxy.OPERATION_ACTOIN_INCR
+	if credits < 0 {
+		action = proxy.OPERATION_ACTOIN_DECR
+		credits = -credits
+	}
+	transportFactory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
+	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+	host := m.getCreditHost(ptype)
+	transport, err := thrift.NewTSocket(host)
+	if err != nil {
+		return "", fmt.Errorf("error resolving address:%s", err.Error())
+	}
+
+	useTransport := transportFactory.GetTransport(transport)
+	client := proxy.NewCreditServiceClientFactory(useTransport, protocolFactory)
+	if err := transport.Open(); err != nil {
+		return "", fmt.Errorf("Error opening socket to %s;error:%s", host, err.Error())
+	}
+	defer transport.Close()
+
+	param := &proxy.OperationCreditParameter{
+		Uid:    uid,
+		Points: credits,
+		Desc:   desc,
+		Action: action,
+		Ref:    "passport",
+		RefId:  strconv.FormatInt(fuid, 10),
+	}
+
+	result, err := client.Do(param)
+	if result.State == proxy.OPERATION_STATE_SUCCESS {
+		return result.No, nil
+	}
+	return "", err
 }

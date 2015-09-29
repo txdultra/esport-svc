@@ -14,10 +14,11 @@ import (
 )
 
 type MissionRewardParameter struct {
-	Uid    int64
-	Points int64
-	UMId   string //任务记录单号
-	Info   string
+	Uid        int64
+	RewardType TASK_REWARD_TYPE
+	Points     int64
+	UMId       string //任务记录单号
+	Info       string
 }
 
 type IMissionReward interface {
@@ -26,10 +27,31 @@ type IMissionReward interface {
 
 type CreditMissionReward struct{}
 
+func (c CreditMissionReward) creditHost(rewardType TASK_REWARD_TYPE) string {
+	switch rewardType {
+	case TASK_REWARD_TYPE_CREDIT:
+		return credit_service_host
+	case TASK_REWARD_TYPE_JING:
+		return jing_service_host
+	}
+	panic("不存在奖励的货币的服务")
+}
+
+func (c CreditMissionReward) creditName(rewardType TASK_REWARD_TYPE) string {
+	switch rewardType {
+	case TASK_REWARD_TYPE_CREDIT:
+		return "积分"
+	case TASK_REWARD_TYPE_JING:
+		return "竞币"
+	}
+	panic("不存在奖励的货币的服务")
+}
+
 func (c CreditMissionReward) Reward(mrp *MissionRewardParameter) (string, error) {
 	transportFactory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
 	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
-	transport, err := thrift.NewTSocket(credit_service_host)
+	host := c.creditHost(mrp.RewardType)
+	transport, err := thrift.NewTSocket(host)
 	if err != nil {
 		return "", fmt.Errorf("error resolving address:%s", err.Error())
 	}
@@ -37,14 +59,14 @@ func (c CreditMissionReward) Reward(mrp *MissionRewardParameter) (string, error)
 	useTransport := transportFactory.GetTransport(transport)
 	client := proxy.NewCreditServiceClientFactory(useTransport, protocolFactory)
 	if err := transport.Open(); err != nil {
-		return "", fmt.Errorf("Error opening socket to %s;error:%s", credit_service_host, err.Error())
+		return "", fmt.Errorf("Error opening socket to %s;error:%s", host, err.Error())
 	}
 	defer transport.Close()
 
 	param := &proxy.OperationCreditParameter{
 		Uid:    mrp.Uid,
 		Points: mrp.Points,
-		Desc:   fmt.Sprintf("完成任务(%s)获得积分", mrp.Info),
+		Desc:   fmt.Sprintf("完成任务(%s)获得%s", mrp.Info, c.creditName(mrp.RewardType)),
 		Action: proxy.OPERATION_ACTOIN_INCR,
 		Ref:    "utask",
 		RefId:  mrp.UMId,
@@ -59,7 +81,7 @@ func (c CreditMissionReward) Reward(mrp *MissionRewardParameter) (string, error)
 				return
 			}
 			defer msgt.Close()
-			msgTxt := fmt.Sprintf("您完成%s任务获得了%d积分", mrp.Info, mrp.Points)
+			msgTxt := fmt.Sprintf("您完成%s任务获得了%d%s", mrp.Info, mrp.Points, c.creditName(mrp.RewardType))
 			err = msgc.Send(vars.MESSAGE_SYS_ID, mrp.Uid, string(vars.MSG_TYPE_SYS), msgTxt, result.No)
 			if err != nil {
 				return
@@ -377,10 +399,11 @@ func (t *MissionEngine) missionDoneReward(uid int64, reward *MissionReward, reco
 	}
 	//接入积分系统api
 	mrp := &MissionRewardParameter{
-		Uid:    uid,
-		Points: reward.Prize,
-		UMId:   recordNo,
-		Info:   info,
+		Uid:        uid,
+		Points:     reward.Prize,
+		RewardType: reward.RewardType,
+		UMId:       recordNo,
+		Info:       info,
 	}
 	rewardNo, err := t.creditReward.Reward(mrp)
 	if err != nil {

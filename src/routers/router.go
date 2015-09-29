@@ -106,6 +106,11 @@ func init() {
 				&controllers.GroupController{},
 			),
 		),
+		beego.NSNamespace("/bocai",
+			beego.NSInclude(
+				&controllers.BetController{},
+			),
+		),
 		beego.NSNamespace("/file",
 			beego.NSInclude(
 				&controllers.FileController{},

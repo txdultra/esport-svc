@@ -49,8 +49,7 @@ const (
 
 func GetVodSource(url string) VOD_SOURCE {
 	var lowerUrl = strings.ToLower(url)
-	matched, _ := regexp.MatchString("http://v.youku.com/v_show/id_(\\w+)\\.html", lowerUrl)
-	if matched {
+	if strings.Contains(lowerUrl, "http://v.youku.com/v_show/id_") {
 		return VOD_SOURCE_YOUKU
 	}
 	return VOD_SOURCE_NONE

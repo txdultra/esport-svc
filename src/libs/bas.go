@@ -134,7 +134,7 @@ func (b *Bas) UpdateMatch(match *Match) error {
 		cache.Delete(b.matchCacheKey())
 		return nil
 	}
-	return errors.New("不存在对应的赛事")
+	return errors.New("没有需要更新的赛事")
 }
 
 //smiley

@@ -44,6 +44,7 @@ func (c *ShareController) URLMapping() {
 	c.Mapping("Notices", c.Notices)
 	c.Mapping("DelNotices", c.DelNotices)
 	c.Mapping("EmptyNotices", c.EmptyNotices)
+	c.Mapping("ShareOutside", c.ShareOutside)
 }
 
 // @Title 发布分享
@@ -842,4 +843,20 @@ func (c *ShareController) tranfromOutShareNotice(n *share.ShareNotice) *outobjs.
 		}
 	}
 	return osn
+}
+
+// @Title 分享到朋友圈回调
+// @Description 分享到朋友圈回调
+// @Param   access_token     path   string  true  "access_token"
+// @Success 200 成功返回error_code:REP000
+// @router /share_outside [post]
+func (c *ShareController) ShareOutside() {
+	uid := c.CurrentUid()
+	if uid <= 0 {
+		c.Json(libs.NewError("member_share_premission_denied", UNAUTHORIZED_CODE, "没有权限", ""))
+		return
+	}
+	nts := &share.Shares{}
+	nts.ShareOutside(uid)
+	c.Json(libs.NewError("member_share_outside_succ", RESPONSE_SUCCESS, "提交成功", ""))
 }

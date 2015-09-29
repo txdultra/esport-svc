@@ -8,10 +8,15 @@ import (
 )
 
 var use_ssdb_credit_db, credit_db, credit_records_tbl_pfx string
+var NO_pfx, CKEY_pfx, LOCK_pfx string
 
 func init() {
 	//ssdb tag
 	use_ssdb_credit_db = beego.AppConfig.String("credit.ssdb.db")
+	//前缀
+	NO_pfx = beego.AppConfig.DefaultString("credit.pfx.no", "A")
+	CKEY_pfx = beego.AppConfig.DefaultString("credit.pfx.ckey", "credit")
+	LOCK_pfx = beego.AppConfig.DefaultString("credit.pfx.lock", "credit")
 	//db
 	register_credit_db()
 }

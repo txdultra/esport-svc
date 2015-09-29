@@ -79,7 +79,7 @@ func (c *CreditServiceProxy) Do(ocp *OperationCreditParameter) (r *Result_, err 
 				RemainingPoints: 0,
 				State:           OPERATION_STATE_PARAMFAIL,
 				Err:             "积分不能小于等于0",
-			}, fmt.Errorf("参数错误")
+			}, nil
 		}
 	}
 	parameter := &credits.OperationCreditParameter{
@@ -102,12 +102,12 @@ func (c *CreditServiceProxy) Do(ocp *OperationCreditParameter) (r *Result_, err 
 		RemainingPoints: rlt.RemainingPoints,
 		State:           c.transforOperationState(rlt.State),
 		Err:             errDesc,
-	}, rlt.Error
+	}, nil
 }
 
 func (c *CreditServiceProxy) GetCredit(uid int64) (r int64, err error) {
 	if uid <= 0 {
-		return 0, fmt.Errorf("参数错误")
+		return 0, nil
 	}
 	service := credits.NewCreditService()
 	credits := service.GetCredit(uid)

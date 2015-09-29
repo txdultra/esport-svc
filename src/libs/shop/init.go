@@ -10,7 +10,7 @@ import (
 	"github.com/astaxie/beego/orm"
 )
 
-var db_aliasname, credit_service_host string
+var db_aliasname, credit_service_host, jing_service_host string
 var provinces map[string]*Province = make(map[string]*Province)
 var citys map[string][]*City = make(map[string][]*City)
 var areas map[string][]*Area = make(map[string][]*Area)
@@ -36,6 +36,7 @@ func init() {
 	init_areas()
 
 	credit_service_host = beego.AppConfig.String("shop.credit.host")
+	jing_service_host = beego.AppConfig.String("shop.jing.host")
 
 	if len(credit_service_host) == 0 {
 		panic("未配置参数:shop.credit.host参数")

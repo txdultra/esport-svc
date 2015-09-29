@@ -32,6 +32,7 @@ func init() {
 	host_maps["user_task"] = beego.AppConfig.String("api.host.user_task")
 	host_maps["groups"] = beego.AppConfig.String("api.host.groups")
 	host_maps["shop"] = beego.AppConfig.String("api.host.shop")
+	host_maps["bocai"] = beego.AppConfig.String("api.host.bocai")
 
 	feedback_url := beego.AppConfig.String("api.host.feedback")
 	if len(feedback_url) == 0 {

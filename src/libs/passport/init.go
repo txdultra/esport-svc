@@ -2,17 +2,21 @@ package passport
 
 import (
 	"dbs"
+	"fmt"
+	"libs/passport/service"
 	"libs/stat"
 	"strconv"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"github.com/thrift"
 )
 
 var default_username_minlen, default_username_maxlen, authorization_access_token_expries_seconds, Authorization_access_token_expries_refresh int
 var MemberPasswordMinLen, MemberPasswordMaxLen int
 var friend_limit_counts int
 var openid_qq_key, openid_qq_consumer, use_ssdb_passport_db string
+var credit_service_host, jing_service_host string
 
 //搜索参数
 var search_member_server string
@@ -74,6 +78,34 @@ func init() {
 
 	//注册计数器
 	stat.RegisterCounter(MOD_NAME, &MemberProvider{})
+
+	//积分系统地址
+	credit_service_host = beego.AppConfig.String("credit.host")
+	jing_service_host = beego.AppConfig.String("jings.host")
+
+	//启动账号服务
+	passport_service_run := beego.AppConfig.DefaultBool("passport.service.run", false)
+	passport_service_port := beego.AppConfig.DefaultInt("passport.service.port", 20002)
+	if passport_service_run {
+		go runPassportServer(passport_service_port)
+	}
+}
+
+func runPassportServer(port int) {
+	transportFactory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
+	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+	host := fmt.Sprintf("0.0.0.0:%d", port)
+	serverTransport, err := thrift.NewTServerSocket(host)
+	if err != nil {
+		panic(err)
+	}
+
+	handler := &PassportServiceImpl{}
+	processor := service.NewPassportServiceProcessor(handler)
+
+	server := thrift.NewTSimpleServer4(processor, serverTransport, transportFactory, protocolFactory)
+	fmt.Println("passport service server in " + host)
+	server.Serve()
 }
 
 func register_relation_db() {

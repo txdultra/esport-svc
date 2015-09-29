@@ -146,7 +146,7 @@ func (s *Shops) UpdateItem(item *Item) error {
 
 	item.updateAttrs()
 	o := dbs.NewOrm(db_aliasname)
-	_, err = o.Update(item, "name", "description", "pricetype", "price", "oprice", "rprice", "img", "imgs", "itemstate",
+	_, err = o.Update(item, "name", "description", "pricetype", "price", "jings", "oprice", "rprice", "img", "imgs", "itemstate",
 		"modifyts", "displayorder", "isview", "exattrs", "tagid")
 	if err != nil {
 		return err
@@ -277,6 +277,7 @@ func (s *Shops) ItemSnap(item *Item) (int64, error) {
 		Description: item.Description,
 		PriceType:   item.PriceType,
 		Price:       item.Price,
+		Jings:       item.Jings,
 		Img:         item.Img,
 		Imgs:        item.Imgs,
 		TagId:       item.TagId,

@@ -108,12 +108,15 @@ type TASK_REWARD_TYPE int64
 
 const (
 	TASK_REWARD_TYPE_CREDIT TASK_REWARD_TYPE = 1
+	TASK_REWARD_TYPE_JING   TASK_REWARD_TYPE = 2
 )
 
 func (p TASK_REWARD_TYPE) String() string {
 	switch p {
 	case TASK_REWARD_TYPE_CREDIT:
 		return "TASK_REWARD_TYPE_CREDIT"
+	case TASK_REWARD_TYPE_JING:
+		return "TASK_REWARD_TYPE_JING"
 	}
 	return "<UNSET>"
 }
@@ -122,6 +125,8 @@ func TASK_REWARD_TYPEFromString(s string) (TASK_REWARD_TYPE, error) {
 	switch s {
 	case "TASK_REWARD_TYPE_CREDIT":
 		return TASK_REWARD_TYPE_CREDIT, nil
+	case "TASK_REWARD_TYPE_JING":
+		return TASK_REWARD_TYPE_JING, nil
 	}
 	return TASK_REWARD_TYPE(0), fmt.Errorf("not a valid TASK_REWARD_TYPE string")
 }
@@ -2179,6 +2184,8 @@ func (p *MissionGroup) GetGroup() *TaskGroup {
 	return p.Group
 }
 
+var MissionGroup_Tasks_DEFAULT []*Mission
+
 func (p *MissionGroup) GetTasks() []*Mission {
 	return p.Tasks
 }
@@ -2188,6 +2195,10 @@ func (p *MissionGroup) GetDones() int32 {
 }
 func (p *MissionGroup) IsSetGroup() bool {
 	return p.Group != nil
+}
+
+func (p *MissionGroup) IsSetTasks() bool {
+	return p.Tasks != nil
 }
 
 func (p *MissionGroup) Read(iprot thrift.TProtocol) error {
@@ -2290,35 +2301,39 @@ func (p *MissionGroup) Write(oprot thrift.TProtocol) error {
 }
 
 func (p *MissionGroup) writeField1(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("Group", thrift.STRUCT, 1); err != nil {
-		return fmt.Errorf("%T write field begin error 1:Group: %s", p, err)
-	}
-	if err := p.Group.Write(oprot); err != nil {
-		return fmt.Errorf("%T error writing struct: %s", p.Group, err)
-	}
-	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 1:Group: %s", p, err)
+	if p.IsSetGroup() {
+		if err := oprot.WriteFieldBegin("Group", thrift.STRUCT, 1); err != nil {
+			return fmt.Errorf("%T write field begin error 1:Group: %s", p, err)
+		}
+		if err := p.Group.Write(oprot); err != nil {
+			return fmt.Errorf("%T error writing struct: %s", p.Group, err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return fmt.Errorf("%T write field end error 1:Group: %s", p, err)
+		}
 	}
 	return err
 }
 
 func (p *MissionGroup) writeField2(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("Tasks", thrift.LIST, 2); err != nil {
-		return fmt.Errorf("%T write field begin error 2:Tasks: %s", p, err)
-	}
-	if err := oprot.WriteListBegin(thrift.STRUCT, len(p.Tasks)); err != nil {
-		return fmt.Errorf("error writing list begin: %s", err)
-	}
-	for _, v := range p.Tasks {
-		if err := v.Write(oprot); err != nil {
-			return fmt.Errorf("%T error writing struct: %s", v, err)
+	if p.IsSetTasks() {
+		if err := oprot.WriteFieldBegin("Tasks", thrift.LIST, 2); err != nil {
+			return fmt.Errorf("%T write field begin error 2:Tasks: %s", p, err)
 		}
-	}
-	if err := oprot.WriteListEnd(); err != nil {
-		return fmt.Errorf("error writing list end: %s", err)
-	}
-	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 2:Tasks: %s", p, err)
+		if err := oprot.WriteListBegin(thrift.STRUCT, len(p.Tasks)); err != nil {
+			return fmt.Errorf("error writing list begin: %s", err)
+		}
+		for _, v := range p.Tasks {
+			if err := v.Write(oprot); err != nil {
+				return fmt.Errorf("%T error writing struct: %s", v, err)
+			}
+		}
+		if err := oprot.WriteListEnd(); err != nil {
+			return fmt.Errorf("error writing list end: %s", err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return fmt.Errorf("%T write field end error 2:Tasks: %s", p, err)
+		}
 	}
 	return err
 }
@@ -2477,13 +2492,19 @@ func NewEventResult_() *EventResult_ {
 	return &EventResult_{}
 }
 
+var EventResult__DoneTasks_DEFAULT []*Task
+
 func (p *EventResult_) GetDoneTasks() []*Task {
 	return p.DoneTasks
 }
 
+var EventResult__RelevanceTasks_DEFAULT []*Task
+
 func (p *EventResult_) GetRelevanceTasks() []*Task {
 	return p.RelevanceTasks
 }
+
+var EventResult__Rewards_DEFAULT []*MissionReward
 
 func (p *EventResult_) GetRewards() []*MissionReward {
 	return p.Rewards
@@ -2492,6 +2513,18 @@ func (p *EventResult_) GetRewards() []*MissionReward {
 func (p *EventResult_) GetException() string {
 	return p.Exception
 }
+func (p *EventResult_) IsSetDoneTasks() bool {
+	return p.DoneTasks != nil
+}
+
+func (p *EventResult_) IsSetRelevanceTasks() bool {
+	return p.RelevanceTasks != nil
+}
+
+func (p *EventResult_) IsSetRewards() bool {
+	return p.Rewards != nil
+}
+
 func (p *EventResult_) Read(iprot thrift.TProtocol) error {
 	if _, err := iprot.ReadStructBegin(); err != nil {
 		return fmt.Errorf("%T read error: %s", p, err)
@@ -2631,64 +2664,70 @@ func (p *EventResult_) Write(oprot thrift.TProtocol) error {
 }
 
 func (p *EventResult_) writeField1(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("DoneTasks", thrift.LIST, 1); err != nil {
-		return fmt.Errorf("%T write field begin error 1:DoneTasks: %s", p, err)
-	}
-	if err := oprot.WriteListBegin(thrift.STRUCT, len(p.DoneTasks)); err != nil {
-		return fmt.Errorf("error writing list begin: %s", err)
-	}
-	for _, v := range p.DoneTasks {
-		if err := v.Write(oprot); err != nil {
-			return fmt.Errorf("%T error writing struct: %s", v, err)
+	if p.IsSetDoneTasks() {
+		if err := oprot.WriteFieldBegin("DoneTasks", thrift.LIST, 1); err != nil {
+			return fmt.Errorf("%T write field begin error 1:DoneTasks: %s", p, err)
 		}
-	}
-	if err := oprot.WriteListEnd(); err != nil {
-		return fmt.Errorf("error writing list end: %s", err)
-	}
-	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 1:DoneTasks: %s", p, err)
+		if err := oprot.WriteListBegin(thrift.STRUCT, len(p.DoneTasks)); err != nil {
+			return fmt.Errorf("error writing list begin: %s", err)
+		}
+		for _, v := range p.DoneTasks {
+			if err := v.Write(oprot); err != nil {
+				return fmt.Errorf("%T error writing struct: %s", v, err)
+			}
+		}
+		if err := oprot.WriteListEnd(); err != nil {
+			return fmt.Errorf("error writing list end: %s", err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return fmt.Errorf("%T write field end error 1:DoneTasks: %s", p, err)
+		}
 	}
 	return err
 }
 
 func (p *EventResult_) writeField2(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("RelevanceTasks", thrift.LIST, 2); err != nil {
-		return fmt.Errorf("%T write field begin error 2:RelevanceTasks: %s", p, err)
-	}
-	if err := oprot.WriteListBegin(thrift.STRUCT, len(p.RelevanceTasks)); err != nil {
-		return fmt.Errorf("error writing list begin: %s", err)
-	}
-	for _, v := range p.RelevanceTasks {
-		if err := v.Write(oprot); err != nil {
-			return fmt.Errorf("%T error writing struct: %s", v, err)
+	if p.IsSetRelevanceTasks() {
+		if err := oprot.WriteFieldBegin("RelevanceTasks", thrift.LIST, 2); err != nil {
+			return fmt.Errorf("%T write field begin error 2:RelevanceTasks: %s", p, err)
 		}
-	}
-	if err := oprot.WriteListEnd(); err != nil {
-		return fmt.Errorf("error writing list end: %s", err)
-	}
-	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 2:RelevanceTasks: %s", p, err)
+		if err := oprot.WriteListBegin(thrift.STRUCT, len(p.RelevanceTasks)); err != nil {
+			return fmt.Errorf("error writing list begin: %s", err)
+		}
+		for _, v := range p.RelevanceTasks {
+			if err := v.Write(oprot); err != nil {
+				return fmt.Errorf("%T error writing struct: %s", v, err)
+			}
+		}
+		if err := oprot.WriteListEnd(); err != nil {
+			return fmt.Errorf("error writing list end: %s", err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return fmt.Errorf("%T write field end error 2:RelevanceTasks: %s", p, err)
+		}
 	}
 	return err
 }
 
 func (p *EventResult_) writeField3(oprot thrift.TProtocol) (err error) {
-	if err := oprot.WriteFieldBegin("Rewards", thrift.LIST, 3); err != nil {
-		return fmt.Errorf("%T write field begin error 3:Rewards: %s", p, err)
-	}
-	if err := oprot.WriteListBegin(thrift.STRUCT, len(p.Rewards)); err != nil {
-		return fmt.Errorf("error writing list begin: %s", err)
-	}
-	for _, v := range p.Rewards {
-		if err := v.Write(oprot); err != nil {
-			return fmt.Errorf("%T error writing struct: %s", v, err)
+	if p.IsSetRewards() {
+		if err := oprot.WriteFieldBegin("Rewards", thrift.LIST, 3); err != nil {
+			return fmt.Errorf("%T write field begin error 3:Rewards: %s", p, err)
 		}
-	}
-	if err := oprot.WriteListEnd(); err != nil {
-		return fmt.Errorf("error writing list end: %s", err)
-	}
-	if err := oprot.WriteFieldEnd(); err != nil {
-		return fmt.Errorf("%T write field end error 3:Rewards: %s", p, err)
+		if err := oprot.WriteListBegin(thrift.STRUCT, len(p.Rewards)); err != nil {
+			return fmt.Errorf("error writing list begin: %s", err)
+		}
+		for _, v := range p.Rewards {
+			if err := v.Write(oprot); err != nil {
+				return fmt.Errorf("%T error writing struct: %s", v, err)
+			}
+		}
+		if err := oprot.WriteListEnd(); err != nil {
+			return fmt.Errorf("error writing list end: %s", err)
+		}
+		if err := oprot.WriteFieldEnd(); err != nil {
+			return fmt.Errorf("%T write field end error 3:Rewards: %s", p, err)
+		}
 	}
 	return err
 }

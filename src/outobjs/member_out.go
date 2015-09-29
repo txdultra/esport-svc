@@ -61,17 +61,30 @@ func GetOutMember(uid int64, sourceUid int64) *OutMember {
 			}
 		}
 	}
-	c_client, transport, err := client.NewClient("")
+	c_client, c_transport, c_err := client.NewClient("")
+	j_client, j_transport, j_err := client.NewClient("jings")
 	var credits int64 = 0
-	if err == nil {
+	var jings int64 = 0
+	if c_err == nil {
 		defer func() {
-			if transport != nil {
-				transport.Close()
+			if c_transport != nil {
+				c_transport.Close()
 			}
 		}()
 		_credits, err := c_client.GetCredit(member.Uid)
 		if err == nil {
 			credits = _credits
+		}
+	}
+	if j_err == nil {
+		defer func() {
+			if j_transport != nil {
+				j_transport.Close()
+			}
+		}()
+		_jings, err := j_client.GetCredit(member.Uid)
+		if err == nil {
+			jings = _jings
 		}
 	}
 
@@ -87,6 +100,7 @@ func GetOutMember(uid int64, sourceUid int64) *OutMember {
 		CertifiedReason: member.CertifiedReason,
 		FriendShip:      fship,
 		Credits:         credits,
+		Jings:           jings,
 	}
 	if state != nil {
 		m.Fans = state.Fans
@@ -125,6 +139,7 @@ type OutMember struct {
 	CertifiedReason string             `json:"certified_reason"`
 	FriendShip      *OutUserSTRelation `json:"friendship"`
 	Credits         int64              `json:"credits"`
+	Jings           int64              `json:"jings"`
 	Gender          string             `json:"gender"`
 }
 

@@ -2,6 +2,7 @@ package shop
 
 import (
 	"fmt"
+	"libs"
 	credit_client "libs/credits/client"
 	credit_proxy "libs/credits/proxy"
 	"libs/dlock"
@@ -68,10 +69,10 @@ func (sp *ShopPurchaser) ChangeOrderStatus(orderNo string, status ORDER_STATUS, 
 			return err
 		}
 		if order.PayStatus == PAY_STATUS_PAIED {
-			err = sp.rollbackCredit(order.PayNo) //回滚订单
+			err = sp.rollbackCredit(order.PayNo, order.PriceType) //回滚订单
 			if err != nil {
 				shopp.UpdateOrderStatus(orderNo, original_status)
-				logs.Errorf("订单:%s积分返还失败", orderNo)
+				logs.Errorf("订单:%s货币返还失败", orderNo)
 			}
 		}
 		//退回库存和销量
@@ -87,7 +88,7 @@ func (sp *ShopPurchaser) ChangeOrderStatus(orderNo string, status ORDER_STATUS, 
 			return err
 		}
 		if order.PayStatus == PAY_STATUS_PAIED {
-			err = sp.rollbackCredit(order.PayNo) //回滚订单
+			err = sp.rollbackCredit(order.PayNo, order.PriceType) //回滚订单
 			if err != nil {
 				shopp.UpdateOrderStatus(orderNo, original_status)
 				logs.Errorf("订单:%s积分返还失败", orderNo)
@@ -110,7 +111,7 @@ func (sp *ShopPurchaser) ChangeOrderStatus(orderNo string, status ORDER_STATUS, 
 			shopp.UpdateOrderTransport(transport)
 		}
 		if order.PayStatus == PAY_STATUS_PAIED {
-			err = sp.enterCredit(order.PayNo) //确认扣除积分
+			err = sp.enterCredit(order.PayNo, order.PriceType) //确认扣除积分
 			if err != nil {
 				shopp.UpdateOrderStatus(orderNo, original_status)
 				logs.Errorf("订单:%s积分返还失败", orderNo)
@@ -125,8 +126,28 @@ func (sp *ShopPurchaser) ChangeOrderStatus(orderNo string, status ORDER_STATUS, 
 	}
 }
 
+func (sp *ShopPurchaser) verifyItemPriceType(item *Item, priceType libs.PRICE_TYPE) error {
+	if priceType == libs.PRICE_TYPE_RMB {
+		return fmt.Errorf("暂不支持人民币购买")
+	}
+	if item.PriceType&int(priceType) != int(priceType) {
+		return fmt.Errorf("商品不支持此货币购买")
+	}
+	return nil
+}
+
+func (sp *ShopPurchaser) itemPrice(item *Item, priceType libs.PRICE_TYPE) float64 {
+	switch priceType {
+	case libs.PRICE_TYPE_CREDIT, libs.PRICE_TYPE_RMB:
+		return item.Price
+	case libs.PRICE_TYPE_JING:
+		return float64(item.Jings)
+	}
+	return -1
+}
+
 //现阶段只支持积分购买
-func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, cInfo *ConsumerInfo) *BuyResult {
+func (sp *ShopPurchaser) Buy(itemId int64, priceType libs.PRICE_TYPE, uid int64, nums int, remark string, cInfo *ConsumerInfo) *BuyResult {
 	shopp := NewShop()
 	item := shopp.GetItem(itemId)
 	if item == nil {
@@ -134,6 +155,15 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 			OrderNo: "",
 			Code:    "",
 			Error:   fmt.Errorf("商品不存在"),
+		}
+	}
+	//检查购买货币
+	err := sp.verifyItemPriceType(item, priceType)
+	if err != nil {
+		return &BuyResult{
+			OrderNo: "",
+			Code:    "",
+			Error:   err,
 		}
 	}
 
@@ -171,15 +201,23 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 	}
 
 	//计算总价
-	totalPrice := item.Price * float64(nums)
+	itemPrice := sp.itemPrice(item, priceType)
+	totalPrice := itemPrice * float64(nums)
+	if itemPrice < 0 {
+		return &BuyResult{
+			OrderNo: "",
+			Code:    "",
+			Error:   fmt.Errorf("商品价格错误"),
+		}
+	}
 
-	m_credits := sp.getCredit(uid)
+	m_credits := sp.getCredit(uid, priceType)
 	if m_credits < int64(totalPrice) {
 		return &BuyResult{
 			OrderNo:  "",
 			Code:     "",
 			ItemType: item.ItemType,
-			Error:    fmt.Errorf("您的积分不足以购买"),
+			Error:    fmt.Errorf("您使用的货币不足购买"),
 		}
 	}
 
@@ -202,9 +240,9 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 		OrderStatus: ORDER_STATUS_AUDITING,
 		PayStatus:   PAY_STATUS_UNPAID,
 		Nums:        nums,
-		Price:       item.Price,
+		Price:       itemPrice,
 		TotalPrice:  totalPrice,
-		PriceType:   item.PriceType,
+		PriceType:   libs.PRICE_TYPE(priceType),
 		SnapId:      snapId,
 		Remark:      remark,
 		PayId:       PAYID_CREDIT,
@@ -221,20 +259,20 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 	}
 
 	//扣款
-	no, err := sp.lockCredit(int64(totalPrice), uid, credit_proxy.OPERATION_ACTOIN_LOCKDECR, item.Name)
+	no, err := sp.lockCredit(int64(totalPrice), priceType, uid, credit_proxy.OPERATION_ACTOIN_LOCKDECR, item.Name)
 	if err != nil {
 		return &BuyResult{
 			OrderNo:  "",
 			Code:     "",
 			ItemType: item.ItemType,
-			Error:    fmt.Errorf("扣除积分失败,无法购买商品"),
+			Error:    fmt.Errorf("扣除货币失败,无法购买商品"),
 		}
 	}
 
 	if item.ItemType == ITEM_TYPE_VIRTUAL {
 		code, err := shopp.UseItemCode(itemId, orderNo)
 		if err != nil {
-			sp.rollbackCredit(no)
+			sp.rollbackCredit(no, priceType)
 			shopp.DeleteOrder(orderNo)
 			//需加修正库存机制
 			return &BuyResult{
@@ -245,7 +283,7 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 			}
 		}
 		//确定扣除积分
-		sp.enterCredit(no)
+		sp.enterCredit(no, priceType)
 		//更新订单状态
 		order.PayId = PAYID_CREDIT
 		order.PayNo = no
@@ -300,7 +338,7 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 	if item.ItemType == ITEM_TYPE_TICKET {
 		it, err := shopp.GetNoUseItemTicket(itemId, uid, orderNo)
 		if err != nil {
-			sp.rollbackCredit(no)
+			sp.rollbackCredit(no, priceType)
 			shopp.DeleteOrder(orderNo)
 			//需加修正库存机制
 			return &BuyResult{
@@ -311,7 +349,7 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 			}
 		}
 		//确定扣除积分
-		sp.enterCredit(no)
+		sp.enterCredit(no, priceType)
 		//更新订单状态
 		order.PayId = PAYID_CREDIT
 		order.PayNo = no
@@ -339,7 +377,7 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 		}
 	}
 	//商品类型没有可用流程
-	sp.rollbackCredit(no)
+	sp.rollbackCredit(no, priceType)
 	shopp.DeleteOrder(orderNo)
 	return &BuyResult{
 		OrderNo:  "",
@@ -349,8 +387,23 @@ func (sp *ShopPurchaser) Buy(itemId int64, uid int64, nums int, remark string, c
 	}
 }
 
-func (sp *ShopPurchaser) getCredit(uid int64) int64 {
-	client, transport, err := credit_client.NewClient(credit_service_host)
+func (sp *ShopPurchaser) getCreditHost(priceType libs.PRICE_TYPE) string {
+	switch priceType {
+	case libs.PRICE_TYPE_CREDIT:
+		return credit_service_host
+	case libs.PRICE_TYPE_JING:
+		return jing_service_host
+	default:
+		return ""
+	}
+}
+
+func (sp *ShopPurchaser) getCredit(uid int64, priceType libs.PRICE_TYPE) int64 {
+	host := sp.getCreditHost(priceType)
+	if len(host) == 0 {
+		return 0
+	}
+	client, transport, err := credit_client.NewClient(host)
 	if err != nil {
 		return 0
 	}
@@ -363,8 +416,12 @@ func (sp *ShopPurchaser) getCredit(uid int64) int64 {
 	return _credits
 }
 
-func (sp *ShopPurchaser) rollbackCredit(creditNo string) error {
-	client, transport, err := credit_client.NewClient(credit_service_host)
+func (sp *ShopPurchaser) rollbackCredit(creditNo string, priceType libs.PRICE_TYPE) error {
+	host := sp.getCreditHost(priceType)
+	if len(host) == 0 {
+		return fmt.Errorf("货币系统不存在")
+	}
+	client, transport, err := credit_client.NewClient(host)
 	if err != nil {
 		return err
 	}
@@ -379,14 +436,17 @@ func (sp *ShopPurchaser) rollbackCredit(creditNo string) error {
 	}
 	result, err := client.Do(operParameter)
 	if err != nil || result.State != credit_proxy.OPERATION_STATE_SUCCESS {
-		fmt.Println(err)
 		return fmt.Errorf("回滚积分失败")
 	}
 	return nil
 }
 
-func (sp *ShopPurchaser) lockCredit(credits int64, uid int64, oper credit_proxy.OPERATION_ACTOIN, product string) (string, error) {
-	client, transport, err := credit_client.NewClient(credit_service_host)
+func (sp *ShopPurchaser) lockCredit(credits int64, priceType libs.PRICE_TYPE, uid int64, oper credit_proxy.OPERATION_ACTOIN, product string) (string, error) {
+	host := sp.getCreditHost(priceType)
+	if len(host) == 0 {
+		return "", fmt.Errorf("货币系统不存在")
+	}
+	client, transport, err := credit_client.NewClient(host)
 	if err != nil {
 		return "连接积分系统失败", err
 	}
@@ -403,13 +463,17 @@ func (sp *ShopPurchaser) lockCredit(credits int64, uid int64, oper credit_proxy.
 	}
 	result, err := client.Do(operParameter)
 	if err != nil {
-		return "扣除积分失败", err
+		return "扣除货币失败", err
 	}
 	return result.No, nil
 }
 
-func (sp *ShopPurchaser) enterCredit(creditNo string) error {
-	client, transport, err := credit_client.NewClient(credit_service_host)
+func (sp *ShopPurchaser) enterCredit(creditNo string, priceType libs.PRICE_TYPE) error {
+	host := sp.getCreditHost(priceType)
+	if len(host) == 0 {
+		return fmt.Errorf("货币系统不存在")
+	}
+	client, transport, err := credit_client.NewClient(host)
 	if err != nil {
 		return err
 	}

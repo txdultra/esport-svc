@@ -35,6 +35,7 @@ type TASK_REWARD_TYPE string
 
 const (
 	TASK_REWARD_TYPE_CREDIT TASK_REWARD_TYPE = "credit"
+	TASK_REWARD_TYPE_JING   TASK_REWARD_TYPE = "jing"
 )
 
 type TaskGroup struct {

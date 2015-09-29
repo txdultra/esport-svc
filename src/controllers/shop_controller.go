@@ -200,6 +200,7 @@ func (c *ShopController) Stocks() {
 // @Description 购买商品
 // @Param   access_token   path  string  true  "access_token"
 // @Param   item_id   path  int  true  "商品id"
+// @Param 	price_type path int  false  "货币类型(默认积分购买)"
 // @Param   nums   path  int  true  "商品数量"
 // @Param   remark   path  string  false  "描述"
 // @Param   province   path  string  false  "省"
@@ -225,11 +226,23 @@ func (c *ShopController) Buy() {
 	address, _ := utils.UrlDecode(c.GetString("address"))
 	receiver, _ := utils.UrlDecode(c.GetString("receiver"))
 	tel, _ := utils.UrlDecode(c.GetString("tel"))
+	priceType, _ := c.GetInt("price_type")
 
 	if len(tel) > 15 {
 		c.Json(libs.NewError("shop_buy_tel_fail", "SP1033", "电话号码太长", ""))
 		return
 	}
+	switch priceType {
+	case int(libs.PRICE_TYPE_CREDIT):
+		break
+	case int(libs.PRICE_TYPE_JING):
+		break
+	case int(libs.PRICE_TYPE_RMB):
+		break
+	default:
+		priceType = int(libs.PRICE_TYPE_CREDIT) //默认积分购买
+	}
+	var pt = libs.PRICE_TYPE(priceType)
 
 	shopp := shop.NewShop()
 	item := shopp.GetItem(itemId)
@@ -262,7 +275,8 @@ func (c *ShopController) Buy() {
 		Tel:          tel,
 	}
 	purchaser := shop.NewShopPurchaser()
-	buyResult := purchaser.Buy(itemId, uid, nums, remark, addrInfo)
+
+	buyResult := purchaser.Buy(itemId, pt, uid, nums, remark, addrInfo)
 	if buyResult.Error == nil {
 		if buyResult.ItemType == shop.ITEM_TYPE_VIRTUAL {
 			c.Json(libs.NewError("shop_buy_success", RESPONSE_SUCCESS, buyResult.Code, ""))

@@ -149,6 +149,7 @@ type OutSubProgramObj struct {
 	SubScribeLocked bool                            `json:"subscribe_locked"`
 	IsScribed       bool                            `json:"is_scribed"`
 	IsExpired       bool                            `json:"is_expired"`
+	BetCid          int64                           `json:"bet_cid"`
 }
 
 type OutUserProgramNotice struct {
@@ -284,6 +285,7 @@ func ConvertOutSubProgramObj(sub *lives.LiveSubProgram, program *lives.LiveProgr
 		SubScribeLocked: isSLocked,
 		IsExpired:       time.Now().After(sub.EndTime),
 		IsScribed:       isScribed,
+		BetCid:          sub.BetId,
 	}
 	return out_subpm
 }

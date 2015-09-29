@@ -19,6 +19,14 @@ type PL struct {
 	List  interface{}
 }
 
+type PRICE_TYPE int
+
+const (
+	PRICE_TYPE_CREDIT PRICE_TYPE = 1
+	PRICE_TYPE_RMB    PRICE_TYPE = 2
+	PRICE_TYPE_JING   PRICE_TYPE = 4
+)
+
 //Msg后台处理进程接口
 type IMsqMsgProcessTasker interface {
 	Run() (<-chan string, error)
@@ -33,16 +41,3 @@ type IEventInDecrCounter interface {
 	IncrEventCount(uid int64) int
 	DecrEventCount(uid int64) int
 }
-
-//type TestHandlerMsg struct{}
-
-//func (m *TestHandlerMsg) Do(msg *MsqMessage) error {
-//	defer func() {
-//		if e := recover(); e != nil {
-//			//log.Println("func error")
-//			//return fmt.Errorf("func error")
-//		}
-//	}()
-//	fmt.Println(string(msg.MsgType))
-//	return nil
-//}

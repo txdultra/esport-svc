@@ -10,13 +10,16 @@ import (
 
 //默认积分系统地址
 var creditServerHost string = beego.AppConfig.String("credit.host")
+var jingsServerHost string = beego.AppConfig.String("jings.host")
 
 //记得关闭transport
 func NewClient(host string) (*proxy.CreditServiceClient, thrift.TTransport, error) {
 	transportFactory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
 	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
 	var transport *thrift.TSocket
-	if len(host) > 0 {
+	if host == "jings" {
+		transport, _ = thrift.NewTSocket(jingsServerHost)
+	} else if len(host) > 0 {
 		transport, _ = thrift.NewTSocket(host)
 	} else {
 		transport, _ = thrift.NewTSocket(creditServerHost)

@@ -3,6 +3,7 @@ package shop
 import (
 	"encoding/json"
 	"fmt"
+	"libs"
 	"time"
 )
 
@@ -46,21 +47,15 @@ const (
 	PAY_STATUS_FAIL   PAY_STATUS = "fail"
 )
 
-type PRICE_TYPE int
-
-const (
-	PRICE_TYPE_CREDIT PRICE_TYPE = 1
-	PRICE_TYPE_RMB    PRICE_TYPE = 2
-)
-
 var PAYID_CREDIT int = 1
 
 type Item struct {
 	ItemId        int64                  `orm:"column(itemid);pk"`
 	Name          string                 `orm:"column(name)"`
 	Description   string                 `orm:"column(description)"`
-	PriceType     PRICE_TYPE             `orm:"column(pricetype)"`
+	PriceType     int                    `orm:"column(pricetype)"`
 	Price         float64                `orm:"column(price)"`
+	Jings         int64                  `orm:"column(jings)"`
 	OriginalPrice float64                `orm:"column(oprice)"`
 	RmbPrice      float64                `orm:"column(rprice)"`
 	Img           int64                  `orm:"column(img)"`
@@ -120,25 +115,25 @@ func (self *Item) GetAttrsMap() map[string]interface{} {
 }
 
 type Order struct {
-	OrderNo     string       `orm:"column(orderno);pk"`
-	ItemId      int64        `orm:"column(itemid)"`
-	ItemType    ITEM_TYPE    `orm:"column(itemtype)"` //新增
-	IssueType   ISSUE_TYPE   `orm:"column(issuetype)"`
-	Ts          int64        `orm:"column(ts)"`
-	Uid         int64        `orm:"column(uid)"`
-	OrderStatus ORDER_STATUS `orm:"column(orderstatus)"`
-	PayStatus   PAY_STATUS   `orm:"column(paystatus)"`
-	Nums        int          `orm:"column(nums)"`
-	Price       float64      `orm:"column(price)"`
-	TotalPrice  float64      `orm:"column(totalprice)"`
-	PriceType   PRICE_TYPE   `orm:"column(pricetype)"`
-	SnapId      int64        `orm:"column(snap)"`
-	Remark      string       `orm:"column(remark)"`
-	PayId       int          `orm:"column(payid)"`
-	PayNo       string       `orm:"column(payno)"`
-	Ex1         string       `orm:"column(ex1)"`
-	Ex2         string       `orm:"column(ex2)"`
-	Ex3         string       `orm:"column(ex3)"`
+	OrderNo     string          `orm:"column(orderno);pk"`
+	ItemId      int64           `orm:"column(itemid)"`
+	ItemType    ITEM_TYPE       `orm:"column(itemtype)"` //新增
+	IssueType   ISSUE_TYPE      `orm:"column(issuetype)"`
+	Ts          int64           `orm:"column(ts)"`
+	Uid         int64           `orm:"column(uid)"`
+	OrderStatus ORDER_STATUS    `orm:"column(orderstatus)"`
+	PayStatus   PAY_STATUS      `orm:"column(paystatus)"`
+	Nums        int             `orm:"column(nums)"`
+	Price       float64         `orm:"column(price)"`
+	TotalPrice  float64         `orm:"column(totalprice)"`
+	PriceType   libs.PRICE_TYPE `orm:"column(pricetype)"`
+	SnapId      int64           `orm:"column(snap)"`
+	Remark      string          `orm:"column(remark)"`
+	PayId       int             `orm:"column(payid)"`
+	PayNo       string          `orm:"column(payno)"`
+	Ex1         string          `orm:"column(ex1)"`
+	Ex2         string          `orm:"column(ex2)"`
+	Ex3         string          `orm:"column(ex3)"`
 }
 
 func (self *Order) TableName() string {
@@ -209,8 +204,9 @@ type OrderItemSnap struct {
 	Ts          int64                  `orm:"column(ts)"`
 	Name        string                 `orm:"column(name)"`
 	Description string                 `orm:"column(description)"`
-	PriceType   PRICE_TYPE             `orm:"column(pricetype)"`
+	PriceType   int                    `orm:"column(pricetype)"`
 	Price       float64                `orm:"column(price)"`
+	Jings       int64                  `orm:"column(jings)"`
 	Img         int64                  `orm:"column(img)"`
 	Imgs        string                 `orm:"column(imgs)"`
 	TagId       int                    `orm:"column(tagid)"`

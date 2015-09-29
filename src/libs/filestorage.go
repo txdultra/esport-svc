@@ -288,9 +288,11 @@ func (f *WeedFsFileStorage) SaveFile(data []byte, fileName string, source int64)
 		if len(_cdnUrl) > 0 {
 			volUrl = strings.Replace(fileUrl, assign.PublicUrl, _cdnUrl, -1)
 		}
+	} else {
+		volUrl = fileUrl
 	}
 	//加入文件hash表
-	f.FileUrlMaps[id] = volUrl
+	f.FileUrlMaps[id] = fileUrl //volUrl
 	return fn, nil
 }
 

@@ -27,6 +27,7 @@ func init() {
 	hook.RegisterHook("group_new_thread", "utask_group_new_thread", ac)
 	hook.RegisterHook("group_new_post", "utask_group_new_post", ac)
 	hook.RegisterHook("group_ding_post", "utask_group_ding_post", ac)
+	hook.RegisterHook("share_weixin", "utask_share_outside", ac)
 	fmt.Println("utask hook registed")
 }
 

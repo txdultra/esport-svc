@@ -14,7 +14,7 @@ import (
 	"time"
 	"utils"
 
-	"github.com/pmylund/sortutil"
+	//"github.com/sortutil"
 )
 
 // 直播 API
@@ -150,7 +150,7 @@ func (c *LiveController) PerGets() {
 		for _, v := range onlyc_livings {
 			outs = append(outs, outobjs.GetOutPersonalLive(v))
 		}
-		sortutil.AscByField(outs, "SortField")
+		//sortutil.AscByField(outs, "SortField")
 		var totals = len(outs)
 		out_oc := &outobjs.OutPersonalLiveList{
 			Total:       totals,
@@ -201,7 +201,7 @@ func (c *LiveController) PerGets() {
 		for i, v := range c_livings {
 			c_out_livings[i] = outobjs.GetOutPersonalLive(v)
 		}
-		sortutil.DescByField(c_out_livings, "Onlines")
+		//sortutil.DescByField(c_out_livings, "Onlines")
 		outs = append(outs, c_out_livings...)
 		scs = len(c_livings) + len(list)
 	} else {
@@ -211,7 +211,7 @@ func (c *LiveController) PerGets() {
 	for _, v := range list {
 		outs = append(outs, outobjs.GetOutPersonalLive(v))
 	}
-	sortutil.AscByField(outs, "SortField")
+	//sortutil.AscByField(outs, "SortField")
 	//再按在线人数排序
 
 	var totals = total + len(c_livings)
@@ -223,7 +223,7 @@ func (c *LiveController) PerGets() {
 		Size:        scs,
 		Time:        time.Now().Unix(),
 	}
-	utils.SetLocalFastExpriesTimePartCache(3*time.Minute, query_cache_key, out_p)
+	utils.SetLocalFastExpriesTimePartCache(2*time.Minute, query_cache_key, out_p)
 	c.Json(out_p)
 }
 
@@ -306,6 +306,8 @@ func (c *LiveController) streamName(rep reptile.REP_SUPPORT) string {
 		return "直播流6"
 	case reptile.REP_SUPPORT_QQOPEN:
 		return "直播流7"
+	case reptile.REP_SUPPORT_CC163:
+		return "直播流8"
 	default:
 		return "未知流"
 	}

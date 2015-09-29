@@ -69,8 +69,8 @@ func (lv *LivePers) loadTask() {
 	toolbox.AddTask(tskName, toolbox.NewTask(tskName, spec, func() error {
 		fmt.Println("personal live status task running...")
 
-		//更新在线人数
-		go lv.upateSearchDataOnlines()
+		//清空直播状态库
+		lv.EmptyLivingList()
 
 		for id, _ := range per_lives {
 			v := lv.Get(id)
@@ -87,13 +87,13 @@ func (lv *LivePers) loadTask() {
 			} else {
 				v.ReptileDes = ""
 			}
+			oc := &OnlineCounter{}
 			if status != v.LiveStatus { //和原状态相同则不更新
 				v.LiveStatus = status
 				v.LastTime = time.Now()
 				lv.Update(*v)
 
 				//由直播变非直播状态,重置在线人数;非直播变直播状态，添加伪在线
-				oc := &OnlineCounter{}
 				if status == reptile.LIVE_STATUS_NOTHING {
 					go oc.Reset(LIVE_TYPE_PERSONAL, int(v.Id))
 				} else {
@@ -112,8 +112,14 @@ func (lv *LivePers) loadTask() {
 				lv.reptiling(*v)
 			}
 		}
+		//更新在线人数
+		go lv.upateSearchDataOnlines()
 		return nil
 	}))
+}
+
+func (lv *LivePers) EmptyLivingList() {
+	redis.Del(nil, living_personal_list)
 }
 
 func (lv *LivePers) AddLivingChannelToList(id int64) {

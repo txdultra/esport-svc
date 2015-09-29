@@ -22,7 +22,6 @@ import (
 	//"libs/reptile"
 	//"libs/collect"
 
-	"libs/reptile"
 	_ "libs/version"
 	//"outobjs"
 	//"modules/jobs"
@@ -40,7 +39,6 @@ import (
 	"utils"
 	//"libs/share"
 
-	//"libs/vod"
 	//"libs/dlock"
 	//"io/ioutil"
 	//"os"
@@ -73,10 +71,9 @@ import (
 )
 
 func main() {
+	//43067
 
-	rephm := &reptile.HuomaoLive{}
-	fmt.Println(rephm.ProxyReptile("http://www.huomaotv.com/live/34", ""))
-
+	fmt.Println(time.Unix(1454127256, 0))
 	return
 
 	//	//	o := dbs.NewOrm("group_db")

@@ -36,6 +36,7 @@ const (
 	REP_SUPPORT_MLGTV  REP_SUPPORT = "mlgtv" //majorleaguegaming
 	REP_SUPPORT_HITBOX REP_SUPPORT = "hitbox"
 	REP_SUPPORT_QQOPEN REP_SUPPORT = "qqopen"
+	REP_SUPPORT_CC163  REP_SUPPORT = "cc163"
 )
 
 type REP_METHOD string
@@ -72,6 +73,7 @@ var LIVE_REPTILE_MODULES = map[string]reflect.Type{
 	string(REP_SUPPORT_MLGTV):  reflect.TypeOf(MLGTVLive{}),
 	string(REP_SUPPORT_HITBOX): reflect.TypeOf(HitboxLive{}),
 	string(REP_SUPPORT_QQOPEN): reflect.TypeOf(QQOpenLive{}),
+	string(REP_SUPPORT_CC163):  reflect.TypeOf(CC163Live{}),
 }
 
 func SupportReptilePlatforms() []string {
@@ -93,7 +95,8 @@ func RegisterReptileModule(name string, t reflect.Type) error {
 func LiveRepMethod(support REP_SUPPORT) REP_METHOD {
 	switch support {
 	case REP_SUPPORT_17173, REP_SUPPORT_DOUYU, REP_SUPPORT_QQ, REP_SUPPORT_ZHANQI,
-		REP_SUPPORT_HUOMAO, REP_SUPPORT_TWITCH, REP_SUPPORT_MLGTV, REP_SUPPORT_HITBOX, REP_SUPPORT_QQOPEN:
+		REP_SUPPORT_HUOMAO, REP_SUPPORT_TWITCH, REP_SUPPORT_MLGTV, REP_SUPPORT_HITBOX,
+		REP_SUPPORT_QQOPEN, REP_SUPPORT_CC163:
 		return REP_METHOD_SERANDCLT
 	default:
 		return REP_METHOD_DIRECT
@@ -133,6 +136,10 @@ func Get_REP_SUPPORT(url string) (REP_SUPPORT, error) {
 	matched, _ = regexp.MatchString("http://www.hitbox.tv/(\\w+)", lowerUrl)
 	if matched {
 		return REP_SUPPORT_HITBOX, nil
+	}
+	matched, _ = regexp.MatchString("http://cc.163.com/(\\d+)/(\\d+)", lowerUrl)
+	if matched {
+		return REP_SUPPORT_CC163, nil
 	}
 	matched, _ = regexp.MatchString("qq_id=(\\d+)", lowerUrl)
 	if matched {
@@ -291,22 +298,31 @@ func (d DouyuLive) ProxyReptile(parameter string, cmd string) (clientReqUrl stri
 	}
 
 	var roomId string
-	cache := utils.GetCache()
-	crr := cache.Get("live_douyu_url:"+parameter, &roomId)
-	if crr != nil {
-		str, _err := httplib.Get(parameter).String()
-		if _err != nil {
-			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:002")
+	v, err := url.ParseRequestURI(parameter)
+	if err != nil {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:007")
+	}
+	u := v.RawQuery
+	vals, _ := url.ParseQuery(u)
+	roomId = vals.Get("room_id")
+	if len(roomId) == 0 {
+		cache := utils.GetCache()
+		crr := cache.Get("live_douyu_url:"+parameter, &roomId)
+		if crr != nil {
+			str, _err := httplib.Get(parameter).String()
+			if _err != nil {
+				return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:002")
+			}
+			re := regexp.MustCompile(`"room_id":(\d+)`)
+			us := re.FindAllString(str, -1)
+			if len(us) == 0 {
+				return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:003")
+			}
+			mstr := us[0]
+			__idx := strings.LastIndex(mstr, ":")
+			roomId = mstr[__idx+1:]
+			cache.Set("live_douyu_url:"+parameter, roomId, 10*time.Hour)
 		}
-		re := regexp.MustCompile(`"room_id":(\d+)`)
-		us := re.FindAllString(str, -1)
-		if len(us) == 0 {
-			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:003")
-		}
-		mstr := us[0]
-		__idx := strings.LastIndex(mstr, ":")
-		roomId = mstr[__idx+1:]
-		cache.Set("live_douyu_url:"+parameter, roomId, 10*time.Hour)
 	}
 	if len(roomId) == 0 {
 		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:004")
@@ -1264,5 +1280,78 @@ func (r QQOpenLive) GetStatus(parameter string) (LIVE_STATUS, error) {
 }
 
 func (r QQOpenLive) Reptile(parameter string) (string, error) {
+	return "", errors.New("此方法无效")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//cc163
+////////////////////////////////////////////////////////////////////////////////
+type CC163Live struct{}
+
+func (r CC163Live) ViewHtmlOnPc(url string, width int, height int) string {
+	return ""
+}
+
+func (r CC163Live) ProxyReptile(parameter string, cmd string) (clientReqUrl string, nextCmd string, err error) {
+	lcmd := strings.ToLower(cmd)
+	if lcmd == "get_stream_params" {
+		jdata, err := utils.NewJson([]byte(parameter))
+		if err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, err
+		}
+		if _, ok := jdata.CheckGet("videourl"); !ok {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("数据错误:001")
+		}
+		videourl, _ := jdata.Get("videourl").String()
+		return videourl, REP_CALLBACK_COMMAND_COMPLETED, nil
+	}
+
+	support, _ := Get_REP_SUPPORT(parameter)
+	if support != REP_SUPPORT_CC163 {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:00")
+	}
+	cache := utils.GetLocalCache()
+	ckey := fmt.Sprintf("reptile_cc163_cid:%s", parameter)
+	var video_playurl string
+	err = cache.Get(ckey, &video_playurl)
+	if err != nil {
+
+		content, err := httplib.Get(parameter).String()
+		if err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址获取数据错误:01")
+		}
+		re := regexp.MustCompile(`anchorCcId : '([\d+]+)'`)
+		us := re.FindAllString(content, -1)
+		if len(us) == 0 {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:02")
+		}
+		mstr := us[0]
+		mstr = strings.Replace(mstr, "'", "", -1)
+		mstr = strings.Replace(mstr, "anchorCcId : ", "", -1)
+		roomId := fmt.Sprintf("cc_%s", mstr)
+
+		//远程服务调用
+		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+		transport, _ := thrift.NewTSocketTimeout(douyu_api_host, 2*time.Minute)
+		client := douyuapi.NewDouyuApiServiceClientFactory(transport, protocolFactory)
+		if err := transport.Open(); err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:05")
+		}
+		defer transport.Close()
+		url, err := client.GetData(roomId, parameter)
+		if len(url) == 0 || err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:06")
+		}
+		cache.Set(ckey, url, 3*time.Minute)
+		return url, "get_stream_params", nil
+	}
+	return video_playurl, "get_stream_params", nil
+}
+
+func (r CC163Live) GetStatus(parameter string) (LIVE_STATUS, error) {
+	return LIVE_STATUS_NOTHING, nil
+}
+
+func (r CC163Live) Reptile(parameter string) (string, error) {
 	return "", errors.New("此方法无效")
 }

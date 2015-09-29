@@ -39,6 +39,7 @@ func (c *ShopCPController) getItem(item *shop.Item) *outobjs.OutShopItemForAdmin
 		Description:   item.Description,
 		PriceType:     item.PriceType,
 		Price:         item.Price,
+		Jings:         item.Jings,
 		OriginalPrice: item.OriginalPrice,
 		RmbPrice:      item.RmbPrice,
 		Img:           item.Img,
@@ -99,6 +100,7 @@ func (c *ShopCPController) GetItems() {
 // @Param   description   path	string true  "描述"
 // @Param   price_type   path	int true  "价格类型"
 // @Param   price   path	float true  "价格"
+// @Param   jings	path 	int true  "竞币"
 // @Param   original_price   path	float true  "原价"
 // @Param   rmb_price   path	float true  "人民币价格"
 // @Param   img   path	int true  "图片"
@@ -117,6 +119,7 @@ func (c *ShopCPController) AddItem() {
 	description, _ := utils.UrlDecode(c.GetString("description"))
 	price_type, _ := c.GetInt("price_type")
 	price, _ := c.GetFloat("price")
+	jings, _ := c.GetInt64("jings")
 	ori_price, _ := c.GetFloat("original_price")
 	rmb_price, _ := c.GetFloat("rmb_price")
 	img, _ := c.GetInt64("img")
@@ -137,8 +140,8 @@ func (c *ShopCPController) AddItem() {
 		c.Json(libs.NewError("admincp_shop_add_fail", "GM030_002", "参数price_type错误", ""))
 		return
 	}
-	if price <= 0 {
-		c.Json(libs.NewError("admincp_shop_add_fail", "GM030_003", "参数price错误", ""))
+	if price <= 0 && jings <= 0 {
+		c.Json(libs.NewError("admincp_shop_add_fail", "GM030_003", "价格错误", ""))
 		return
 	}
 	if img <= 0 {
@@ -158,8 +161,9 @@ func (c *ShopCPController) AddItem() {
 	item := &shop.Item{
 		Name:          name,
 		Description:   description,
-		PriceType:     shop.PRICE_TYPE(price_type),
+		PriceType:     price_type, //shop.PRICE_TYPE(price_type),
 		Price:         price,
+		Jings:         jings,
 		OriginalPrice: ori_price,
 		RmbPrice:      rmb_price,
 		Img:           img,
@@ -196,6 +200,7 @@ func (c *ShopCPController) AddItem() {
 // @Param   description   path	string true  "描述"
 // @Param   price_type   path	int true  "价格类型"
 // @Param   price   path	float true  "价格"
+// @Param   jings	path 	int true  "竞币"
 // @Param   original_price   path	float true  "原价"
 // @Param   rmb_price   path	float true  "人民币价格"
 // @Param   img   path	int true  "图片"
@@ -216,6 +221,7 @@ func (c *ShopCPController) UpdateItem() {
 
 	price_type, _ := c.GetInt("price_type")
 	price, _ := c.GetFloat("price")
+	jings, _ := c.GetInt64("jings")
 	ori_price, _ := c.GetFloat("original_price")
 	rmb_price, _ := c.GetFloat("rmb_price")
 	img, _ := c.GetInt64("img")
@@ -239,8 +245,8 @@ func (c *ShopCPController) UpdateItem() {
 		c.Json(libs.NewError("admincp_shop_update_fail", "GM030_022", "参数price_type错误", ""))
 		return
 	}
-	if price <= 0 {
-		c.Json(libs.NewError("admincp_shop_update_fail", "GM030_023", "参数price错误", ""))
+	if price <= 0 && jings <= 0 {
+		c.Json(libs.NewError("admincp_shop_update_fail", "GM030_023", "价格错误", ""))
 		return
 	}
 	if img <= 0 {
@@ -263,8 +269,9 @@ func (c *ShopCPController) UpdateItem() {
 	}
 	item.Name = name
 	item.Description = description
-	item.PriceType = shop.PRICE_TYPE(price_type)
+	item.PriceType = price_type //shop.PRICE_TYPE(price_type)
 	item.Price = price
+	item.Jings = jings
 	item.OriginalPrice = ori_price
 	item.RmbPrice = rmb_price
 	item.Img = img
@@ -557,6 +564,61 @@ func (c *ShopCPController) Snap() {
 	}
 	out_snap := outobjs.GetOutShopItemSnap(snap)
 	c.Json(out_snap)
+}
+
+// @Title 订单地址
+// @Description 订单地址
+// @Param   order_no   path	string true  "订单号"
+// @Success 200 {object} outobjs.OutShopTransport
+// @router /order_transport [get]
+func (c *ShopCPController) OrderTransport() {
+	orderNo := c.GetString("order_no")
+	if len(orderNo) == 0 {
+		c.Json(libs.NewError("admincp_shop_get_transport_fail", "GM030_120", "订单号不能为空", ""))
+		return
+	}
+	shopp := shop.NewShop()
+	transport := shopp.GetOrderTransport(orderNo)
+	c.Json(outobjs.GetOutShopTransport(transport))
+}
+
+// @Title 更新订单送货单号
+// @Description 更新订单送货单号
+// @Param   order_no   path	string true  "订单号"
+// @Param   trans_no   path	string true  "运单号"
+// @Param   company_id   path	int true  "运单公司"
+// @Success 200 {object} libs.Error
+// @router /update_transport [post]
+func (c *ShopCPController) UpdateTransportNo() {
+	orderNo := c.GetString("order_no")
+	transNo := c.GetString("trans_no")
+	companyId, _ := c.GetInt("company_id")
+	if len(orderNo) == 0 {
+		c.Json(libs.NewError("admincp_shop_update_transport_fail", "GM030_120", "订单号不能为空", ""))
+		return
+	}
+	if len(transNo) == 0 {
+		c.Json(libs.NewError("admincp_shop_update_transport_fail", "GM030_121", "运单不能为空", ""))
+		return
+	}
+	if companyId == 0 {
+		c.Json(libs.NewError("admincp_shop_update_transport_fail", "GM030_122", "运单公司id错误", ""))
+		return
+	}
+	shopp := shop.NewShop()
+	transport := shopp.GetOrderTransport(orderNo)
+	if transport == nil {
+		c.Json(libs.NewError("admincp_shop_update_transport_fail", "GM030_123", "订单不存在", ""))
+		return
+	}
+	transport.TransNo = transNo
+	transport.CompanyId = companyId
+	err := shopp.UpdateOrderTransport(transport)
+	if err == nil {
+		c.Json(libs.NewError("admincp_shop_update_transport_succ", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_shop_update_transport_fail", "GM030_124", "更新失败:"+err.Error(), ""))
 }
 
 // @Title 生成电子票

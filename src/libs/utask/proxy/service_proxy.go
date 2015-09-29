@@ -73,16 +73,22 @@ func UnConvertTASK_PERIOD_TYPE(tpt utask.TASK_PERIOD_TYPE) TASK_PERIOD_TYPE {
 
 func ConvertTASK_REWARD_TYPE(trt TASK_REWARD_TYPE) utask.TASK_REWARD_TYPE {
 	switch trt {
-	default:
+	case TASK_REWARD_TYPE_CREDIT:
 		return utask.TASK_REWARD_TYPE_CREDIT
+	case TASK_REWARD_TYPE_JING:
+		return utask.TASK_REWARD_TYPE_JING
 	}
+	return utask.TASK_REWARD_TYPE_CREDIT
 }
 
 func UnConvertTASK_REWARD_TYPE(trt utask.TASK_REWARD_TYPE) TASK_REWARD_TYPE {
 	switch trt {
-	default:
+	case utask.TASK_REWARD_TYPE_CREDIT:
 		return TASK_REWARD_TYPE_CREDIT
+	case utask.TASK_REWARD_TYPE_JING:
+		return TASK_REWARD_TYPE_JING
 	}
+	return TASK_REWARD_TYPE_CREDIT
 }
 
 func UnConvertMISSION_STATUS(status utask.MISSION_STATUS) MISSION_STATUS {

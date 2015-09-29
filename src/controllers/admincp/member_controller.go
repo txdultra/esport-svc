@@ -2,6 +2,7 @@ package admincp
 
 import (
 	"controllers"
+	"fmt"
 	"libs"
 	"libs/passport"
 	"outobjs"
@@ -422,4 +423,49 @@ func (c *MemberCPController) Search() {
 		Time:        time.Now().Unix(),
 	}
 	c.Json(out)
+}
+
+// @Title 操作积分
+// @Description 操作积分
+// @Param   uid path int true  "uid"
+// @Param   type path string true  "赠送类型(p=积分,j=竞币)"
+// @Param   nums  path	int true  "数量"
+// @Param   desc  path	string false  "描述"
+// @Param   action_pwd  path	string true  "操作密码"
+// @Success 200  {object} libs.Error
+// @router /action_credit [post]
+func (c *MemberCPController) ActionCredit() {
+	current_uid := c.CurrentUid()
+	uid, _ := c.GetInt64("uid")
+	t := c.GetString("type")
+	nums, _ := c.GetInt64("nums")
+	desc, _ := utils.UrlDecode(c.GetString("desc"))
+	pwd := c.GetString("action_pwd")
+	if pwd != fmt.Sprintf("djq_%d", current_uid) {
+		c.Json(libs.NewError("member_action_credit_fail", "GM020_074", "操作密码错误", ""))
+		return
+	}
+	if uid <= 0 {
+		c.Json(libs.NewError("member_action_credit_fail", "GM020_070", "参数错误", ""))
+		return
+	}
+	if len(t) == 0 || (t != "p" && t != "j") {
+		c.Json(libs.NewError("member_action_credit_fail", "GM020_071", "参数错误", ""))
+		return
+	}
+	if nums == 0 {
+		c.Json(libs.NewError("member_action_credit_fail", "GM020_072", "参数错误", ""))
+		return
+	}
+	ptype := libs.PRICE_TYPE_CREDIT
+	if t == "j" {
+		ptype = libs.PRICE_TYPE_JING
+	}
+	mp := passport.NewMemberProvider()
+	no, err := mp.ActionCredit(current_uid, uid, ptype, nums, desc)
+	if err != nil {
+		c.Json(libs.NewError("member_action_credit_fail", "GM020_075", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("member_action_credit_success", controllers.RESPONSE_SUCCESS, "操作成功:"+no, ""))
 }

@@ -19,7 +19,7 @@ func NewCreditService() *CreditService {
 }
 
 func (c *CreditService) creditKey(uid int64) string {
-	return fmt.Sprintf("credit_%d", uid)
+	return fmt.Sprintf("%s_%d", CKEY_pfx, uid)
 }
 
 func (c *CreditService) GetCredit(uid int64) int64 {
@@ -69,7 +69,7 @@ func (c *CreditService) OperCredit(op *OperationCreditParameter) *Result {
 }
 
 func (c *CreditService) lockKey(uid int64) string {
-	return fmt.Sprintf("u_%d", uid)
+	return fmt.Sprintf("%s_u_%d", LOCK_pfx, uid)
 }
 
 func (c *CreditService) incrCredit(op *OperationCreditParameter) *Result {

@@ -2,6 +2,7 @@ package outobjs
 
 import (
 	"fmt"
+	"libs"
 	"libs/shop"
 	"strconv"
 	"strings"
@@ -29,6 +30,7 @@ func GetOutShopItem(item *shop.Item) *OutShopItem {
 		Description:   item.Description,
 		PriceType:     item.PriceType,
 		Price:         item.Price,
+		Jings:         item.Jings,
 		OriginalPrice: item.OriginalPrice,
 		RmbPrice:      item.RmbPrice,
 		Img:           item.Img,
@@ -124,6 +126,7 @@ func GetOutShopItemSnap(snap *shop.OrderItemSnap) *OutShopItemSnap {
 		Description: snap.Description,
 		PriceType:   snap.PriceType,
 		Price:       snap.Price,
+		Jings:       snap.Jings,
 		ImgUrl:      file.GetFileUrl(snap.Img),
 		ShowingImgs: GetShopImgUrls(snap.Imgs),
 		TagId:       snap.TagId,
@@ -144,6 +147,8 @@ func getTransportCompanyName(id int) string {
 	switch id {
 	case 1:
 		return "顺丰"
+	case 2:
+		return "中通"
 	default:
 		return "未知"
 	}
@@ -197,12 +202,25 @@ func GetOutShopTicket(ticket *shop.ItemTicket) *OutShopTicket {
 	}
 }
 
+func GetOutShopTransport(transport *shop.OrderTransport) *OutShopTransport {
+	return &OutShopTransport{
+		OrderNo:  transport.OrderNo,
+		TransNo:  transport.TransNo,
+		TransImg: "",
+		Company:  getTransportCompanyName(transport.CompanyId),
+		Address:  transport.Province + " " + transport.City + " " + transport.Area + " " + transport.Addr1 + " " + transport.Addr2,
+		Receiver: transport.Receiver,
+		Tel:      transport.Tel1 + " " + transport.Tel2,
+	}
+}
+
 type OutShopItem struct {
 	ItemId        int64           `json:"item_id"`
 	Name          string          `json:"name"`
 	Description   string          `json:"description"`
-	PriceType     shop.PRICE_TYPE `json:"price_type"`
+	PriceType     int             `json:"price_type"`
 	Price         float64         `json:"price"`
+	Jings         int64           `json:"jings"`
 	OriginalPrice float64         `json:"original_price"`
 	RmbPrice      float64         `json:"rmb_price"`
 	Img           int64           `json:"img_id"`
@@ -229,8 +247,9 @@ type OutShopItemSnap struct {
 	ItemId      int64                  `json:"item_id"`
 	Name        string                 `json:"item_name"`
 	Description string                 `json:"item_description"`
-	PriceType   shop.PRICE_TYPE        `json:"item_price_type"`
+	PriceType   int                    `json:"item_price_type"`
 	Price       float64                `json:"item_price"`
+	Jings       int64                  `json:"item_jings"`
 	ImgUrl      string                 `json:"img_url"`
 	ShowingImgs []string               `json:"showing_imgs_url"`
 	TagId       int                    `json:"tag_id"`
@@ -251,7 +270,7 @@ type OutShopOrder struct {
 	Nums        int               `json:"nums"`
 	Price       float64           `json:"price"`
 	TotalPrice  float64           `json:"total_price"`
-	PriceType   shop.PRICE_TYPE   `json:"price_type"`
+	PriceType   libs.PRICE_TYPE   `json:"price_type"`
 	SnapId      int64             `json:"snap_id"`
 	Snap        *OutShopItemSnap  `json:"item_snap"`
 	Remark      string            `json:"remark"`
@@ -275,7 +294,7 @@ type OutShopOrderInfo struct {
 	OrderStatus shop.ORDER_STATUS `json:"order_status"`
 	PayStatus   shop.PAY_STATUS   `json:"pay_status"`
 	TotalPrice  float64           `json:"total_price"`
-	PriceType   shop.PRICE_TYPE   `json:"price_type"`
+	PriceType   libs.PRICE_TYPE   `json:"price_type"`
 	Remark      string            `json:"remark"`
 	Nums        int               `json:"nums"`
 	CreateTime  time.Time         `json:"create_time"`
@@ -344,8 +363,9 @@ type OutShopItemForAdmin struct {
 	ItemId        int64                  `json:"item_id"`
 	Name          string                 `json:"name"`
 	Description   string                 `json:"description"`
-	PriceType     shop.PRICE_TYPE        `json:"price_type"`
+	PriceType     int                    `json:"price_type"`
 	Price         float64                `json:"price"`
+	Jings         int64                  `json:"jings"`
 	OriginalPrice float64                `json:"original_price"`
 	RmbPrice      float64                `json:"rmb_price"`
 	Img           int64                  `json:"img_id"`
@@ -385,7 +405,7 @@ type OutShopOrderForAdmin struct {
 	Nums        int               `json:"nums"`
 	Price       float64           `json:"price"`
 	TotalPrice  float64           `json:"total_price"`
-	PriceType   shop.PRICE_TYPE   `json:"price_type"`
+	PriceType   libs.PRICE_TYPE   `json:"price_type"`
 	SnapId      int64             `json:"snap_id"`
 	Snap        *OutShopItemSnap  `json:"snap"`
 	Remark      string            `json:"remark"`

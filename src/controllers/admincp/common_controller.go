@@ -134,13 +134,22 @@ func (c *CommonCPController) GameUpdate() {
 
 // @Title 赛事列表
 // @Description 赛事列表
+// @Param   isall   path	bool false  "isall"
+// @Param   enabled   path	bool false  "enabled"
 // @Success 200 {object} outobjs.OutMatchForAdmin
 // @router /match/list [get]
 func (c *CommonCPController) Matchs() {
+	enabled, _ := c.GetBool("enabled")
+	all, _ := c.GetBool("isall")
 	bas := &libs.Bas{}
 	matchs := bas.Matchs()
 	out_matchs := []*outobjs.OutMatchForAdmin{}
 	for _, m := range matchs {
+		if !all {
+			if m.Enabled != enabled {
+				continue
+			}
+		}
 		out_matchs = append(out_matchs, &outobjs.OutMatchForAdmin{
 			Id:       m.Id,
 			Name:     m.Name,
@@ -151,6 +160,7 @@ func (c *CommonCPController) Matchs() {
 			Des1:     m.Des1,
 			Des2:     m.Des2,
 			Des3:     m.Des3,
+			Enabled:  m.Enabled,
 		})
 	}
 	c.Json(out_matchs)
@@ -165,6 +175,7 @@ func (c *CommonCPController) Matchs() {
 // @Param   des1   path	string true  "赛事描述1"
 // @Param   des2   path	string true  "赛事描述2"
 // @Param   des3   path	string true  "赛事描述3"
+// @Param   enabled   path	bool true  "开启"
 // @Success 200 {object} libs.Error
 // @router /match/add [post]
 func (c *CommonCPController) MatchAdd() {
@@ -175,6 +186,7 @@ func (c *CommonCPController) MatchAdd() {
 	des1, _ := utils.UrlDecode(c.GetString("des1"))
 	des2, _ := utils.UrlDecode(c.GetString("des2"))
 	des3, _ := utils.UrlDecode(c.GetString("des3"))
+	enabled, _ := c.GetBool("enabled")
 
 	if len(name) == 0 {
 		c.Json(libs.NewError("admincp_common_match_add_fail", "GM002_001", "赛事名称不能空", ""))
@@ -192,6 +204,7 @@ func (c *CommonCPController) MatchAdd() {
 	match.Des1 = des1
 	match.Des2 = des2
 	match.Des3 = des3
+	match.Enabled = enabled
 	bas := &libs.Bas{}
 	err := bas.AddMatch(match)
 	if err == nil {
@@ -211,10 +224,11 @@ func (c *CommonCPController) MatchAdd() {
 // @Param   des1   path	string true  "赛事描述1"
 // @Param   des2   path	string true  "赛事描述2"
 // @Param   des3   path	string true  "赛事描述3"
+// @Param   enabled   path	bool true  "开启"
 // @Success 200 {object} libs.Error
 // @router /match/update [post]
 func (c *CommonCPController) MatchUpdate() {
-	id, _ := c.GetInt64("id")
+	id, _ := c.GetInt("id")
 	name, _ := utils.UrlDecode(c.GetString("name"))
 	sub_title, _ := utils.UrlDecode(c.GetString("sub_title"))
 	en, _ := utils.UrlDecode(c.GetString("en"))
@@ -222,6 +236,7 @@ func (c *CommonCPController) MatchUpdate() {
 	des1, _ := utils.UrlDecode(c.GetString("des1"))
 	des2, _ := utils.UrlDecode(c.GetString("des2"))
 	des3, _ := utils.UrlDecode(c.GetString("des3"))
+	enabled, _ := c.GetBool("enabled")
 
 	if id <= 0 {
 		c.Json(libs.NewError("admincp_common_match_update_fail", "GM002_010", "赛事不存在", ""))
@@ -235,8 +250,11 @@ func (c *CommonCPController) MatchUpdate() {
 		c.Json(libs.NewError("admincp_common_match_update_fail", "GM002_012", "赛事英文名不能空", ""))
 		return
 	}
-	match := &libs.Match{}
-	match.Id = int(id)
+	bas := &libs.Bas{}
+	match := bas.Match(id)
+	if match == nil {
+		c.Json(libs.NewError("admincp_common_match_update_fail", "GM002_014", "对象不存在", ""))
+	}
 	match.Name = name
 	match.SubTitle = sub_title
 	match.En = en
@@ -244,7 +262,8 @@ func (c *CommonCPController) MatchUpdate() {
 	match.Des1 = des1
 	match.Des2 = des2
 	match.Des3 = des3
-	bas := &libs.Bas{}
+	match.Enabled = enabled
+
 	err := bas.UpdateMatch(match)
 	if err == nil {
 		c.Json(libs.NewError("admincp_common_match_update_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))

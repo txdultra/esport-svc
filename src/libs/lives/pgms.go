@@ -449,6 +449,23 @@ func (lsp *LiveSubPrograms) IsLiving(id int64) bool {
 	return false
 }
 
+func (lsp *LiveSubPrograms) UpdateBetId(id int64, betId int64) error {
+	sp := lsp.Get(id)
+	if sp == nil {
+		return fmt.Errorf("对象不存在")
+	}
+	sp.BetId = betId
+	o := dbs.NewDefaultOrm()
+	_, err := o.Update(sp, "bet_id")
+	if err != nil {
+		return err
+	}
+	cache := utils.GetCache()
+	cache.Delete(lsp.lpkey(sp.Id))
+	cache.Delete(lsp.lpskey(sp.ProgramId))
+	return nil
+}
+
 func (lsp *LiveSubPrograms) Update(sp LiveSubProgram) error {
 	err := lsp.validate(&sp)
 	if err != nil {

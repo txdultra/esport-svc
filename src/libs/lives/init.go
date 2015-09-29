@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"libs"
 	"libs/collect"
+	"libs/lives/service"
 	"sync"
 	"time"
 	"utils"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+	"github.com/thrift"
 )
 
 var once sync.Once
@@ -95,4 +97,28 @@ func init() {
 
 	//注册推送通知后台处理线程
 	libs.RegisterMsqMsgrocessTasker("live_program_push_processer", &ProgramNoticeMsqProcesser{})
+
+	//启动账号服务
+	live_service_run := beego.AppConfig.DefaultBool("live.service.run", false)
+	live_service_port := beego.AppConfig.DefaultInt("live.service.port", 20003)
+	if live_service_run {
+		go runLiveServer(live_service_port)
+	}
+}
+
+func runLiveServer(port int) {
+	transportFactory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
+	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+	host := fmt.Sprintf("0.0.0.0:%d", port)
+	serverTransport, err := thrift.NewTServerSocket(host)
+	if err != nil {
+		panic(err)
+	}
+
+	handler := &LiveServiceImpl{}
+	processor := service.NewLiveApiServiceProcessor(handler)
+
+	server := thrift.NewTSimpleServer4(processor, serverTransport, transportFactory, protocolFactory)
+	fmt.Println("live service server in " + host)
+	server.Serve()
 }

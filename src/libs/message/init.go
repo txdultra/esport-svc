@@ -22,18 +22,19 @@ func init() {
 	use_ssdb_message_db = beego.AppConfig.String("ssdb.message.db")
 	mbox_atmsg_length = beego.AppConfig.DefaultInt("mbox.atmsg.length", 200)
 	sys_message_service_run = beego.AppConfig.DefaultBool("sys.message.service.run", false)
+	sys_message_service_port := beego.AppConfig.DefaultInt("sys.message.service.port", 20001)
 	initMsgSysConfig()
 
 	if sys_message_service_run {
-		go runMessageServer()
+		go runMessageServer(sys_message_service_port)
 	}
 }
 
-func runMessageServer() {
+func runMessageServer(port int) {
 	transportFactory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
 	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
-
-	serverTransport, err := thrift.NewTServerSocket("0.0.0.0:20001")
+	host := fmt.Sprintf("0.0.0.0:%d", port)
+	serverTransport, err := thrift.NewTServerSocket(host)
 	if err != nil {
 		panic(err)
 	}
@@ -42,7 +43,7 @@ func runMessageServer() {
 	processor := service.NewMessageServiceProcessor(handler)
 
 	server := thrift.NewTSimpleServer4(processor, serverTransport, transportFactory, protocolFactory)
-	fmt.Println("message service server in 0.0.0.0:20001")
+	fmt.Println("message service server in " + host)
 	server.Serve()
 }
 

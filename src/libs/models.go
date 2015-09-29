@@ -35,6 +35,7 @@ type Match struct {
 	Des1     string
 	Des2     string
 	Des3     string
+	Enabled  bool
 }
 
 func (self *Match) TableName() string {

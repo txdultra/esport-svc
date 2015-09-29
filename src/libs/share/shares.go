@@ -507,3 +507,10 @@ func (n *Shares) Gets(uid int64, page int, size int, ts time.Time) (int, []*Shar
 	}
 	return c, ss
 }
+
+func (n *Shares) ShareOutside(uid int64) {
+	if uid <= 0 {
+		return
+	}
+	hook.Do("share_weixin", uid, 1)
+}

@@ -130,6 +130,7 @@ type LiveSubProgram struct {
 	EndTime   time.Time
 	PostTime  time.Time
 	PostUid   int64
+	BetId     int64
 }
 
 func (self *LiveSubProgram) TableName() string {
