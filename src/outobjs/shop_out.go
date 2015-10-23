@@ -2,8 +2,8 @@ package outobjs
 
 import (
 	"fmt"
-	"libs"
 	"libs/shop"
+	"libs/vars"
 	"strconv"
 	"strings"
 	"time"
@@ -259,27 +259,27 @@ type OutShopItemSnap struct {
 }
 
 type OutShopOrder struct {
-	OrderNo     string            `json:"order_no"`
-	ItemId      int64             `json:"item_id"`
-	ItemType    shop.ITEM_TYPE    `json:"item_type"`
-	IssueType   shop.ISSUE_TYPE   `json:"issue_type"`
-	CreateTime  time.Time         `json:"create_time"`
-	Uid         int64             `json:"uid"`
-	OrderStatus shop.ORDER_STATUS `json:"order_status"`
-	PayStatus   shop.PAY_STATUS   `json:"pay_status"`
-	Nums        int               `json:"nums"`
-	Price       float64           `json:"price"`
-	TotalPrice  float64           `json:"total_price"`
-	PriceType   libs.PRICE_TYPE   `json:"price_type"`
-	SnapId      int64             `json:"snap_id"`
-	Snap        *OutShopItemSnap  `json:"item_snap"`
-	Remark      string            `json:"remark"`
-	Pay         string            `json:"pay"`
-	PayNo       string            `json:"pay_no"`
-	Ex1         string            `json:"ex1"`
-	Ex2         string            `json:"ex2"`
-	Ex3         string            `json:"ex3"`
-	Item        *OutShopItem      `json:"item"`
+	OrderNo     string             `json:"order_no"`
+	ItemId      int64              `json:"item_id"`
+	ItemType    shop.ITEM_TYPE     `json:"item_type"`
+	IssueType   shop.ISSUE_TYPE    `json:"issue_type"`
+	CreateTime  time.Time          `json:"create_time"`
+	Uid         int64              `json:"uid"`
+	OrderStatus shop.ORDER_STATUS  `json:"order_status"`
+	PayStatus   shop.PAY_STATUS    `json:"pay_status"`
+	Nums        int                `json:"nums"`
+	Price       float64            `json:"price"`
+	TotalPrice  float64            `json:"total_price"`
+	PriceType   vars.CURRENCY_TYPE `json:"price_type"`
+	SnapId      int64              `json:"snap_id"`
+	Snap        *OutShopItemSnap   `json:"item_snap"`
+	Remark      string             `json:"remark"`
+	Pay         string             `json:"pay"`
+	PayNo       string             `json:"pay_no"`
+	Ex1         string             `json:"ex1"`
+	Ex2         string             `json:"ex2"`
+	Ex3         string             `json:"ex3"`
+	Item        *OutShopItem       `json:"item"`
 }
 
 type OutShopOrderPagedList struct {
@@ -288,22 +288,22 @@ type OutShopOrderPagedList struct {
 }
 
 type OutShopOrderInfo struct {
-	OrderNo     string            `json:"order_no"`
-	ItemId      int64             `json:"item_id"`
-	IssueType   shop.ISSUE_TYPE   `json:"issue_type"`
-	OrderStatus shop.ORDER_STATUS `json:"order_status"`
-	PayStatus   shop.PAY_STATUS   `json:"pay_status"`
-	TotalPrice  float64           `json:"total_price"`
-	PriceType   libs.PRICE_TYPE   `json:"price_type"`
-	Remark      string            `json:"remark"`
-	Nums        int               `json:"nums"`
-	CreateTime  time.Time         `json:"create_time"`
-	Item        *OutShopItem      `json:"item"`
-	Snap        *OutShopItemSnap  `json:"item_snap"`
-	Transport   *OutShopTransport `json:"transport"`
-	Ex1         string            `json:"ex1"`
-	Ex2         string            `json:"ex2"`
-	Ex3         string            `json:"ex3"`
+	OrderNo     string             `json:"order_no"`
+	ItemId      int64              `json:"item_id"`
+	IssueType   shop.ISSUE_TYPE    `json:"issue_type"`
+	OrderStatus shop.ORDER_STATUS  `json:"order_status"`
+	PayStatus   shop.PAY_STATUS    `json:"pay_status"`
+	TotalPrice  float64            `json:"total_price"`
+	PriceType   vars.CURRENCY_TYPE `json:"price_type"`
+	Remark      string             `json:"remark"`
+	Nums        int                `json:"nums"`
+	CreateTime  time.Time          `json:"create_time"`
+	Item        *OutShopItem       `json:"item"`
+	Snap        *OutShopItemSnap   `json:"item_snap"`
+	Transport   *OutShopTransport  `json:"transport"`
+	Ex1         string             `json:"ex1"`
+	Ex2         string             `json:"ex2"`
+	Ex3         string             `json:"ex3"`
 }
 
 type OutShopProvince struct {
@@ -393,27 +393,27 @@ type OutShopOrderPagedListForAdmin struct {
 }
 
 type OutShopOrderForAdmin struct {
-	OrderNo     string            `json:"order_no"`
-	ItemId      int64             `json:"item_id"`
-	ItemType    shop.ITEM_TYPE    `json:"item_type"`
-	IssueType   shop.ISSUE_TYPE   `json:"issue_type"`
-	Ts          int64             `json:"ts"`
-	Uid         int64             `json:"uid"`
-	Member      *OutSimpleMember  `json:"member"`
-	OrderStatus shop.ORDER_STATUS `json:"order_status"`
-	PayStatus   shop.PAY_STATUS   `json:"pay_status"`
-	Nums        int               `json:"nums"`
-	Price       float64           `json:"price"`
-	TotalPrice  float64           `json:"total_price"`
-	PriceType   libs.PRICE_TYPE   `json:"price_type"`
-	SnapId      int64             `json:"snap_id"`
-	Snap        *OutShopItemSnap  `json:"snap"`
-	Remark      string            `json:"remark"`
-	PayId       int               `json:"payid"`
-	PayNo       string            `json:"payno"`
-	Ex1         string            `json:"ex1"`
-	Ex2         string            `json:"ex2"`
-	Ex3         string            `json:"ex3"`
+	OrderNo     string             `json:"order_no"`
+	ItemId      int64              `json:"item_id"`
+	ItemType    shop.ITEM_TYPE     `json:"item_type"`
+	IssueType   shop.ISSUE_TYPE    `json:"issue_type"`
+	Ts          int64              `json:"ts"`
+	Uid         int64              `json:"uid"`
+	Member      *OutSimpleMember   `json:"member"`
+	OrderStatus shop.ORDER_STATUS  `json:"order_status"`
+	PayStatus   shop.PAY_STATUS    `json:"pay_status"`
+	Nums        int                `json:"nums"`
+	Price       float64            `json:"price"`
+	TotalPrice  float64            `json:"total_price"`
+	PriceType   vars.CURRENCY_TYPE `json:"price_type"`
+	SnapId      int64              `json:"snap_id"`
+	Snap        *OutShopItemSnap   `json:"snap"`
+	Remark      string             `json:"remark"`
+	PayId       int                `json:"payid"`
+	PayNo       string             `json:"payno"`
+	Ex1         string             `json:"ex1"`
+	Ex2         string             `json:"ex2"`
+	Ex3         string             `json:"ex3"`
 }
 
 type OutShopItemTagForAdmin struct {

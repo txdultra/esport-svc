@@ -71,6 +71,16 @@ func (lp *LivePrograms) Create(program *LiveProgram, channelIds []int64) (int64,
 	return id, nil
 }
 
+func (lp *LivePrograms) GetLastProgram(matchId int64) *LiveProgram {
+	var ps []*LiveProgram
+	o := dbs.NewDefaultOrm()
+	_, err := o.QueryTable(&LiveProgram{}).Filter("match_id", matchId).OrderBy("-post_time").Limit(1).All(&ps)
+	if err == nil && len(ps) > 0 {
+		return ps[0]
+	}
+	return nil
+}
+
 func (lp *LivePrograms) lpckey(date time.Time) string {
 	return fmt.Sprintf("mobile_programs_day:%d-%d-%d", date.Year(), date.Month(), date.Day())
 }

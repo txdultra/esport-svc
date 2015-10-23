@@ -25,18 +25,19 @@ import (
 type REP_SUPPORT string
 
 const (
-	REP_SUPPORT_17173  REP_SUPPORT = "17173"
-	REP_SUPPORT_PPLIVE REP_SUPPORT = "pplive"
-	REP_SUPPORT_TWITCH REP_SUPPORT = "twitch"
-	REP_SUPPORT_FYZB   REP_SUPPORT = "fyzb"
-	REP_SUPPORT_DOUYU  REP_SUPPORT = "douyu"
-	REP_SUPPORT_QQ     REP_SUPPORT = "qq"
-	REP_SUPPORT_ZHANQI REP_SUPPORT = "zhanqi"
-	REP_SUPPORT_HUOMAO REP_SUPPORT = "huomao"
-	REP_SUPPORT_MLGTV  REP_SUPPORT = "mlgtv" //majorleaguegaming
-	REP_SUPPORT_HITBOX REP_SUPPORT = "hitbox"
-	REP_SUPPORT_QQOPEN REP_SUPPORT = "qqopen"
-	REP_SUPPORT_CC163  REP_SUPPORT = "cc163"
+	REP_SUPPORT_17173   REP_SUPPORT = "17173"
+	REP_SUPPORT_PPLIVE  REP_SUPPORT = "pplive"
+	REP_SUPPORT_TWITCH  REP_SUPPORT = "twitch"
+	REP_SUPPORT_FYZB    REP_SUPPORT = "fyzb"
+	REP_SUPPORT_DOUYU   REP_SUPPORT = "douyu"
+	REP_SUPPORT_QQ      REP_SUPPORT = "qq"
+	REP_SUPPORT_ZHANQI  REP_SUPPORT = "zhanqi"
+	REP_SUPPORT_HUOMAO  REP_SUPPORT = "huomao"
+	REP_SUPPORT_MLGTV   REP_SUPPORT = "mlgtv" //majorleaguegaming
+	REP_SUPPORT_HITBOX  REP_SUPPORT = "hitbox"
+	REP_SUPPORT_QQOPEN  REP_SUPPORT = "qqopen"
+	REP_SUPPORT_CC163   REP_SUPPORT = "cc163"
+	REP_SUPPORT_PANDATV REP_SUPPORT = "pandatv"
 )
 
 type REP_METHOD string
@@ -70,10 +71,11 @@ var LIVE_REPTILE_MODULES = map[string]reflect.Type{
 	//string(REP_SUPPORT_PPLIVE): reflect.TypeOf(PPTVLive{}),
 	string(REP_SUPPORT_TWITCH): reflect.TypeOf(TwitchTVLive{}),
 	//string(REP_SUPPORT_FYZB):   reflect.TypeOf(FyzbLive{}),
-	string(REP_SUPPORT_MLGTV):  reflect.TypeOf(MLGTVLive{}),
-	string(REP_SUPPORT_HITBOX): reflect.TypeOf(HitboxLive{}),
-	string(REP_SUPPORT_QQOPEN): reflect.TypeOf(QQOpenLive{}),
-	string(REP_SUPPORT_CC163):  reflect.TypeOf(CC163Live{}),
+	string(REP_SUPPORT_MLGTV):   reflect.TypeOf(MLGTVLive{}),
+	string(REP_SUPPORT_HITBOX):  reflect.TypeOf(HitboxLive{}),
+	string(REP_SUPPORT_QQOPEN):  reflect.TypeOf(QQOpenLive{}),
+	string(REP_SUPPORT_CC163):   reflect.TypeOf(CC163Live{}),
+	string(REP_SUPPORT_PANDATV): reflect.TypeOf(PandaTVLive{}),
 }
 
 func SupportReptilePlatforms() []string {
@@ -96,7 +98,7 @@ func LiveRepMethod(support REP_SUPPORT) REP_METHOD {
 	switch support {
 	case REP_SUPPORT_17173, REP_SUPPORT_DOUYU, REP_SUPPORT_QQ, REP_SUPPORT_ZHANQI,
 		REP_SUPPORT_HUOMAO, REP_SUPPORT_TWITCH, REP_SUPPORT_MLGTV, REP_SUPPORT_HITBOX,
-		REP_SUPPORT_QQOPEN, REP_SUPPORT_CC163:
+		REP_SUPPORT_QQOPEN, REP_SUPPORT_CC163, REP_SUPPORT_PANDATV:
 		return REP_METHOD_SERANDCLT
 	default:
 		return REP_METHOD_DIRECT
@@ -145,6 +147,10 @@ func Get_REP_SUPPORT(url string) (REP_SUPPORT, error) {
 	if matched {
 		return REP_SUPPORT_QQOPEN, nil
 	}
+	matched, _ = regexp.MatchString("http://www.panda.tv/room/(\\d+)", lowerUrl)
+	if matched {
+		return REP_SUPPORT_PANDATV, nil
+	}
 	return "", errors.New("not exist support rep")
 }
 
@@ -183,7 +189,7 @@ type IUserReptile interface {
 	ValidateUrl(url string) error
 }
 
-var reptile_status_douyu_url, reptile_status_17173_url, reptile_status_fengyun_url, reptile_status_twitchtv_urls, reptile_status_zhanqi_url, reptile_status_huomao_url string
+var reptile_status_douyu_url, reptile_status_17173_url, reptile_status_fengyun_url, reptile_status_twitchtv_urls, reptile_status_zhanqi_url, reptile_status_huomao_url, reptile_status_panda_url string
 
 func init() {
 	reptile_status_douyu_url = beego.AppConfig.String("reptile.status.douyu.url")
@@ -192,6 +198,7 @@ func init() {
 	reptile_status_twitchtv_urls = beego.AppConfig.String("reptile.status.twitchtv.urls")
 	reptile_status_zhanqi_url = beego.AppConfig.String("reptile.status.zhanqi.url")
 	reptile_status_huomao_url = beego.AppConfig.String("reptile.status.huomao.url")
+	reptile_status_panda_url = beego.AppConfig.String("reptile.status.panda.url")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -571,56 +578,50 @@ func (q ZhanqiLive) GetStatus(parameter string) (LIVE_STATUS, error) {
 	}
 	live_room_id := parameter[__index+1:]
 	//本地缓存,防止同一时间多次获取数据
-	cache := utils.GetLocalCache()
-	cacheKey := "reptile_status_zhanqi_content"
-	var content string
-	cache.Get(cacheKey, &content)
-	if len(content) == 0 {
-		req := httplib.Get(reptile_status_zhanqi_url)
-		req.SetTimeout(3*time.Minute, 3*time.Minute)
-		content, err := req.String()
-		if err != nil {
-			return LIVE_STATUS_NOTHING, err
+	for i := 1; i < 3; i++ {
+		zq_url := fmt.Sprintf(reptile_status_zhanqi_url, i)
+		cache := utils.GetLocalCache()
+		cacheKey := zq_url
+		var content string
+		cache.Get(cacheKey, &content)
+		if len(content) == 0 {
+			req := httplib.Get(zq_url)
+			req.SetTimeout(3*time.Minute, 3*time.Minute)
+			content, err := req.String()
+			if err != nil {
+				return LIVE_STATUS_NOTHING, err
+			}
+			cache.Set(cacheKey, content, 3*time.Minute)
 		}
-		cache.Set(cacheKey, content, 3*time.Minute)
-	}
-	//"code":"14723","domain":"jiezou"
-	type RoomObj struct {
-		Code   string `json:"code"`
-		Domain string `json:"domain"`
-		Status string `json:"status"`
-	}
-	type DataObj struct {
-		Cnt   int        `json:"cnt"`
-		Rooms []*RoomObj `json:"rooms"`
-	}
-	type LiveObj struct {
-		Code    int      `json:"code"`
-		Data    *DataObj `json:"data"`
-		Message string   `json:"message"`
-	}
-	lobj := &LiveObj{}
-	err := json.Unmarshal([]byte(content), &lobj)
-	if err == nil && lobj.Data != nil && lobj.Data.Rooms != nil {
-		for _, room := range lobj.Data.Rooms {
-			if room.Code == live_room_id || room.Domain == live_room_id {
-				if room.Status == "4" {
-					return LIVE_STATUS_LIVING, nil
-				} else {
-					return LIVE_STATUS_NOTHING, nil
+		//"code":"14723","domain":"jiezou"
+		type RoomObj struct {
+			Code   string `json:"code"`
+			Domain string `json:"domain"`
+			Status string `json:"status"`
+		}
+		type DataObj struct {
+			Cnt   int        `json:"cnt"`
+			Rooms []*RoomObj `json:"rooms"`
+		}
+		type LiveObj struct {
+			Code    int      `json:"code"`
+			Data    *DataObj `json:"data"`
+			Message string   `json:"message"`
+		}
+		lobj := &LiveObj{}
+		err := json.Unmarshal([]byte(content), &lobj)
+		if err == nil && lobj.Data != nil && lobj.Data.Rooms != nil {
+			for _, room := range lobj.Data.Rooms {
+				if room.Code == live_room_id || room.Domain == live_room_id {
+					if room.Status == "4" {
+						return LIVE_STATUS_LIVING, nil
+					} else {
+						return LIVE_STATUS_NOTHING, nil
+					}
 				}
 			}
 		}
 	}
-
-	//code_pttn := fmt.Sprintf(`"code":"%s"`, live_room_id)
-	//domain_pttn := fmt.Sprintf(`"domain":"%s"`, live_room_id)
-	//if strings.Contains(content, code_pttn) {
-	//	return LIVE_STATUS_LIVING, nil
-	//}
-	//if strings.Contains(content, domain_pttn) {
-	//	return LIVE_STATUS_LIVING, nil
-	//}
 	return LIVE_STATUS_NOTHING, nil
 }
 
@@ -942,15 +943,20 @@ func (r TwitchTVLive) GetStatus(parameter string) (LIVE_STATUS, error) {
 	var content string
 	cache.Get(cacheKey, &content)
 	if len(content) == 0 {
-		urls := strings.Split(reptile_status_twitchtv_urls, ";")
-		for _, url := range urls {
-			if len(strings.TrimSpace(url)) == 0 {
-				continue
-			}
+		for i := 0; i < 5; i++ {
+			url := fmt.Sprintf(reptile_status_twitchtv_urls, i*50)
 			_c, _ := httplib.Get(url).String()
 			content += _c
 		}
-		cache.Set(cacheKey, content, 1*time.Minute)
+		//		urls := strings.Split(reptile_status_twitchtv_urls, ";")
+		//		for _, url := range urls {
+		//			if len(strings.TrimSpace(url)) == 0 {
+		//				continue
+		//			}
+		//			_c, _ := httplib.Get(url).String()
+		//			content += _c
+		//		}
+		cache.Set(cacheKey, content, 5*time.Minute)
 	}
 	if strings.Contains(content, who) {
 		return LIVE_STATUS_LIVING, nil
@@ -1353,5 +1359,105 @@ func (r CC163Live) GetStatus(parameter string) (LIVE_STATUS, error) {
 }
 
 func (r CC163Live) Reptile(parameter string) (string, error) {
+	return "", errors.New("此方法无效")
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//pandatv
+////////////////////////////////////////////////////////////////////////////////
+type PandaTVLive struct{}
+
+func (d PandaTVLive) ViewHtmlOnPc(url string, width int, height int) string {
+	return ""
+}
+
+func (d PandaTVLive) GetStatus(parameter string) (LIVE_STATUS, error) {
+	__index := strings.LastIndex(parameter, "/")
+	if __index <= 0 {
+		return LIVE_STATUS_NOTHING, errors.New("抓取地址格式错误")
+	}
+	roomId := parameter[__index+1:]
+	//本地缓存,防止同一时间多次获取数据
+	cache := utils.GetLocalCache()
+	cacheKey := "reptile_status_panda_content"
+	var content string
+	cache.Get(cacheKey, &content)
+	if len(content) == 0 {
+		for i := 1; i <= 3; i++ {
+			req_url := fmt.Sprintf(reptile_status_panda_url, i, 100, time.Now().Unix())
+			req := httplib.Get(req_url)
+			req.SetTimeout(3*time.Minute, 3*time.Minute)
+			_cnt, err := req.String()
+			if err != nil {
+				return LIVE_STATUS_NOTHING, err
+			}
+			content += _cnt
+		}
+		cache.Set(cacheKey, content, 5*time.Minute)
+	}
+	if strings.Contains(content, fmt.Sprintf(`"id":"%s"`, roomId)) {
+		return LIVE_STATUS_LIVING, nil
+	}
+	return LIVE_STATUS_NOTHING, nil
+}
+
+//客户端参与的特别处理模式
+func (d PandaTVLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string, nextCmd string, err error) {
+	//lcmd := strings.ToLower(cmd)
+
+	//	if lcmd == REP_CALLBACK_COMMAND_302 {
+	//		return parameter, REP_CALLBACK_COMMAND_COMPLETED, nil
+	//	}
+
+	//第一步交互(默认)
+	support, _ := Get_REP_SUPPORT(parameter)
+	if support != REP_SUPPORT_PANDATV {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:001")
+	}
+
+	var playUrl string
+	cache := utils.GetCache()
+	ckey := "live_panda_url:" + parameter
+	cache.Get(ckey, &playUrl)
+	if len(playUrl) == 0 {
+		str, _err := httplib.Get(parameter).String()
+		if _err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:002")
+		}
+		re := regexp.MustCompile(`"room_key":"(\w+)"`)
+		uss := re.FindAllStringSubmatch(str, -1)
+		if len(uss) == 0 || len(uss[0]) < 2 {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:003")
+		}
+		roomKey := uss[0][1]
+		if len(roomKey) == 0 {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:004")
+		}
+
+		//远程服务调用
+		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+		transport, _ := thrift.NewTSocketTimeout(douyu_api_host, 2*time.Minute)
+		client := douyuapi.NewDouyuApiServiceClientFactory(transport, protocolFactory)
+		if err := transport.Open(); err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:05")
+		}
+		defer transport.Close()
+		url, err := client.GetData(roomKey, parameter)
+		if len(url) == 0 || err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:06")
+		}
+		cache.Set(ckey, url, 2*time.Hour)
+		playUrl = url
+	}
+	if len(playUrl) == 0 {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:07")
+	}
+	//	if strings.HasPrefix(playUrl, "http") {
+	//		return playUrl, REP_CALLBACK_COMMAND_302, nil
+	//	}
+	return playUrl, REP_CALLBACK_COMMAND_COMPLETED, nil
+}
+
+func (d PandaTVLive) Reptile(parameter string) (string, error) {
 	return "", errors.New("此方法无效")
 }

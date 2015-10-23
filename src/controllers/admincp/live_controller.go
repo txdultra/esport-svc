@@ -781,6 +781,26 @@ func (c *LiveCPController) LiveProgramDelete() {
 	c.Json(libs.NewError("admincp_live_program_del_succ", controllers.RESPONSE_SUCCESS, "删除成功", ""))
 }
 
+// @Title 上一次添加的赛事节目单
+// @Description 上一次添加的赛事节目单
+// @Param   match_id   path	int true  "赛事id"
+// @Success 200 {object} outobjs.OutProgramObj
+// @router /org/program/last [get]
+func (c *LiveCPController) LiveProgramLast() {
+	matchId, _ := c.GetInt64("match_id")
+	if matchId <= 0 {
+		c.Json(libs.NewError("admincp_live_program_last_fail", "GM016_090", "参数错误", ""))
+		return
+	}
+	pms := &lives.LivePrograms{}
+	ps := pms.GetLastProgram(matchId)
+	if ps != nil {
+		out := outobjs.ConvertOutProgramObj(ps, 0)
+		c.Json(out)
+	}
+	c.Json(libs.NewError("admincp_live_program_last_fail", "GM016_091", "对象不存在", ""))
+}
+
 // @Title 添加频道子节目单
 // @Description 添加频道子节目单
 // @Param   pid   path	int true  "主节目单id"

@@ -2,6 +2,7 @@ package reptile
 
 import (
 	"bytes"
+	enjson "encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -185,8 +186,8 @@ func (y *YoukuReptileV2) reptile(data string, vid string) (*VodStreams, error) {
 					continue
 				}
 				_msize := json.Get("data").GetIndex(0).Get("streamsizes").MustMap()[_m]
-				modeSize := _msize.(string)
-				streamSizes[streamMode], _ = strconv.Atoi(modeSize)
+				modeSize, _ := _msize.(enjson.Number).Int64()
+				streamSizes[streamMode] = int(modeSize) //strconv.Atoi(modeSize)
 				streamTypes = append(streamTypes, streamMode)
 				vss := []VodSeg{}
 

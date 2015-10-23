@@ -65,6 +65,8 @@ func GetOutMatch(match *libs.Match) *OutMatch {
 		Des1:     match.Des1,
 		Des2:     match.Des2,
 		Des3:     match.Des3,
+		IconId:   match.Icon,
+		IconUrl:  file.GetFileUrl(match.Icon),
 	}
 }
 
@@ -87,6 +89,8 @@ type OutMatch struct {
 	Des1     string `json:"des1"`
 	Des2     string `json:"des2"`
 	Des3     string `json:"des3"`
+	IconId   int64  `json:"icon_id"`
+	IconUrl  string `json:"icon_url"`
 }
 
 type OutVersion struct {
@@ -188,6 +192,8 @@ type OutMatchForAdmin struct {
 	Des2     string `json:"des2"`
 	Des3     string `json:"des3"`
 	Enabled  bool   `json:"enabled"`
+	IconId   int64  `json:"icon_id"`
+	IconUrl  string `json:"icon_url"`
 }
 
 type OutRecommendForAdmin struct {

@@ -153,6 +153,7 @@ func (s *Shops) UpdateItem(item *Item) error {
 	}
 	cache := utils.GetCache()
 	cache.Set(s.itemCacheKey(item.ItemId), *item, 12*time.Hour)
+	cache.Delete(s.itemAllCacheKey())
 	return nil
 }
 

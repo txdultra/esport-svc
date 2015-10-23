@@ -250,6 +250,7 @@ func (m *MemberProvider) Create(member Member, longiTude, latiTude float32) (int
 	}
 	err = o.Commit()
 	if err == nil {
+		hook.Do("new_register_user", uid, 1)
 		return uid, nil
 	}
 	return 0, &libs.Error{"user_create_commit_fail", "M4006", "创建用户错误", ""}
@@ -1350,11 +1351,11 @@ func (m *MemberProvider) UpdateMemberGames(uid int64, gameIds []int) error {
 	return nil
 }
 
-func (m *MemberProvider) getCreditHost(priceType libs.PRICE_TYPE) string {
+func (m *MemberProvider) getCreditHost(priceType vars.CURRENCY_TYPE) string {
 	switch priceType {
-	case libs.PRICE_TYPE_CREDIT:
+	case vars.CURRENCY_TYPE_CREDIT:
 		return credit_service_host
-	case libs.PRICE_TYPE_JING:
+	case vars.CURRENCY_TYPE_JING:
 		return jing_service_host
 	default:
 		return ""
@@ -1362,7 +1363,7 @@ func (m *MemberProvider) getCreditHost(priceType libs.PRICE_TYPE) string {
 }
 
 //操作积分
-func (m *MemberProvider) ActionCredit(fuid int64, uid int64, ptype libs.PRICE_TYPE, credits int64, desc string) (string, error) {
+func (m *MemberProvider) ActionCredit(fuid int64, uid int64, ptype vars.CURRENCY_TYPE, credits int64, desc string) (string, error) {
 	if credits == 0 {
 		return "", fmt.Errorf("积分不能等于0")
 	}

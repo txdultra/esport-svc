@@ -2,7 +2,6 @@ package shop
 
 import (
 	"fmt"
-	"libs"
 	credit_client "libs/credits/client"
 	credit_proxy "libs/credits/proxy"
 	"libs/dlock"
@@ -126,8 +125,8 @@ func (sp *ShopPurchaser) ChangeOrderStatus(orderNo string, status ORDER_STATUS, 
 	}
 }
 
-func (sp *ShopPurchaser) verifyItemPriceType(item *Item, priceType libs.PRICE_TYPE) error {
-	if priceType == libs.PRICE_TYPE_RMB {
+func (sp *ShopPurchaser) verifyItemPriceType(item *Item, priceType vars.CURRENCY_TYPE) error {
+	if priceType == vars.CURRENCY_TYPE_RMB {
 		return fmt.Errorf("暂不支持人民币购买")
 	}
 	if item.PriceType&int(priceType) != int(priceType) {
@@ -136,18 +135,18 @@ func (sp *ShopPurchaser) verifyItemPriceType(item *Item, priceType libs.PRICE_TY
 	return nil
 }
 
-func (sp *ShopPurchaser) itemPrice(item *Item, priceType libs.PRICE_TYPE) float64 {
+func (sp *ShopPurchaser) itemPrice(item *Item, priceType vars.CURRENCY_TYPE) float64 {
 	switch priceType {
-	case libs.PRICE_TYPE_CREDIT, libs.PRICE_TYPE_RMB:
+	case vars.CURRENCY_TYPE_CREDIT, vars.CURRENCY_TYPE_RMB:
 		return item.Price
-	case libs.PRICE_TYPE_JING:
+	case vars.CURRENCY_TYPE_JING:
 		return float64(item.Jings)
 	}
 	return -1
 }
 
 //现阶段只支持积分购买
-func (sp *ShopPurchaser) Buy(itemId int64, priceType libs.PRICE_TYPE, uid int64, nums int, remark string, cInfo *ConsumerInfo) *BuyResult {
+func (sp *ShopPurchaser) Buy(itemId int64, priceType vars.CURRENCY_TYPE, uid int64, nums int, remark string, cInfo *ConsumerInfo) *BuyResult {
 	shopp := NewShop()
 	item := shopp.GetItem(itemId)
 	if item == nil {
@@ -242,7 +241,7 @@ func (sp *ShopPurchaser) Buy(itemId int64, priceType libs.PRICE_TYPE, uid int64,
 		Nums:        nums,
 		Price:       itemPrice,
 		TotalPrice:  totalPrice,
-		PriceType:   libs.PRICE_TYPE(priceType),
+		PriceType:   vars.CURRENCY_TYPE(priceType),
 		SnapId:      snapId,
 		Remark:      remark,
 		PayId:       PAYID_CREDIT,
@@ -387,18 +386,18 @@ func (sp *ShopPurchaser) Buy(itemId int64, priceType libs.PRICE_TYPE, uid int64,
 	}
 }
 
-func (sp *ShopPurchaser) getCreditHost(priceType libs.PRICE_TYPE) string {
+func (sp *ShopPurchaser) getCreditHost(priceType vars.CURRENCY_TYPE) string {
 	switch priceType {
-	case libs.PRICE_TYPE_CREDIT:
+	case vars.CURRENCY_TYPE_CREDIT:
 		return credit_service_host
-	case libs.PRICE_TYPE_JING:
+	case vars.CURRENCY_TYPE_JING:
 		return jing_service_host
 	default:
 		return ""
 	}
 }
 
-func (sp *ShopPurchaser) getCredit(uid int64, priceType libs.PRICE_TYPE) int64 {
+func (sp *ShopPurchaser) getCredit(uid int64, priceType vars.CURRENCY_TYPE) int64 {
 	host := sp.getCreditHost(priceType)
 	if len(host) == 0 {
 		return 0
@@ -416,7 +415,7 @@ func (sp *ShopPurchaser) getCredit(uid int64, priceType libs.PRICE_TYPE) int64 {
 	return _credits
 }
 
-func (sp *ShopPurchaser) rollbackCredit(creditNo string, priceType libs.PRICE_TYPE) error {
+func (sp *ShopPurchaser) rollbackCredit(creditNo string, priceType vars.CURRENCY_TYPE) error {
 	host := sp.getCreditHost(priceType)
 	if len(host) == 0 {
 		return fmt.Errorf("货币系统不存在")
@@ -441,7 +440,7 @@ func (sp *ShopPurchaser) rollbackCredit(creditNo string, priceType libs.PRICE_TY
 	return nil
 }
 
-func (sp *ShopPurchaser) lockCredit(credits int64, priceType libs.PRICE_TYPE, uid int64, oper credit_proxy.OPERATION_ACTOIN, product string) (string, error) {
+func (sp *ShopPurchaser) lockCredit(credits int64, priceType vars.CURRENCY_TYPE, uid int64, oper credit_proxy.OPERATION_ACTOIN, product string) (string, error) {
 	host := sp.getCreditHost(priceType)
 	if len(host) == 0 {
 		return "", fmt.Errorf("货币系统不存在")
@@ -468,7 +467,7 @@ func (sp *ShopPurchaser) lockCredit(credits int64, priceType libs.PRICE_TYPE, ui
 	return result.No, nil
 }
 
-func (sp *ShopPurchaser) enterCredit(creditNo string, priceType libs.PRICE_TYPE) error {
+func (sp *ShopPurchaser) enterCredit(creditNo string, priceType vars.CURRENCY_TYPE) error {
 	host := sp.getCreditHost(priceType)
 	if len(host) == 0 {
 		return fmt.Errorf("货币系统不存在")

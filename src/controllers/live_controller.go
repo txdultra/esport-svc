@@ -223,7 +223,7 @@ func (c *LiveController) PerGets() {
 		Size:        scs,
 		Time:        time.Now().Unix(),
 	}
-	utils.SetLocalFastExpriesTimePartCache(2*time.Minute, query_cache_key, out_p)
+	utils.SetLocalFastExpriesTimePartCache(1*time.Minute, query_cache_key, out_p)
 	c.Json(out_p)
 }
 
@@ -308,6 +308,12 @@ func (c *LiveController) streamName(rep reptile.REP_SUPPORT) string {
 		return "直播流7"
 	case reptile.REP_SUPPORT_CC163:
 		return "直播流8"
+	case reptile.REP_SUPPORT_PANDATV:
+		return "直播流9"
+	case reptile.REP_SUPPORT_MLGTV:
+		return "直播流10"
+	case reptile.REP_SUPPORT_HITBOX:
+		return "直播流11"
 	default:
 		return "未知流"
 	}

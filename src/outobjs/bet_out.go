@@ -135,6 +135,8 @@ type OutBetSingleModel struct {
 	BetObjs      []*OutBetItemObj `json:"bet_objs"`
 	SubTitle     string           `json:"subtitle"`
 	Description  string           `json:"description"`
+	SingleImg    int              `json:"single_img"`
+	SingleImgUrl string           `json:"single_img_url"`
 }
 
 type OutBetLetModel struct {

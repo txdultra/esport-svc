@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"libs"
 	"libs/passport"
+	"libs/vars"
 	"outobjs"
 	"strconv"
 	"strings"
@@ -457,9 +458,9 @@ func (c *MemberCPController) ActionCredit() {
 		c.Json(libs.NewError("member_action_credit_fail", "GM020_072", "参数错误", ""))
 		return
 	}
-	ptype := libs.PRICE_TYPE_CREDIT
+	ptype := vars.CURRENCY_TYPE_CREDIT
 	if t == "j" {
-		ptype = libs.PRICE_TYPE_JING
+		ptype = vars.CURRENCY_TYPE_JING
 	}
 	mp := passport.NewMemberProvider()
 	no, err := mp.ActionCredit(current_uid, uid, ptype, nums, desc)

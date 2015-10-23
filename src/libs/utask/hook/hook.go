@@ -28,6 +28,9 @@ func init() {
 	hook.RegisterHook("group_new_post", "utask_group_new_post", ac)
 	hook.RegisterHook("group_ding_post", "utask_group_ding_post", ac)
 	hook.RegisterHook("share_weixin", "utask_share_outside", ac)
+	//new add 每日登录任务,新注册用户
+	hook.RegisterHook("everyday_login", "utask_everyday_login,", ac)
+	hook.RegisterHook("new_register_user", "utask_new_register_user", ac)
 	fmt.Println("utask hook registed")
 }
 

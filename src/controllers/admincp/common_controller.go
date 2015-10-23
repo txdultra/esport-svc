@@ -161,6 +161,8 @@ func (c *CommonCPController) Matchs() {
 			Des2:     m.Des2,
 			Des3:     m.Des3,
 			Enabled:  m.Enabled,
+			IconId:   m.Icon,
+			IconUrl:  c.storage.GetFileUrl(m.Icon),
 		})
 	}
 	c.Json(out_matchs)
@@ -176,6 +178,7 @@ func (c *CommonCPController) Matchs() {
 // @Param   des2   path	string true  "赛事描述2"
 // @Param   des3   path	string true  "赛事描述3"
 // @Param   enabled   path	bool true  "开启"
+// @Param   icon_id	path int true "图标id"
 // @Success 200 {object} libs.Error
 // @router /match/add [post]
 func (c *CommonCPController) MatchAdd() {
@@ -187,6 +190,7 @@ func (c *CommonCPController) MatchAdd() {
 	des2, _ := utils.UrlDecode(c.GetString("des2"))
 	des3, _ := utils.UrlDecode(c.GetString("des3"))
 	enabled, _ := c.GetBool("enabled")
+	icon_id, _ := c.GetInt64("icon_id")
 
 	if len(name) == 0 {
 		c.Json(libs.NewError("admincp_common_match_add_fail", "GM002_001", "赛事名称不能空", ""))
@@ -205,6 +209,7 @@ func (c *CommonCPController) MatchAdd() {
 	match.Des2 = des2
 	match.Des3 = des3
 	match.Enabled = enabled
+	match.Icon = icon_id
 	bas := &libs.Bas{}
 	err := bas.AddMatch(match)
 	if err == nil {
@@ -225,6 +230,7 @@ func (c *CommonCPController) MatchAdd() {
 // @Param   des2   path	string true  "赛事描述2"
 // @Param   des3   path	string true  "赛事描述3"
 // @Param   enabled   path	bool true  "开启"
+// @Param   icon_id	path int true "图标id"
 // @Success 200 {object} libs.Error
 // @router /match/update [post]
 func (c *CommonCPController) MatchUpdate() {
@@ -237,6 +243,7 @@ func (c *CommonCPController) MatchUpdate() {
 	des2, _ := utils.UrlDecode(c.GetString("des2"))
 	des3, _ := utils.UrlDecode(c.GetString("des3"))
 	enabled, _ := c.GetBool("enabled")
+	icon_id, _ := c.GetInt64("icon_id")
 
 	if id <= 0 {
 		c.Json(libs.NewError("admincp_common_match_update_fail", "GM002_010", "赛事不存在", ""))
@@ -263,6 +270,7 @@ func (c *CommonCPController) MatchUpdate() {
 	match.Des2 = des2
 	match.Des3 = des3
 	match.Enabled = enabled
+	match.Icon = icon_id
 
 	err := bas.UpdateMatch(match)
 	if err == nil {

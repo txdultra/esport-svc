@@ -3,6 +3,7 @@ package controllers
 import (
 	"libs"
 	"libs/shop"
+	"libs/vars"
 	"outobjs"
 	"strconv"
 	"time"
@@ -233,16 +234,16 @@ func (c *ShopController) Buy() {
 		return
 	}
 	switch priceType {
-	case int(libs.PRICE_TYPE_CREDIT):
+	case int(vars.CURRENCY_TYPE_CREDIT):
 		break
-	case int(libs.PRICE_TYPE_JING):
+	case int(vars.CURRENCY_TYPE_JING):
 		break
-	case int(libs.PRICE_TYPE_RMB):
+	case int(vars.CURRENCY_TYPE_RMB):
 		break
 	default:
-		priceType = int(libs.PRICE_TYPE_CREDIT) //默认积分购买
+		priceType = int(vars.CURRENCY_TYPE_CREDIT) //默认积分购买
 	}
-	var pt = libs.PRICE_TYPE(priceType)
+	var pt = vars.CURRENCY_TYPE(priceType)
 
 	shopp := shop.NewShop()
 	item := shopp.GetItem(itemId)

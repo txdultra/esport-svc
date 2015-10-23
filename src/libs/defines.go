@@ -19,14 +19,6 @@ type PL struct {
 	List  interface{}
 }
 
-type PRICE_TYPE int
-
-const (
-	PRICE_TYPE_CREDIT PRICE_TYPE = 1
-	PRICE_TYPE_RMB    PRICE_TYPE = 2
-	PRICE_TYPE_JING   PRICE_TYPE = 4
-)
-
 //Msg后台处理进程接口
 type IMsqMsgProcessTasker interface {
 	Run() (<-chan string, error)
