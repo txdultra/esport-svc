@@ -78,6 +78,10 @@ func init() {
 
 	//注册计数器
 	stat.RegisterCounter(MOD_NAME, &MemberProvider{})
+	//用户计数器
+	stat.RegisterUCountKey(FRIENDSHIP_NEW_FOLLOWER_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("friendship_new_followers_count:%d", uid)
+	})
 
 	//积分系统地址
 	credit_service_host = beego.AppConfig.String("credit.host")

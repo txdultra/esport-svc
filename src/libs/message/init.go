@@ -3,6 +3,7 @@ package message
 import (
 	"fmt"
 	"libs/message/service"
+	"libs/stat"
 	"libs/vars"
 
 	"github.com/astaxie/beego"
@@ -14,6 +15,11 @@ var mbox_atmsg_length int
 var sysMsgStorageConfig *MsgStorageConfig
 var msgtype_storage_maps map[vars.MSG_TYPE]*MsgStorageConfig = make(map[vars.MSG_TYPE]*MsgStorageConfig)
 var sys_message_service_run bool
+
+const (
+	SYS_MSG_COUNT_MODNAME       = "sys_msg_box_count_mod"
+	SYS_MSG_NEWS_COUNT_MODENAME = "sys_msg_news_count_mod"
+)
 
 func init() {
 	//初始化消息模块配置
@@ -28,6 +34,14 @@ func init() {
 	if sys_message_service_run {
 		go runMessageServer(sys_message_service_port)
 	}
+
+	//注册计数
+	stat.RegisterUCountKey(SYS_MSG_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("sys_msg_box_count:%d", uid)
+	})
+	stat.RegisterUCountKey(SYS_MSG_NEWS_COUNT_MODENAME, func(uid int64) string {
+		return fmt.Sprintf("sys_msg_newalert:%d", uid)
+	})
 }
 
 func runMessageServer(port int) {
@@ -55,12 +69,12 @@ func initMsgSysConfig() {
 		panic("未配置参数:sys.msg.collection参数")
 	}
 	sysMsgStorageConfig = &MsgStorageConfig{
-		DbName:                sys_msg_db,
-		TableName:             sys_msg_collection,
-		CacheDb:               use_ssdb_message_db,
-		MailboxSize:           mbox_atmsg_length,
-		MailboxCountCacheName: "sys_msg_box_count:%d",
-		NewMsgCountCacheName:  "sys_msg_newalert:%d",
+		DbName:          sys_msg_db,
+		TableName:       sys_msg_collection,
+		CacheDb:         use_ssdb_message_db,
+		MailboxSize:     mbox_atmsg_length,
+		MailboxCountMod: SYS_MSG_COUNT_MODNAME,       //"sys_msg_box_count:%d",
+		NewMsgCountMod:  SYS_MSG_NEWS_COUNT_MODENAME, //"sys_msg_newalert:%d",
 	}
 
 	RegisterMsgTypeMaps(vars.MSG_TYPE_SYS, sysMsgStorageConfig)

@@ -24,12 +24,12 @@ type IMsqMsgProcessTasker interface {
 	Run() (<-chan string, error)
 }
 
-type IEventCounter interface {
-	ResetEventCount(uid int64) bool
-	NewEventCount(uid int64) int
-}
+//type IEventCounter interface {
+//	ResetEventCount(uid int64) bool
+//	NewEventCount(uid int64) int
+//}
 
-type IEventInDecrCounter interface {
-	IncrEventCount(uid int64) int
-	DecrEventCount(uid int64) int
-}
+//type IEventInDecrCounter interface {
+//	IncrEventCount(uid int64) int
+//	DecrEventCount(uid int64) int
+//}

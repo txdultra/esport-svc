@@ -109,6 +109,7 @@ func init() {
 					Password:    ssdb_password,
 					MaxPoolSize: ssdb_client_maxpool,
 				},
+				false,
 				ep.Addr,
 				ep.Port,
 			}
@@ -124,11 +125,12 @@ func New(c string) *Cluster {
 	if c, ok := clusters[c]; ok {
 		return c
 	}
-	return nil
+	panic(fmt.Sprintf("ssdb group %s not setting", c))
 }
 
 type ssdbClient struct {
 	*redis.Client
+	readonly  bool
 	conn_addr string
 	conn_port int
 }
@@ -614,7 +616,6 @@ func (c *Cluster) ZscanKS(key string, min int64, max int64, limit int, keyType r
 			err1 := Deserialize(b1, key)
 			b2 := []byte(resp[i+1])
 			err2 := Deserialize(b2, val)
-			fmt.Println(err1, "     ", err2)
 			if err1 == nil && err2 == nil {
 				lst = append(lst, &KeyScore{
 					key,

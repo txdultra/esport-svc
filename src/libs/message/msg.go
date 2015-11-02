@@ -8,12 +8,12 @@ import (
 )
 
 type MsgStorageConfig struct {
-	DbName                string
-	TableName             string
-	CacheDb               string
-	MailboxSize           int
-	MailboxCountCacheName string
-	NewMsgCountCacheName  string
+	DbName          string
+	TableName       string
+	CacheDb         string
+	MailboxSize     int
+	MailboxCountMod string
+	NewMsgCountMod  string
 }
 
 type MsgData struct {

@@ -4,17 +4,18 @@ import (
 	"dbs"
 	"fmt"
 	"libs/passport"
+	"libs/stat"
 	"logs"
 	"reflect"
 	"time"
 	"utils"
 	"utils/redis"
-	"utils/ssdb"
 )
 
 const (
-	SHARE_MY_VOD_SUBSCRIPTIONS       = "share.my.subscriptions:%d"
-	SHARE_MY_VOD_SUBSCRIPTIONS_COUNT = "share.my.subscriptions.counts:%d"
+	SHARE_MY_VOD_SUBSCRIPTIONS               = "share.my.subscriptions:%d"
+	SHARE_MY_VOD_SUBSCRIPTIONS_COUNT_MODNAME = "share_myvod_subcur_mod"
+	//SHARE_MY_VOD_SUBSCRIPTIONS_COUNT         = "share.my.subscriptions.counts:%d"
 )
 
 type ShareVodSubcurs struct{}
@@ -55,7 +56,8 @@ func (n *ShareVodSubcurs) distributeToUserBox(s *Share, uids []int64) {
 		//加入订阅列表
 		redis.ZAdd(nil, vod_follower_colname, utils.TimeMillisecond(s.CreateTime), s.Id)
 		redis.ZRemRangeByRank(nil, vod_follower_colname, 0, -mbox_subscription_length) //限制box大小
-		n.IncrEventCount(uid)
+		//n.IncrEventCount(uid)
+		stat.UCIncrCount(uid, SHARE_MY_VOD_SUBSCRIPTIONS_COUNT_MODNAME)
 	}
 }
 
@@ -64,7 +66,8 @@ func (n *ShareVodSubcurs) deleteOnUserBox(s *Share, uids []int64) {
 		vod_follower_colname := fmt.Sprintf(SHARE_MY_VOD_SUBSCRIPTIONS, uid)
 		//删除订阅列表中的share
 		redis.ZRem(nil, vod_follower_colname, s.Id)
-		n.DecrEventCount(uid)
+		//n.DecrEventCount(uid)
+		stat.UCDecrCount(uid, SHARE_MY_VOD_SUBSCRIPTIONS_COUNT_MODNAME)
 	}
 }
 
@@ -112,41 +115,43 @@ func (n ShareVodSubcurs) RecoverFans(s *Share) {
 	}
 }
 
-//IEventInDecrCounter interface
-func (n ShareVodSubcurs) IncrEventCount(uid int64) int {
-	vod_follower_count_col := fmt.Sprintf(SHARE_MY_VOD_SUBSCRIPTIONS_COUNT, uid)
-	c, _ := ssdb.New(use_ssdb_share_db).Incr(vod_follower_count_col)
-	return int(c)
-}
+////IEventInDecrCounter interface
+//func (n ShareVodSubcurs) IncrEventCount(uid int64) int {
+//	//hook.Do(uid, "counter_share_subcur", 1)
+//	vod_follower_count_col := fmt.Sprintf(SHARE_MY_VOD_SUBSCRIPTIONS_COUNT, uid)
+//	c, _ := ssdb.New(use_ssdb_share_db).Incr(vod_follower_count_col)
+//	return int(c)
+//}
 
-//IEventInDecrCounter interface
-func (n ShareVodSubcurs) DecrEventCount(uid int64) int {
-	vod_follower_count_col := fmt.Sprintf(SHARE_MY_VOD_SUBSCRIPTIONS_COUNT, uid)
-	c, _ := ssdb.New(use_ssdb_share_db).Decr(vod_follower_count_col)
-	if c < 0 {
-		ssdb.New(use_ssdb_share_db).Incrby(vod_follower_count_col, -c)
-		return 0
-	}
-	return int(c)
-}
+////IEventInDecrCounter interface
+//func (n ShareVodSubcurs) DecrEventCount(uid int64) int {
+//	//hook.Do(uid, "counter_share_subcur", -1)
+//	vod_follower_count_col := fmt.Sprintf(SHARE_MY_VOD_SUBSCRIPTIONS_COUNT, uid)
+//	c, _ := ssdb.New(use_ssdb_share_db).Decr(vod_follower_count_col)
+//	if c < 0 {
+//		ssdb.New(use_ssdb_share_db).Incrby(vod_follower_count_col, -c)
+//		return 0
+//	}
+//	return int(c)
+//}
 
-//IEventCounter interface
-func (n ShareVodSubcurs) ResetEventCount(uid int64) bool {
-	follower_count_col := fmt.Sprintf(SHARE_MY_VOD_SUBSCRIPTIONS_COUNT, uid)
-	ok, _ := ssdb.New(use_ssdb_share_db).Del(follower_count_col)
-	return ok
-}
+////IEventCounter interface
+//func (n ShareVodSubcurs) ResetEventCount(uid int64) bool {
+//	follower_count_col := fmt.Sprintf(SHARE_MY_VOD_SUBSCRIPTIONS_COUNT, uid)
+//	ok, _ := ssdb.New(use_ssdb_share_db).Del(follower_count_col)
+//	return ok
+//}
 
-//IEventCounter interface
-func (n ShareVodSubcurs) NewEventCount(uid int64) int {
-	c := 0
-	follower_count_col := fmt.Sprintf(SHARE_MY_VOD_SUBSCRIPTIONS_COUNT, uid)
-	err := ssdb.New(use_ssdb_share_db).Get(follower_count_col, &c)
-	if err != nil {
-		return 0
-	}
-	return c
-}
+////IEventCounter interface
+//func (n ShareVodSubcurs) NewEventCount(uid int64) int {
+//	c := 0
+//	follower_count_col := fmt.Sprintf(SHARE_MY_VOD_SUBSCRIPTIONS_COUNT, uid)
+//	err := ssdb.New(use_ssdb_share_db).Get(follower_count_col, &c)
+//	if err != nil {
+//		return 0
+//	}
+//	return c
+//}
 
 //friendship interface
 func (n ShareVodSubcurs) FSFriendDo(suid int64, tuid int64) {

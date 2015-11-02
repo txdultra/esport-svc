@@ -59,6 +59,7 @@ type Item struct {
 	OriginalPrice float64                `orm:"column(oprice)"`
 	RmbPrice      float64                `orm:"column(rprice)"`
 	Img           int64                  `orm:"column(img)"`
+	Img2          int64                  `orm:"column(img2)"`
 	Imgs          string                 `orm:"column(imgs)"`
 	ItemType      ITEM_TYPE              `orm:"column(itemtype)"`
 	ItemState     ITEM_STATE             `orm:"column(itemstate)"`

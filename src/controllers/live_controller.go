@@ -3,11 +3,11 @@ package controllers
 import (
 	"fmt"
 	"libs"
-	//"libs/collect"
 	"libs/lives"
 	"libs/passport"
 	"libs/reptile"
 	"libs/search"
+	"libs/stat"
 	"outobjs"
 	"strconv"
 	"strings"
@@ -276,11 +276,12 @@ func (c *LiveController) ChannelStreams() {
 	out_channel := outobjs.GetOutLiveChannel(channel, uid)
 	for _, stream := range streams {
 		oos := &outobjs.OutChannelStream{
-			Id:        stream.Id,
-			Rep:       c.streamName(stream.Rep),
-			StreamUrl: stream.StreamUrl,
-			IsDefault: stream.Default,
-			RepMethod: reptile.LiveRepMethod(stream.Rep),
+			Id:          stream.Id,
+			Rep:         c.streamName(stream.Rep),
+			StreamUrl:   stream.StreamUrl,
+			IsDefault:   stream.Default,
+			RepMethod:   reptile.LiveRepMethod(stream.Rep),
+			LoadingInfo: c.loadingInfo(stream.Rep),
 		}
 		out_streams = append(out_streams, oos)
 	}
@@ -316,6 +317,16 @@ func (c *LiveController) streamName(rep reptile.REP_SUPPORT) string {
 		return "直播流11"
 	default:
 		return "未知流"
+	}
+}
+
+func (c *LiveController) loadingInfo(rep reptile.REP_SUPPORT) string {
+	//网络原因可能导致加载稍慢
+	switch rep {
+	case reptile.REP_SUPPORT_TWITCH, reptile.REP_SUPPORT_MLGTV, reptile.REP_SUPPORT_HITBOX:
+		return "网络原因可能导致加载稍慢"
+	default:
+		return ""
 	}
 }
 
@@ -773,7 +784,8 @@ func (c *LiveController) SubsReminded() {
 		}
 	}
 	//清空计数器
-	noticer.ResetEventCount(uid)
+	//noticer.ResetEventCount(uid)
+	stat.UCResetCount(uid, lives.MEMBER_PROGRAM_NEWNOTICE_COUNT_MODNAME)
 	c.Json(out_spms)
 }
 

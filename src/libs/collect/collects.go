@@ -67,13 +67,13 @@ func Create(uid int64, relId string, relType string) (error, string) {
 	return nil, collect.Id.Hex()
 }
 
-func IsCollcetd(uid int64, relId string, relType string) bool {
+func IsCollcetd(uid int64, relId string, relType string) (bool, error) {
 	mc := MemberCollect{
 		RelId:   relId,
 		RelType: relType,
 	}
-	exist, _ := ssdb.New(use_ssdb_collect_db).Zexists(member_collect_box(uid), mc)
-	return exist
+	exist, err := ssdb.New(use_ssdb_collect_db).Zexists(member_collect_box(uid), mc)
+	return exist, err
 }
 
 func Get(uid int64, relId string, relType string) *Collectible {

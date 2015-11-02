@@ -73,7 +73,10 @@ import (
 func main() {
 	//43067
 
+	fmt.Println(time.Now().Unix())
+
 	fmt.Println(time.Unix(1454127256, 0))
+
 	return
 
 	//	//	o := dbs.NewOrm("group_db")

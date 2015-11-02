@@ -17,6 +17,10 @@ import (
 	//"github.com/astaxie/beego/orm"
 )
 
+const (
+	FRIENDSHIP_NEW_FOLLOWER_COUNT_MODNAME = "friendship_new_follower_count_mod"
+)
+
 //删除关注事件处理
 type UnFriendEvent interface {
 	FSUnFriendDo(suid int64, tuid int64)
@@ -140,6 +144,7 @@ func (m *FriendShips) FriendTo(source_uid int64, target_uid int64) error {
 	}
 	//新粉丝
 	ssdb.New(use_ssdb_passport_db).Zadd(fmt.Sprintf(friendship_new_followers_sets, target_uid), source_uid, utils.TimeMillisecond(now))
+	go stat.UCIncrCount(target_uid, FRIENDSHIP_NEW_FOLLOWER_COUNT_MODNAME)
 	//互粉
 	if IsFriend(target_uid, source_uid) {
 		ssdb.New(use_ssdb_passport_db).Zadd(fmt.Sprintf(friendship_friend_both_sets, source_uid), target_uid, utils.TimeMillisecond(now))
@@ -204,6 +209,7 @@ func (m *FriendShips) DestroyFriend(source_uid int64, target_uid int64) error {
 
 	//删除新粉丝
 	ssdb.New(use_ssdb_passport_db).Zrem(fmt.Sprintf(friendship_new_followers_sets, target_uid), source_uid)
+	go stat.UCDecrCount(target_uid, FRIENDSHIP_NEW_FOLLOWER_COUNT_MODNAME)
 
 	//互粉
 	ssdb.New(use_ssdb_passport_db).Zrem(fmt.Sprintf(friendship_friend_both_sets, source_uid), target_uid)
@@ -235,18 +241,20 @@ func (m *FriendShips) DestroyFriend(source_uid int64, target_uid int64) error {
 }
 
 func (m *FriendShips) NewEventCount(uid int64) int {
-	key := fmt.Sprintf(friendship_new_followers_sets, uid)
-	c, err := ssdb.New(use_ssdb_passport_db).Zcard(key)
-	if err != nil {
-		return 0
-	}
-	return c
+	//	key := fmt.Sprintf(friendship_new_followers_sets, uid)
+	//	c, err := ssdb.New(use_ssdb_passport_db).Zcard(key)
+	//	if err != nil {
+	//		return 0
+	//	}
+	c := stat.UCGetCount(uid, FRIENDSHIP_NEW_FOLLOWER_COUNT_MODNAME)
+	return int(c)
 }
 
 //IEventCounter interface
 func (m *FriendShips) ResetEventCount(uid int64) bool {
 	key := fmt.Sprintf(friendship_new_followers_sets, uid)
 	err := ssdb.New(use_ssdb_passport_db).Zclear(key)
+	stat.UCResetCount(uid, FRIENDSHIP_NEW_FOLLOWER_COUNT_MODNAME)
 	return (err == nil)
 }
 

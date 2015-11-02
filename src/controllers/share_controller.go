@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"libs"
 	"libs/share"
+	"libs/stat"
 	"libs/vars"
 	"libs/vod"
 	"outobjs"
@@ -278,7 +279,7 @@ func (c *ShareController) PublicTimeline() {
 		Time:        utils.TimeMillisecond(ts),
 	}
 	//清空最新消息
-	var msg_service libs.IEventCounter = share.NewShareMsgService()
+	msg_service := share.NewShareMsgService()
 	msg_service.ResetEventCount(current_uid)
 	c.Json(out)
 }
@@ -484,9 +485,10 @@ func (c *ShareController) SubscriptionCount() {
 		c.Json(libs.NewError("member_share_premission_denied", UNAUTHORIZED_CODE, "没有权限查询", ""))
 		return
 	}
-	nts := &share.ShareVodSubcurs{}
-	count := nts.NewEventCount(uid)
-	c.Json(libs.NewError("member_share_sub_count", RESPONSE_SUCCESS, strconv.Itoa(count), ""))
+	//	nts := &share.ShareVodSubcurs{}
+	//	count := nts.NewEventCount(uid)
+	count := stat.UCGetCount(uid, share.SHARE_MY_VOD_SUBSCRIPTIONS_COUNT_MODNAME)
+	c.Json(libs.NewError("member_share_sub_count", RESPONSE_SUCCESS, fmt.Sprintf("%d", count), ""))
 }
 
 // @Title 获取订阅收到的记录
@@ -536,8 +538,8 @@ func (c *ShareController) MySubscr() {
 		Time:        utils.TimeMillisecond(ts),
 	}
 	//自动清空计数器
-	nts.ResetEventCount(uid)
-
+	//nts.ResetEventCount(uid)
+	stat.UCResetCount(uid, share.SHARE_MY_VOD_SUBSCRIPTIONS_COUNT_MODNAME)
 	c.Json(out)
 }
 
@@ -720,8 +722,9 @@ func (c *ShareController) EmptyNotices() {
 // @router /notice_count [get]
 func (c *ShareController) NoticeCount() {
 	current_uid := c.CurrentUid()
-	var notice_service libs.IEventCounter = share.NewShareNoticeService()
-	count := notice_service.NewEventCount(current_uid)
+	//	var notice_service libs.IEventCounter = share.NewShareNoticeService()
+	//	count := notice_service.NewEventCount(current_uid)
+	count := stat.UCGetCount(current_uid, share.SHARE_MY_NEW_NOTICES_COUNT_MODNAME)
 	c.Ctx.WriteString(fmt.Sprintf("%d", count))
 }
 

@@ -2,8 +2,10 @@ package share
 
 import (
 	"dbs"
+	"fmt"
 	"libs/message"
 	"libs/passport"
+	"libs/stat"
 	"strconv"
 
 	"github.com/astaxie/beego"
@@ -89,6 +91,23 @@ func init() {
 	//注册评论事件
 	RegisterShareCommentEvent("share_commented_notice_event", &ShareNotices{})
 
+	//注册用户计数器
+	stat.RegisterUCountKey(SHARE_MY_VOD_SUBSCRIPTIONS_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("share_my_subscriptions_counts:%d", uid)
+	})
+	stat.RegisterUCountKey(SHARE_MY_NEW_NOTICES_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("share_new_notices_counts:%d", uid)
+	})
+	stat.RegisterUCountKey(SHARE_LASTNEW_MSG_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("share_member_newmsg_counts:%d", uid)
+	})
+	stat.RegisterUCountKey(SHARE_MEMBER_ATMSG_BOX_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("member_atmsg_box_count:%d", uid)
+	})
+	stat.RegisterUCountKey(SHARE_MEMBER_ATMSG_NEW_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("member_atmsg_newalert:%d", uid)
+	})
+
 	//db
 	register_share_db()
 	//register_subsur_db()
@@ -133,12 +152,12 @@ func initMsgSysConfig() {
 		panic("未配置参数:sns.atmsg.collection")
 	}
 	msgStorageConfig = &message.MsgStorageConfig{
-		DbName:                sns_msg_db,
-		TableName:             sns_msg_collection,
-		CacheDb:               use_ssdb_message_db,
-		MailboxSize:           mbox_atmsg_length,
-		MailboxCountCacheName: "member_atmsg_box_count:%d",
-		NewMsgCountCacheName:  "member_atmsg_newalert:%d",
+		DbName:          sns_msg_db,
+		TableName:       sns_msg_collection,
+		CacheDb:         use_ssdb_message_db,
+		MailboxSize:     mbox_atmsg_length,
+		MailboxCountMod: SHARE_MEMBER_ATMSG_BOX_COUNT_MODNAME,
+		NewMsgCountMod:  SHARE_MEMBER_ATMSG_NEW_COUNT_MODNAME,
 	}
 
 	message.RegisterMsgTypeMaps(MSG_TYPE_VOD, msgStorageConfig)

@@ -76,7 +76,7 @@ func (c *VideoController) ListByGames() {
 		size = 4
 	}
 
-	//1分钟间隔缓存
+	//5分钟间隔缓存
 	query_cache_key := fmt.Sprintf("front_fast_cache.vods_bygames.query:words_%s_gameids_%s_p_%d_s_%d_mode_%s_t_%s",
 		query, game_ids, 1, size, match_mode)
 	c_obj := utils.GetLocalFastExpriesTimePartCache(query_cache_key)
@@ -124,6 +124,7 @@ func (c *VideoController) ListByGames() {
 			},
 		}
 		_, videos := vod.Query(query, 1, int(size), match_mode, filters, nil)
+
 		vod_list := []*outobjs.OutVideoInfo{}
 		for _, v := range videos {
 			_v := outobjs.GetOutVideoInfo(v)

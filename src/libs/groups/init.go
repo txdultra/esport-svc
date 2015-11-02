@@ -6,6 +6,7 @@ import (
 	"libs/dlock"
 	"libs/message"
 	"libs/share"
+	"libs/stat"
 	"regexp"
 	"strconv"
 
@@ -25,6 +26,11 @@ var app_task_run bool
 var use_ssdb_message_db, group_msg_db, group_msg_collection string //消息配置参数
 var mbox_atmsg_length int
 var msgStorageConfig *message.MsgStorageConfig
+
+const (
+	GROUP_MSG_BOX_COUNT_MODNAME = "group_msg_box_count_mod"
+	GROUP_MSG_NEW_COUNT_MODNAME = "group_msg_new_count_mod"
+)
 
 //分布式监视者
 var watcher = dlock.NewWatcher()
@@ -125,6 +131,14 @@ func init() {
 		}
 		return nil
 	})
+
+	//用户计数器
+	stat.RegisterUCountKey(GROUP_MSG_BOX_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("group_msg_box_count:%d", uid)
+	})
+	stat.RegisterUCountKey(GROUP_MSG_NEW_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("group_msg_newalert:%d", uid)
+	})
 }
 
 func register_share_mod() {
@@ -173,12 +187,12 @@ func initMsgSysConfig() {
 		panic("未配置参数:group.msg.collection")
 	}
 	msgStorageConfig = &message.MsgStorageConfig{
-		DbName:                group_msg_db,
-		TableName:             group_msg_collection,
-		CacheDb:               use_ssdb_message_db,
-		MailboxSize:           mbox_atmsg_length,
-		MailboxCountCacheName: "group_msg_box_count:%d",
-		NewMsgCountCacheName:  "group_msg_newalert:%d",
+		DbName:          group_msg_db,
+		TableName:       group_msg_collection,
+		CacheDb:         use_ssdb_message_db,
+		MailboxSize:     mbox_atmsg_length,
+		MailboxCountMod: GROUP_MSG_BOX_COUNT_MODNAME, //"group_msg_box_count:%d",
+		NewMsgCountMod:  GROUP_MSG_NEW_COUNT_MODNAME, //"group_msg_newalert:%d",
 	}
 
 	message.RegisterMsgTypeMaps(MSG_TYPE_MESSAGE, msgStorageConfig)

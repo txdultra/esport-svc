@@ -12,6 +12,7 @@ import (
 	"io"
 	"libs"
 	"libs/passport"
+	"libs/stat"
 	"logs"
 	"os"
 	"reflect"
@@ -28,9 +29,10 @@ import (
 )
 
 const (
-	SHARE_NEW_NOTICES = "share.new.notices:%s"
-	SHARE_NOTICE      = "share.notice:%s"
-	notice_db_mark    = "10"
+	SHARE_MY_NEW_NOTICES_COUNT_MODNAME = "share_my_newnotice_count_mod"
+	SHARE_NEW_NOTICES                  = "share.new.notices:%s"
+	SHARE_NOTICE                       = "share.notice:%s"
+	notice_db_mark                     = "10"
 )
 
 var noticeTbls = make(map[string]bool)
@@ -164,17 +166,18 @@ func (n ShareNotices) getSharePic(s *Share) int64 {
 	return 0
 }
 
-//IEventCounter interface
 func (n *ShareNotices) ResetEventCount(uid int64) bool {
 	redis.Del(nil, fmt.Sprintf(SHARE_NEW_NOTICES, uid))
+	//计数
+	stat.UCResetCount(uid, SHARE_MY_NEW_NOTICES_COUNT_MODNAME)
 	return true
 }
 
 //IEventCounter interface
-func (n *ShareNotices) NewEventCount(uid int64) int {
-	c, _ := redis.ZCard(nil, fmt.Sprintf(SHARE_NEW_NOTICES, uid))
-	return int(c)
-}
+//func (n *ShareNotices) NewEventCount(uid int64) int {
+//	c, _ := redis.ZCard(nil, fmt.Sprintf(SHARE_NEW_NOTICES, uid))
+//	return int(c)
+//}
 
 //发布新分享时被提及到的对象得到通知
 func (n ShareNotices) SSE_Save(s *Share) {
@@ -225,6 +228,9 @@ func (n *ShareNotices) addNotice(o orm.Ormer, sn *ShareNotice) {
 	col_name := fmt.Sprintf(SHARE_NEW_NOTICES, sn.Uid)
 	redis.ZAdd(nil, col_name, sn.Ts, sn.Id)
 	redis.ZRemRangeByRank(nil, col_name, 0, -mbox_share_length) //限制box大小
+
+	//计数
+	stat.UCIncrCount(sn.Uid, SHARE_MY_NEW_NOTICES_COUNT_MODNAME)
 
 	//存入ssdb
 	ssdb.New(use_ssdb_notice_db).Set(fmt.Sprintf(SHARE_NOTICE, sn.Id), *sn)

@@ -80,11 +80,12 @@ type OutLiveChannel struct {
 }
 
 type OutChannelStream struct {
-	Id        int64              `json:"id"`
-	Rep       string             `json:"rep"`
-	StreamUrl string             `json:"stream_url"`
-	IsDefault bool               `json:"is_def"`
-	RepMethod reptile.REP_METHOD `json:"rep_method"`
+	Id          int64              `json:"id"`
+	Rep         string             `json:"rep"`
+	StreamUrl   string             `json:"stream_url"`
+	IsDefault   bool               `json:"is_def"`
+	RepMethod   reptile.REP_METHOD `json:"rep_method"`
+	LoadingInfo string             `json:"loading_info"`
 }
 
 type OutChannelV1 struct {

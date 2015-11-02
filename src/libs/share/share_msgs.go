@@ -7,6 +7,7 @@ import (
 	"hash/crc32"
 	"libs"
 	"libs/passport"
+	"libs/stat"
 	"reflect"
 	"strconv"
 	"sync"
@@ -17,9 +18,10 @@ import (
 )
 
 const (
-	SHARE_MEMBER_MSGS_FMT = "share.member.msgs:%d"       //朋友圈内容
-	SHARE_MEMBER_MSGS_C   = "share.member.msgs.count:%d" //朋友圈列表数
-	SHARE_LASTNEW_MSG_FMT = "share.member.newmsg:%d"
+	SHARE_MEMBER_MSGS_FMT     = "share.member.msgs:%d"       //朋友圈内容
+	SHARE_MEMBER_MSGS_C       = "share.member.msgs.count:%d" //朋友圈列表数
+	SHARE_LASTNEW_MSG_MODNAME = "share_member_newmsg_count_mod"
+	SHARE_LASTNEW_MSG_FMT     = "share.member.newmsg:%d"
 )
 
 var msgTbls map[string]bool = make(map[string]bool)
@@ -110,17 +112,17 @@ func (n *ShareMsgs) Gets(uid int64, page int, size int, ts time.Time) (int, []*S
 //重置新消息列表 IEventCounter interface
 func (n ShareMsgs) ResetEventCount(uid int64) bool {
 	c, _ := redis.Del(nil, fmt.Sprintf(SHARE_LASTNEW_MSG_FMT, uid))
+	stat.UCResetCount(uid, SHARE_LASTNEW_MSG_MODNAME)
 	return c > 0
 }
 
-//IEventCounter interface
-func (n ShareMsgs) NewEventCount(uid int64) int {
-	exist, _ := redis.Exists(nil, fmt.Sprintf(SHARE_LASTNEW_MSG_FMT, uid))
-	if exist {
-		return 1
-	}
-	return 0
-}
+//func (n ShareMsgs) NewEventCount(uid int64) int {
+//	exist, _ := redis.Exists(nil, fmt.Sprintf(SHARE_LASTNEW_MSG_FMT, uid))
+//	if exist {
+//		return 1
+//	}
+//	return 0
+//}
 
 //收到最新的一条新消
 func (n *ShareMsgs) LastNewMsg(uid int64) *Share {
@@ -226,6 +228,7 @@ func (n ShareMsgs) NotifyFans(s *Share) {
 
 			ssdb.New(use_ssdb_share_db).Incr(fmt.Sprintf(SHARE_MEMBER_MSGS_C, uid))
 			redis.Set(nil, fmt.Sprintf(SHARE_LASTNEW_MSG_FMT, uid), s.Id)
+			stat.UCIncrCount(uid, SHARE_LASTNEW_MSG_MODNAME)
 		}
 		page++
 		ts = utils.MsToTime(last_t)

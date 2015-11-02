@@ -223,15 +223,15 @@ type GroupService struct {
 	BaseService
 }
 
-//重置新消息列表 IEventCounter interface
-func (s GroupService) ResetEventCount(uid int64) bool {
-	return message.ResetEventCount(uid, MSG_TYPE_MESSAGE)
-}
+////重置新消息列表 IEventCounter interface
+//func (s GroupService) ResetEventCount(uid int64) bool {
+//	return message.ResetEventCount(uid, MSG_TYPE_MESSAGE)
+//}
 
-//IEventCounter interface
-func (s GroupService) NewEventCount(uid int64) int {
-	return message.NewEventCount(uid, MSG_TYPE_MESSAGE)
-}
+////IEventCounter interface
+//func (s GroupService) NewEventCount(uid int64) int {
+//	return message.NewEventCount(uid, MSG_TYPE_MESSAGE)
+//}
 
 func (s *GroupService) GetCacheKey(id int64) string {
 	return fmt.Sprintf("group_model_%d", id)

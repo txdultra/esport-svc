@@ -3,12 +3,11 @@ package message
 import (
 	"dbs"
 	"fmt"
+	"libs/stat"
 	"libs/vars"
+	"logs"
 	"time"
 	"utils"
-	"utils/ssdb"
-
-	"logs"
 
 	"labix.org/v2/mgo/bson"
 )
@@ -35,10 +34,11 @@ func SendMsg(msg *MsgData, completedCallback func(string)) error {
 		logs.Error(err.Error())
 		return fmt.Errorf("发送失败:%s", err)
 	}
-	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, msg.ToUid)
+	//atboxcs := fmt.Sprintf(config.MailboxCountCacheName, msg.ToUid)
 
-	ssdb.New(config.CacheDb).Incr(atboxcs) //@消息计数
-	go incrAtMsgAlerts(msg.ToUid, config)  //用户新消息
+	//ssdb.New(config.CacheDb).Incr(atboxcs) //@消息计数
+	stat.UCIncrCount(msg.ToUid, config.MailboxCountMod)
+	go incrAtMsgAlerts(msg.ToUid, config) //用户新消息
 	if completedCallback != nil {
 		go completedCallback(msg.Id.Hex())
 	}
@@ -51,26 +51,29 @@ func SendMsgV2(fromUid int64, toUid int64, msgType vars.MSG_TYPE, content string
 }
 
 func incrAtMsgAlerts(uid int64, msc *MsgStorageConfig) int {
-	new_alert_box := fmt.Sprintf(msc.NewMsgCountCacheName, uid)
-	c, _ := ssdb.New(msc.CacheDb).Incr(new_alert_box)
+	//	new_alert_box := fmt.Sprintf(msc.NewMsgCountCacheName, uid)
+	//	c, _ := ssdb.New(msc.CacheDb).Incr(new_alert_box)
+	c := stat.UCIncrCount(uid, msc.NewMsgCountMod)
 	return int(c)
 }
 
 func NewEventCount(uid int64, msgType vars.MSG_TYPE) int {
 	config := getMsgStorageConfig(msgType)
-	c := 0
-	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
-	err := ssdb.New(config.CacheDb).Get(new_alert_box, &c)
-	if err != nil {
-		return 0
-	}
-	return c
+	//c := 0
+	//	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
+	//	err := ssdb.New(config.CacheDb).Get(new_alert_box, &c)
+	//	if err != nil {
+	//		return 0
+	//	}
+	c := stat.UCGetCount(uid, config.NewMsgCountMod)
+	return int(c)
 }
 
 func ResetEventCount(uid int64, msgType vars.MSG_TYPE) bool {
 	config := getMsgStorageConfig(msgType)
-	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
-	ok, _ := ssdb.New(config.CacheDb).Del(new_alert_box)
+	//	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
+	//	ok, _ := ssdb.New(config.CacheDb).Del(new_alert_box)
+	ok := stat.UCResetCount(uid, config.NewMsgCountMod)
 	return ok
 }
 
@@ -94,9 +97,10 @@ func SendMsgs2(msgs []MsgData) error {
 		if err != nil {
 			continue
 		}
-		atboxcs := fmt.Sprintf(config.MailboxCountCacheName, msg.ToUid)
-		ssdb.New(config.CacheDb).Incr(atboxcs) //@消息计数
-		go incrAtMsgAlerts(msg.ToUid, config)  //用户新消息数
+		//		atboxcs := fmt.Sprintf(config.MailboxCountCacheName, msg.ToUid)
+		//		ssdb.New(config.CacheDb).Incr(atboxcs) //@消息计数
+		stat.UCIncrCount(msg.ToUid, config.MailboxCountMod)
+		go incrAtMsgAlerts(msg.ToUid, config) //用户新消息数
 	}
 	return nil
 }
@@ -112,10 +116,12 @@ func EmptyMsgBox(uid int64, msgType vars.MSG_TYPE) error {
 		logs.Error(err.Error())
 		return fmt.Errorf("清空失败:MSG_EMB")
 	}
-	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, uid)
-	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
-	ssdb.New(config.CacheDb).Del(atboxcs)
-	ssdb.New(config.CacheDb).Del(new_alert_box)
+	//	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, uid)
+	//	new_alert_box := fmt.Sprintf(config.NewMsgCountCacheName, uid)
+	//	ssdb.New(config.CacheDb).Del(atboxcs)
+	//	ssdb.New(config.CacheDb).Del(new_alert_box)
+	stat.UCResetCount(uid, config.MailboxCountMod)
+	stat.UCResetCount(uid, config.NewMsgCountMod)
 	return nil
 }
 
@@ -132,8 +138,9 @@ func DelMsg(uid int64, msg_id string, msgType vars.MSG_TYPE) error {
 	if err != nil {
 		return fmt.Errorf("消息不存在")
 	}
-	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, msg.ToUid)
-	ssdb.New(config.CacheDb).Decr(atboxcs)
+	//	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, msg.ToUid)
+	//	ssdb.New(config.CacheDb).Decr(atboxcs)
+	stat.UCDecrCount(msg.ToUid, config.MailboxCountMod)
 
 	err = col.RemoveId(bson.ObjectIdHex(msg_id))
 	if err != nil {
@@ -152,9 +159,10 @@ func GetMsgs(uid int64, page int, size int, ts time.Time, msgType vars.MSG_TYPE)
 	//start := (page - 1) * size
 	//end := page * size
 	//获取消息总数
-	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, uid)
-	msg_totals := 0
-	mt_err := ssdb.New(config.CacheDb).Get(atboxcs, &msg_totals)
+	//	atboxcs := fmt.Sprintf(config.MailboxCountCacheName, uid)
+	//	msg_totals := 0
+	//	mt_err := ssdb.New(config.CacheDb).Get(atboxcs, &msg_totals)
+	msg_totals := int(stat.UCGetCount(uid, config.MailboxCountMod))
 
 	session, col := dbs.MgoC(config.DbName, config.TableName)
 	defer session.Close()
@@ -162,9 +170,10 @@ func GetMsgs(uid int64, page int, size int, ts time.Time, msgType vars.MSG_TYPE)
 	fm["to_uid"] = uid
 	qs := col.Find(fm)
 	//ssdb 查询失败
-	if mt_err != nil {
-		msg_totals, _ = qs.Count()
-		ssdb.New(config.CacheDb).Set(atboxcs, msg_totals) //重置总数
+	if msg_totals == 0 {
+		msg_totals, _ := qs.Count()
+		//ssdb.New(config.CacheDb).Set(atboxcs, msg_totals) //重置总数
+		stat.UCSetCount(uid, config.MailboxCountMod, int64(msg_totals))
 	}
 	fm["post_time"] = bson.M{"$lt": ts}
 	qs = col.Find(fm)

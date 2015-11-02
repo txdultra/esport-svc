@@ -33,3 +33,16 @@ const (
 	CURRENCY_TYPE_RMB    CURRENCY_TYPE = 2
 	CURRENCY_TYPE_JING   CURRENCY_TYPE = 4
 )
+
+func GetCurrencyName(cur CURRENCY_TYPE) string {
+	if cur|CURRENCY_TYPE_CREDIT == CURRENCY_TYPE_CREDIT {
+		return "积分"
+	}
+	if cur|CURRENCY_TYPE_RMB == CURRENCY_TYPE_RMB {
+		return "人民币"
+	}
+	if cur|CURRENCY_TYPE_JING == CURRENCY_TYPE_JING {
+		return "竞币"
+	}
+	return "未知"
+}

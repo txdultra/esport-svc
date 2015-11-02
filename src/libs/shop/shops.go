@@ -146,7 +146,7 @@ func (s *Shops) UpdateItem(item *Item) error {
 
 	item.updateAttrs()
 	o := dbs.NewOrm(db_aliasname)
-	_, err = o.Update(item, "name", "description", "pricetype", "price", "jings", "oprice", "rprice", "img", "imgs", "itemstate",
+	_, err = o.Update(item, "name", "description", "pricetype", "price", "jings", "oprice", "rprice", "img", "img2", "imgs", "itemstate",
 		"modifyts", "displayorder", "isview", "exattrs", "tagid")
 	if err != nil {
 		return err
@@ -272,6 +272,10 @@ func (s *Shops) itemSnapCacheKey(snapId int64) string {
 }
 
 func (s *Shops) ItemSnap(item *Item) (int64, error) {
+	img := item.Img
+	if item.ItemType == ITEM_TYPE_TICKET {
+		img = item.Img2
+	}
 	snap := &OrderItemSnap{
 		Ts:          time.Now().Unix(),
 		Name:        item.Name,
@@ -279,7 +283,7 @@ func (s *Shops) ItemSnap(item *Item) (int64, error) {
 		PriceType:   item.PriceType,
 		Price:       item.Price,
 		Jings:       item.Jings,
-		Img:         item.Img,
+		Img:         img,
 		Imgs:        item.Imgs,
 		TagId:       item.TagId,
 		ItemId:      item.ItemId,

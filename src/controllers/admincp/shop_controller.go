@@ -44,6 +44,8 @@ func (c *ShopCPController) getItem(item *shop.Item) *outobjs.OutShopItemForAdmin
 		RmbPrice:      item.RmbPrice,
 		Img:           item.Img,
 		ImgUrl:        c.storage.GetFileUrl(item.Img),
+		Img2:          item.Img2,
+		Img2Url:       c.storage.GetFileUrl(item.Img2),
 		Imgs:          imgIds,
 		ShowingImgs:   outobjs.GetShopImgUrls(item.Imgs),
 		ItemType:      item.ItemType,
@@ -104,6 +106,7 @@ func (c *ShopCPController) GetItems() {
 // @Param   original_price   path	float true  "原价"
 // @Param   rmb_price   path	float true  "人民币价格"
 // @Param   img   path	int true  "图片"
+// @Param   img2   path	int true  "图片2"
 // @Param   imgs   path	string true  "图片集(,隔开)"
 // @Param   item_type   path	int true  "商品类型"
 // @Param   item_state   path	int true  "商品状态"
@@ -123,6 +126,7 @@ func (c *ShopCPController) AddItem() {
 	ori_price, _ := c.GetFloat("original_price")
 	rmb_price, _ := c.GetFloat("rmb_price")
 	img, _ := c.GetInt64("img")
+	img2, _ := c.GetInt64("img2")
 	imgs := c.GetString("imgs")
 	item_type, _ := c.GetInt("item_type")
 	item_state, _ := c.GetInt("item_state")
@@ -167,6 +171,7 @@ func (c *ShopCPController) AddItem() {
 		OriginalPrice: ori_price,
 		RmbPrice:      rmb_price,
 		Img:           img,
+		Img2:          img2,
 		Imgs:          imgs,
 		ItemType:      shop.ITEM_TYPE(item_type),
 		ItemState:     shop.ITEM_STATE(item_state),
@@ -225,6 +230,7 @@ func (c *ShopCPController) UpdateItem() {
 	ori_price, _ := c.GetFloat("original_price")
 	rmb_price, _ := c.GetFloat("rmb_price")
 	img, _ := c.GetInt64("img")
+	img2, _ := c.GetInt64("img2")
 	imgs := c.GetString("imgs")
 	//item_type, _ := c.GetInt("item_type")
 	item_state, _ := c.GetInt("item_state")
@@ -275,6 +281,7 @@ func (c *ShopCPController) UpdateItem() {
 	item.OriginalPrice = ori_price
 	item.RmbPrice = rmb_price
 	item.Img = img
+	item.Img2 = img2
 	item.Imgs = imgs
 	//item.ItemType = shop.ITEM_TYPE(item_type)
 	item.ItemState = shop.ITEM_STATE(item_state)

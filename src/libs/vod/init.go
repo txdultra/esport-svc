@@ -39,7 +39,9 @@ const (
 	VOD_RECOMMEND_CATEGORTY_NAME = "vod_home"
 	VOD_RECOMMEND_CATEGORTY_GAME = "vod_game_%d"
 	collect_vod_mod              = "vod"
-	msg_type                     = "vod:comment"
+	VOD_MSG_BOX_COUNT_MODNAME    = "vod_msg_box_count_mod"
+	VOD_MSG_NEW_COUNT_MODNAME    = "vod_msg_new_count_mod"
+	//msg_type                     = "vod:comment"
 )
 
 func init() {
@@ -117,6 +119,13 @@ func init() {
 	})
 	//注册计数器
 	stat.RegisterCounter(MOD_NAME, &Vods{})
+	//用户计数器
+	stat.RegisterUCountKey(VOD_MSG_BOX_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("vod_msg_box_count:%d", uid)
+	})
+	stat.RegisterUCountKey(VOD_MSG_NEW_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("vod_msg_newalert:%d", uid)
+	})
 
 	//注册收藏功能
 	collect.RegisterCompler(collect_vod_mod, &Vods{})
@@ -130,15 +139,15 @@ func initMsgSysConfig() {
 		panic("未配置参数:vod.msg.collection")
 	}
 	msgStorageConfig = &message.MsgStorageConfig{
-		DbName:                vod_msg_db,
-		TableName:             vod_msg_collection,
-		CacheDb:               use_ssdb_message_db,
-		MailboxSize:           mbox_atmsg_length,
-		MailboxCountCacheName: "vod_msg_box_count:%d",
-		NewMsgCountCacheName:  "vod_msg_newalert:%d",
+		DbName:          vod_msg_db,
+		TableName:       vod_msg_collection,
+		CacheDb:         use_ssdb_message_db,
+		MailboxSize:     mbox_atmsg_length,
+		MailboxCountMod: VOD_MSG_BOX_COUNT_MODNAME, //"vod_msg_box_count:%d",
+		NewMsgCountMod:  VOD_MSG_NEW_COUNT_MODNAME, //"vod_msg_newalert:%d",
 	}
 
-	message.RegisterMsgTypeMaps(msg_type, msgStorageConfig)
+	message.RegisterMsgTypeMaps(MSG_TYPE_COMMENT, msgStorageConfig)
 }
 
 func GetMsgConfig() *message.MsgStorageConfig {

@@ -35,6 +35,8 @@ func GetOutShopItem(item *shop.Item) *OutShopItem {
 		RmbPrice:      item.RmbPrice,
 		Img:           item.Img,
 		ImgUrl:        file.GetFileUrl(item.Img),
+		Img2:          item.Img2,
+		Img2Url:       file.GetFileUrl(item.Img2),
 		ItemType:      item.ItemType,
 		ItemState:     item.ItemState,
 		Stocks:        item.Stocks,
@@ -60,7 +62,7 @@ func GetOutShopOrder(order *shop.Order) *OutShopOrder {
 		PriceType:   order.PriceType,
 		SnapId:      order.SnapId,
 		Remark:      order.Remark,
-		Pay:         "积分",
+		Pay:         vars.GetCurrencyName(order.PriceType),
 		PayNo:       order.PayNo,
 		Ex1:         order.Ex1,
 		Ex2:         order.Ex2,
@@ -225,6 +227,8 @@ type OutShopItem struct {
 	RmbPrice      float64         `json:"rmb_price"`
 	Img           int64           `json:"img_id"`
 	ImgUrl        string          `json:"img_url"`
+	Img2          int64           `json:"img2_id"`
+	Img2Url       string          `json:"img2_url"`
 	ShowingImgs   []string        `json:"showing_imgs_url"`
 	ItemType      shop.ITEM_TYPE  `json:"item_type"`
 	ItemState     shop.ITEM_STATE `json:"item_state"`
@@ -370,6 +374,8 @@ type OutShopItemForAdmin struct {
 	RmbPrice      float64                `json:"rmb_price"`
 	Img           int64                  `json:"img_id"`
 	ImgUrl        string                 `json:"img_url"`
+	Img2          int64                  `json:"img2_id"`
+	Img2Url       string                 `json:"img2_url"`
 	Imgs          []int64                `json:"showing_imgs_id"`
 	ShowingImgs   []string               `json:"showing_imgs_url"`
 	ItemType      shop.ITEM_TYPE         `json:"item_type"`

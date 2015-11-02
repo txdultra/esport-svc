@@ -129,9 +129,13 @@ func (c *CollectController) Show() {
 		c.Json(libs.NewError("member_collect_show_fail", "C7302", "ref_id参数不能为空", ""))
 		return
 	}
-	ed := collect.IsCollcetd(uid, refid, mod)
+	ed, err := collect.IsCollcetd(uid, refid, mod)
 	if !ed {
-		c.Json(libs.NewError("member_collect_show_unfav", REPSONSE_FAIL, "未收藏", ""))
+		errstr := ""
+		if err != nil {
+			errstr = err.Error()
+		}
+		c.Json(libs.NewError("member_collect_show_unfav", REPSONSE_FAIL, "未收藏"+errstr, ""))
 		return
 	}
 	fav := collect.Get(uid, refid, mod)

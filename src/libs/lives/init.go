@@ -5,6 +5,7 @@ import (
 	"libs"
 	"libs/collect"
 	"libs/lives/service"
+	"libs/stat"
 	"sync"
 	"time"
 	"utils"
@@ -97,6 +98,11 @@ func init() {
 
 	//注册推送通知后台处理线程
 	libs.RegisterMsqMsgrocessTasker("live_program_push_processer", &ProgramNoticeMsqProcesser{})
+
+	//注册用户计数
+	stat.RegisterUCountKey(MEMBER_PROGRAM_NEWNOTICE_COUNT_MODNAME, func(uid int64) string {
+		return fmt.Sprintf("member_program_new_notice_counts:%d", uid)
+	})
 
 	//启动账号服务
 	live_service_run := beego.AppConfig.DefaultBool("live.service.run", false)

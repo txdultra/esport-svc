@@ -24,11 +24,13 @@ var shareTbls map[string]bool = make(map[string]bool)
 var s_locker *sync.Mutex = new(sync.Mutex)
 
 const (
-	SHARE_CACHE_KEY_FMT         = "share.obj:%d"
-	SHARE_CACHE_DELTAG          = "share.deleted:%d"
-	SHARE_MEMBER_LIST_FMT       = "share.member.list:%d" //自己发送的列表
-	SHARE_DISCUSSERS            = "share_discussers:%d"  //参与者s
-	share_table_max_rows  int64 = 100000000
+	SHARE_CACHE_KEY_FMT                        = "share.obj:%d"
+	SHARE_CACHE_DELTAG                         = "share.deleted:%d"
+	SHARE_MEMBER_LIST_FMT                      = "share.member.list:%d" //自己发送的列表
+	SHARE_DISCUSSERS                           = "share_discussers:%d"  //参与者s
+	share_table_max_rows                 int64 = 100000000
+	SHARE_MEMBER_ATMSG_BOX_COUNT_MODNAME       = "share_member_atmsg_box_count_mod"
+	SHARE_MEMBER_ATMSG_NEW_COUNT_MODNAME       = "share_member_atmsg_new_count_mod"
 )
 
 type ShareSubscriptionEvent interface {
@@ -74,15 +76,15 @@ func RegisterShareRevokeEvent(eventName string, eventHandler ShareRevokeEvent) {
 
 type Shares struct{}
 
-//重置新消息列表 IEventCounter interface
-func (n Shares) ResetEventCount(uid int64) bool {
-	return message.ResetEventCount(uid, MSG_TYPE_TEXT)
-}
+////重置新消息列表 IEventCounter interface
+//func (n Shares) ResetEventCount(uid int64) bool {
+//	return message.ResetEventCount(uid, MSG_TYPE_TEXT)
+//}
 
-//IEventCounter interface
-func (n Shares) NewEventCount(uid int64) int {
-	return message.NewEventCount(uid, MSG_TYPE_TEXT)
-}
+////IEventCounter interface
+//func (n Shares) NewEventCount(uid int64) int {
+//	return message.NewEventCount(uid, MSG_TYPE_TEXT)
+//}
 
 //share库分表
 func (n *Shares) Sel_tbl(id int64, pfx_table string) string {

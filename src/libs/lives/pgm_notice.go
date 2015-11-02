@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"libs/hook"
 	"libs/passport"
+	"libs/stat"
 	"time"
 	"utils"
 	"utils/ssdb"
@@ -22,13 +23,14 @@ import (
 var program_notice_db, program_notice_collection, program_notice_orginal_collection string
 
 //var noticeTasks map[int64]*time.Timer = make(map[int64]*time.Timer)
-var min_duration float64 = 10.0 //最小开启提醒间隔,5
+var min_duration float64 = 5.0 //最小开启提醒间隔,5
 //var locker sync.RWMutex
 
 //var once sync.Once
 
 const (
-	member_program_new_notice_counts = "member_program_new_notice_counts:%d"
+	MEMBER_PROGRAM_NEWNOTICE_COUNT_MODNAME = "member_program_newnotice_mod"
+	//member_program_new_notice_counts       = "member_program_new_notice_counts:%d"
 )
 
 //提醒策略
@@ -285,7 +287,8 @@ func (n *ProgramNoticer) SubscribeNoticeSingle(uid int64, programId int64, subsc
 	//添加新的入缓冲库
 	n.addToCache(uid, []int64{subscribeEventId})
 	//新提醒计数器
-	n.incrMemberNotice(uid, 1)
+	//n.incrMemberNotice(uid, 1)
+	stat.UCIncrCount(uid, MEMBER_PROGRAM_NEWNOTICE_COUNT_MODNAME)
 	//hook
 	go hook.Do("live_sub_program", uid, 1)
 	return nil
@@ -332,7 +335,8 @@ func (n *ProgramNoticer) RemoveSubscribeNoticeSingle(uid int64, programId int64,
 	//删除缓冲库中原id
 	n.remOnCache(uid, []int64{subscribeEventId})
 	//减少提醒计数器
-	n.decrMemberNotice(uid, 1)
+	//n.decrMemberNotice(uid, 1)
+	stat.UCDecrCount(uid, MEMBER_PROGRAM_NEWNOTICE_COUNT_MODNAME)
 	return nil
 }
 
@@ -343,33 +347,33 @@ func (n *ProgramNoticer) RemoveAllSubscribeEvent(eventId int64) error {
 	return err
 }
 
-func (n *ProgramNoticer) incrMemberNotice(uid int64, cs int64) int {
-	key := fmt.Sprintf(member_program_new_notice_counts, uid)
-	c, _ := ssdb.New(use_ssdb_live_db).Incrby(key, cs)
-	return int(c)
-}
+//func (n *ProgramNoticer) incrMemberNotice(uid int64, cs int64) int {
+//	key := fmt.Sprintf(member_program_new_notice_counts, uid)
+//	c, _ := ssdb.New(use_ssdb_live_db).Incrby(key, cs)
+//	return int(c)
+//}
 
-func (n *ProgramNoticer) decrMemberNotice(uid int64, cs int64) int {
-	key := fmt.Sprintf(member_program_new_notice_counts, uid)
-	c, _ := ssdb.New(use_ssdb_live_db).Decrby(key, cs)
-	return int(c)
-}
+//func (n *ProgramNoticer) decrMemberNotice(uid int64, cs int64) int {
+//	key := fmt.Sprintf(member_program_new_notice_counts, uid)
+//	c, _ := ssdb.New(use_ssdb_live_db).Decrby(key, cs)
+//	return int(c)
+//}
 
-func (n *ProgramNoticer) NewEventCount(uid int64) int {
-	c := 0
-	key := fmt.Sprintf(member_program_new_notice_counts, uid)
-	err := ssdb.New(use_ssdb_live_db).Get(key, &c)
-	if err != nil {
-		return 0
-	}
-	return c
-}
+//func (n *ProgramNoticer) NewEventCount(uid int64) int {
+//	c := 0
+//	key := fmt.Sprintf(member_program_new_notice_counts, uid)
+//	err := ssdb.New(use_ssdb_live_db).Get(key, &c)
+//	if err != nil {
+//		return 0
+//	}
+//	return c
+//}
 
-func (n *ProgramNoticer) ResetEventCount(uid int64) bool {
-	key := fmt.Sprintf(member_program_new_notice_counts, uid)
-	ok, _ := ssdb.New(use_ssdb_live_db).Del(key)
-	return ok
-}
+//func (n *ProgramNoticer) ResetEventCount(uid int64) bool {
+//	key := fmt.Sprintf(member_program_new_notice_counts, uid)
+//	ok, _ := ssdb.New(use_ssdb_live_db).Del(key)
+//	return ok
+//}
 
 func (n *ProgramNoticer) StartNoticeTimer(subProgramId int64) error {
 	if subProgramId <= 0 {

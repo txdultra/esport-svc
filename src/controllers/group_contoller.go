@@ -6,6 +6,7 @@ import (
 	"libs/groups"
 	"libs/search"
 	"libs/share"
+	"libs/stat"
 	"outobjs"
 	"strconv"
 	"strings"
@@ -1023,11 +1024,11 @@ func (c *GroupController) MsgCount() {
 		c.Json(libs.NewError("group_msgcount_premission_denied", UNAUTHORIZED_CODE, "请登陆后重新尝试", ""))
 		return
 	}
-	gcm := gms.NewEventCount(current_uid)
-	if gcm > 99 {
-		gcm = 99
+	count := stat.UCGetCount(current_uid, groups.GROUP_MSG_NEW_COUNT_MODNAME) //gms.NewEventCount(current_uid)
+	if count > 99 {
+		count = 99
 	}
-	c.Json(libs.NewError("group_msgcount_succ", RESPONSE_SUCCESS, fmt.Sprintf("%d", gcm), ""))
+	c.Json(libs.NewError("group_msgcount_succ", RESPONSE_SUCCESS, fmt.Sprintf("%d", count), ""))
 }
 
 // @Title 我的发表日志
