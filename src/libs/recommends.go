@@ -102,7 +102,7 @@ func (c *RecommendService) Gets(category string) []*Recommend {
 		o := dbs.NewDefaultOrm()
 		qs := o.QueryTable(&Recommend{}).Filter("category", category).OrderBy("-display_order", "-enabled")
 		var lst []*Recommend
-		_, err := qs.All(&lst)
+		_, err := qs.All(&lst, "id")
 		if err == nil {
 			for _, m := range lst {
 				ids = append(ids, m.Id)

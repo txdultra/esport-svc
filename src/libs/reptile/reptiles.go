@@ -147,7 +147,7 @@ func Get_REP_SUPPORT(url string) (REP_SUPPORT, error) {
 	if matched {
 		return REP_SUPPORT_QQOPEN, nil
 	}
-	matched, _ = regexp.MatchString("http://www.panda.tv/room/(\\d+)", lowerUrl)
+	matched, _ = regexp.MatchString("http://www.panda.tv/(\\d+)", lowerUrl)
 	if matched {
 		return REP_SUPPORT_PANDATV, nil
 	}
@@ -343,7 +343,8 @@ func (d DouyuLive) ProxyReptile(parameter string, cmd string) (clientReqUrl stri
 		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:005")
 	}
 	defer transport.Close()
-	url, err := client.GetData(roomId, parameter)
+	staticLive := "http://staticlive.douyutv.com/common/share/play.swf?room_id=" + roomId
+	url, err := client.GetData(roomId, staticLive)
 	if len(url) == 0 || err != nil {
 		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:006")
 	}
@@ -1420,7 +1421,13 @@ func (d PandaTVLive) ProxyReptile(parameter string, cmd string) (clientReqUrl st
 	ckey := "live_panda_url:" + parameter
 	cache.Get(ckey, &playUrl)
 	if len(playUrl) == 0 {
-		str, _err := httplib.Get(parameter).String()
+		__index := strings.LastIndex(parameter, "/")
+		if __index <= 0 {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误")
+		}
+		roomId := parameter[__index+1:]
+		roomApiUrl := fmt.Sprintf("http://www.panda.tv/api_room?roomid=%s", roomId)
+		str, _err := httplib.Get(roomApiUrl).String()
 		if _err != nil {
 			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:002")
 		}

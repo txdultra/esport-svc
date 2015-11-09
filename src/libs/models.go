@@ -16,6 +16,7 @@ type Game struct {
 	Enabled      bool
 	PostTime     time.Time
 	DisplayOrder int
+	ForcedzSel   bool
 }
 
 func (self *Game) TableName() string {

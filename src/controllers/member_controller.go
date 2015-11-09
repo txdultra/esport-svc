@@ -626,18 +626,54 @@ func (c *MemberController) GetMemberGames() {
 		c.Json(out_mgs)
 		return
 	}
+	bas := &libs.Bas{}
+	games := bas.Games()
+
 	provider := passport.NewMemberProvider()
 	mgs := provider.MemberGames(uid)
-	for _, mg := range mgs {
-		out_game := outobjs.GetOutGameById(mg.GameId)
+
+	for _, game := range games {
+		var memberGame *passport.MemberGame = nil
+		for _, mg := range mgs {
+			if mg.GameId == game.Id {
+				memberGame = mg
+			}
+		}
+		if game.ForcedzSel {
+			pTime := game.PostTime
+			if memberGame != nil {
+				pTime = memberGame.PostTime
+			}
+			out_game := outobjs.GetOutGame(&game)
+			out_mgs = append(out_mgs, &outobjs.OutMemberGame{
+				AddTime: pTime,
+				Game:    out_game,
+			})
+			continue
+		}
+		if memberGame == nil {
+			continue
+		}
+		out_game := outobjs.GetOutGame(&game)
 		if out_game == nil || !out_game.Enabled {
 			continue
 		}
 		out_mgs = append(out_mgs, &outobjs.OutMemberGame{
-			AddTime: mg.PostTime,
+			AddTime: memberGame.PostTime,
 			Game:    out_game,
 		})
 	}
+
+	//	for _, mg := range mgs {
+	//		out_game := outobjs.GetOutGameById(mg.GameId)
+	//		if out_game == nil || !out_game.Enabled {
+	//			continue
+	//		}
+	//		out_mgs = append(out_mgs, &outobjs.OutMemberGame{
+	//			AddTime: mg.PostTime,
+	//			Game:    out_game,
+	//		})
+	//	}
 	c.Json(out_mgs)
 }
 

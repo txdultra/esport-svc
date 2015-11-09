@@ -179,6 +179,7 @@ type OutGameForAdmin struct {
 	Enabled      bool      `json:"enabled"`
 	PostTime     time.Time `json:"post_time"`
 	DisplayOrder int       `json:"display_order"`
+	ForcedzSel   bool      `json:"forcedz_sel"`
 }
 
 type OutMatchForAdmin struct {

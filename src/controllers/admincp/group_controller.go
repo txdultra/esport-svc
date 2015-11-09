@@ -516,6 +516,68 @@ func (c *GroupCPController) CreateThread() {
 	c.Json(libs.NewError("group_createthread_success", controllers.RESPONSE_SUCCESS, "新建帖子成功", ""))
 }
 
+// @Title 新建评论
+// @Description 新建评论
+// @Param   uid  path  int  true  "uid"
+// @Param   thread_id   path  int  true  "帖子id"
+// @Param   subject   path  string  false  "标题"
+// @Param   content   path  string  true  "内容"
+// @Param   img_ids   path  string  false  "图片集(最大9张 逗号,分隔)"
+// @Param   replyid   path  string  false  "回复id"
+// @Param   longitude   path  float  false  "经度"
+// @Param   latitude   path  float  false  "维度"
+// @Param   fromdev   path  string  false  "设备标识(android,ios,ipad,wphone,web)"
+// @Success 200 {object} libs.Error
+// @router /post/submit [post]
+func (c *GroupCPController) CreatePost() {
+	uid, _ := c.GetInt64("uid")
+	threadid, _ := c.GetInt64("thread_id")
+	subject, _ := utils.UrlDecode(c.GetString("subject"))
+	content, _ := utils.UrlDecode(c.GetString("content"))
+	imgids := c.GetString("img_ids")
+	replyid := c.GetString("replyid")
+	longitude, _ := c.GetFloat("longitude")
+	latitude, _ := c.GetFloat("latitude")
+	fromdev := c.GetString("fromdev")
+
+	if uid <= 0 || threadid <= 0 {
+		c.Json(libs.NewError("admincp_createpost_fail", "GM040_120", "参数错误", ""))
+		return
+	}
+	ps := groups.NewPostService(groups.GetDefaultCfg())
+
+	img_ids := []int64{}
+	arrImg := strings.Split(imgids, ",")
+	for _, _ai := range arrImg {
+		_id, _ := strconv.ParseInt(_ai, 10, 64)
+		if _id > 0 {
+			img_ids = append(img_ids, _id)
+		}
+	}
+	if len(img_ids) > 9 {
+		c.Json(libs.NewError("admincp_createpost_fail", "GM040_121", "图片数量不能大于9张", ""))
+		return
+	}
+	post := &groups.Post{
+		ThreadId:   threadid,
+		AuthorId:   uid,
+		Subject:    subject,
+		Message:    content,
+		Ip:         c.Ctx.Input.IP(),
+		FromDevice: groups.GetFromDevice(fromdev),
+		ImgIds:     img_ids,
+		ReplyId:    replyid,
+		LongiTude:  float32(longitude),
+		LatiTude:   float32(latitude),
+	}
+	err := ps.Create(post)
+	if err != nil {
+		c.Json(libs.NewError("admincp_createpost_fail", "GM040_122", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_createpost_success", controllers.RESPONSE_SUCCESS, "评论成功", ""))
+}
+
 // @Title 隐藏评论
 // @Description 隐藏评论
 // @Param   post_id  path  string  true  "评论id"

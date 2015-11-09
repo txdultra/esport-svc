@@ -17,9 +17,7 @@
 <body>
 	<div id="warp">
 		{{if .IN_WEIXIN}}
-		{{if .IS_ANDROID}}
-    	<div class="head"><img src="/static/img/head2.jpg" /></div>
-		{{end}}
+    	<div style="height:15%;width:100%; z-index:9999;position:absolute;" class="head"><img src="/static/img/head2.jpg"></div>
 		{{end}}
     	<div class="section section1">
         	<div class="bg"><img src="/static/img/v2/app_bj.jpg" /></div>
@@ -77,8 +75,8 @@
                 <span><img src="/static/img/v2/link_2.png" /></span>
                 <span><img src="/static/img/v2/link_3.png" /></span>
                 <span><img src="/static/img/v2/link_4.png" /></span>
-            </div>
-            <div class="page4_footer">Copyright © 2015 <span>www.dianjingquan.cn</span> Allright reserved.</div>
+            </div>			
+            <div class="page4_footer">Copyright © 2015 {{if .IN_WEIXIN}}weixin{{end}}<span>www.dianjingquan.cn</span> Allright reserved.</div>
     	</div>
     </div>
     

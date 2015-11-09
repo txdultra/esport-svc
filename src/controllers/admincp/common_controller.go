@@ -39,6 +39,7 @@ func (c *CommonCPController) Games() {
 			Enabled:      g.Enabled,
 			PostTime:     g.PostTime,
 			DisplayOrder: g.DisplayOrder,
+			ForcedzSel:   g.ForcedzSel,
 		})
 	}
 	c.Json(out_games)
@@ -51,6 +52,7 @@ func (c *CommonCPController) Games() {
 // @Param   img_id   path	int true  "图片id"
 // @Param   enabled   path	bool true  "是否启用"
 // @Param   display_order   path	int false  "排序"
+// @Param   forcedz_sel   path	bool true  "强制选择"
 // @Success 200 {object} libs.Error
 // @router /game/add [post]
 func (c *CommonCPController) GameAdd() {
@@ -59,6 +61,7 @@ func (c *CommonCPController) GameAdd() {
 	img_id, _ := c.GetInt64("img_id")
 	enabled, _ := c.GetBool("enabled")
 	display_order, _ := c.GetInt64("display_order")
+	forcedz, _ := c.GetBool("forcedz_sel")
 	if len(name) == 0 {
 		c.Json(libs.NewError("admincp_common_game_add_fail", "GM001_001", "游戏名称不能空", ""))
 		return
@@ -74,6 +77,7 @@ func (c *CommonCPController) GameAdd() {
 	game.Enabled = enabled
 	game.PostTime = time.Now()
 	game.DisplayOrder = int(display_order)
+	game.ForcedzSel = forcedz
 	bas := &libs.Bas{}
 	err := bas.AddGame(game)
 	if err == nil {
@@ -90,6 +94,7 @@ func (c *CommonCPController) GameAdd() {
 // @Param   en   path	string true  "游戏英文名"
 // @Param   img_id   path	int true  "图片id"
 // @Param   enabled   path	bool true  "是否启用(默认启用)"
+// @Param   forcedz_sel   path	bool true  "强制选择"
 // @Param   display_order   path	int false  "排序"
 // @Success 200 {object} libs.Error
 // @router /game/update [post]
@@ -99,6 +104,7 @@ func (c *CommonCPController) GameUpdate() {
 	en, _ := utils.UrlDecode(c.GetString("en"))
 	img_id, _ := c.GetInt64("img_id")
 	enabled, _ := c.GetBool("enabled")
+	forcedz, _ := c.GetBool("forcedz_sel")
 	display_order, _ := c.GetInt("display_order")
 	if len(c.Ctx.Input.Query("enabled")) == 0 {
 		enabled = true
@@ -123,6 +129,7 @@ func (c *CommonCPController) GameUpdate() {
 	game.Enabled = enabled
 	game.PostTime = time.Now()
 	game.DisplayOrder = int(display_order)
+	game.ForcedzSel = forcedz
 	bas := &libs.Bas{}
 	err := bas.UpdateGame(game)
 	if err == nil {

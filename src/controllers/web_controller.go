@@ -59,15 +59,19 @@ func (c *WebController) Prepare() {
 	iosv := vcs.GetLastClientVersion(version.MOBILE_PLATFORM_APPLE)
 	andv := vcs.GetLastClientVersion(version.MOBILE_PLATFORM_ANDROID)
 	if iosv != nil {
-		c.Data["IS_IOS"] = true
 		c.Data["IOS_DOWN"] = iosv.DownloadUrl
 	}
 	if andv != nil {
-		c.Data["IS_ANDROID"] = true
 		c.Data["AND_DOWN"] = andv.DownloadUrl
 	}
-	if strings.Contains(agent, "micromessenger") {
+	if strings.Index(agent, "micromessenger") >= 0 {
 		c.Data["IN_WEIXIN"] = true
+	}
+	plat := c.getPlat(agent)
+	if plat == version.MOBILE_PLATFORM_ANDROID {
+		c.Data["IS_ANDROID"] = true
+	} else if plat == version.MOBILE_PLATFORM_APPLE {
+		c.Data["IS_IOS"] = true
 	}
 }
 
@@ -80,9 +84,7 @@ func (c *WebController) Home() {
 	c.TplNames = "www_home.html"
 }
 
-// @router /download [get]
-func (c *WebController) DownApp() {
-	agent := strings.ToLower(c.Ctx.Input.UserAgent())
+func (c *WebController) getPlat(agent string) version.MOBILE_PLATFORM {
 	var plat version.MOBILE_PLATFORM
 	if strings.Index(agent, "iphone") >= 0 || strings.Index(agent, "mac") >= 0 || strings.Index(agent, "ipad") >= 0 || strings.Index(agent, "ipad") >= 0 {
 		plat = version.MOBILE_PLATFORM_APPLE
@@ -90,6 +92,20 @@ func (c *WebController) DownApp() {
 	if strings.Index(agent, "android") >= 0 || strings.Index(agent, "linux") >= 0 {
 		plat = version.MOBILE_PLATFORM_ANDROID
 	}
+	return plat
+}
+
+// @router /download [get]
+func (c *WebController) DownApp() {
+	agent := strings.ToLower(c.Ctx.Input.UserAgent())
+	plat := c.getPlat(agent)
+	//	var plat version.MOBILE_PLATFORM
+	//	if strings.Index(agent, "iphone") >= 0 || strings.Index(agent, "mac") >= 0 || strings.Index(agent, "ipad") >= 0 || strings.Index(agent, "ipad") >= 0 {
+	//		plat = version.MOBILE_PLATFORM_APPLE
+	//	}
+	//	if strings.Index(agent, "android") >= 0 || strings.Index(agent, "linux") >= 0 {
+	//		plat = version.MOBILE_PLATFORM_ANDROID
+	//	}
 	if plat == "" {
 		c.Redirect("/", 302)
 		c.StopRun()
