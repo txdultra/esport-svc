@@ -376,7 +376,7 @@ func (t *Tasker) CreateTask(task *Task) error {
 	}
 	task.TaskId = id
 	_, err = o.QueryTable(&TaskGroup{}).Filter("groupid", task.GroupId).Update(orm.Params{
-		"tasks": orm.ColValue(orm.Col_Add, 1),
+		"tasks": orm.ColValue(orm.ColAdd, 1),
 	})
 	if err != nil {
 		o.Rollback()
@@ -424,7 +424,7 @@ func (t *Tasker) ResetTaskVar(taskId int64, incrN int, ts int64) error {
 	}
 	o := dbs.NewOrm(db_aliasname)
 	_, err := o.QueryTable(&Task{}).Filter("taskid", taskId).Update(orm.Params{
-		"resetvar":      orm.ColValue(orm.Col_Add, incrN),
+		"resetvar":      orm.ColValue(orm.ColAdd, incrN),
 		"lastresettime": ts,
 	})
 	if err == nil {
@@ -443,7 +443,7 @@ func (t *Tasker) DeleteTask(taskId int64, groupId int64) error {
 		return err
 	}
 	_, err = o.QueryTable(&TaskGroup{}).Filter("groupid", groupId).Update(orm.Params{
-		"tasks": orm.ColValue(orm.Col_Minus, 1),
+		"tasks": orm.ColValue(orm.ColMinus, 1),
 	})
 	if err != nil {
 		o.Rollback()

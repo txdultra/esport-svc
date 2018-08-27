@@ -2,7 +2,6 @@ package search
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/huichen/sego"
@@ -32,6 +31,10 @@ type SearchOptions struct {
 	FilterRangeInt   []FilterRangeInt //u1:0,100,false;u2:50,90,true（整数范围过滤器：字段u1 >= 0并且u1 <= 100，字段u2 < 50并且u2 > 90）
 	FilterRangeFloat FilterRangeFloat //u1:1.23,99.645,false;u2:1034.3,7834.56,true（浮点数范围过滤器：字段u1 >= 1.23并且u1 <= 99.645，字段u2 < 1034.3并且u2 > 7834.56）
 	Excerpt          SearchExcerpt    //高亮设置
+	Facet            bool
+	FacetFields      []string
+	FacetQuerys      []string
+	IndexName string
 }
 
 type SearchExcerpt struct {
@@ -144,7 +147,6 @@ func (f *Searcher) VideoQuery(words string, match_mode string) ([]int64, int, er
 	sego_words := words            //f.Segment(words)
 	res, err := sc.Query(sego_words, vod_idx_name, "")
 	if err != nil {
-		fmt.Println(err)
 		return nil, 0, errors.New("query fail:" + err.Error())
 	}
 	var ids []int64

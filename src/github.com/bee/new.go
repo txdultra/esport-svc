@@ -73,26 +73,39 @@ func createApp(cmd *Command, args []string) int {
 
 	wgopath := path.SplitList(gopath)
 	for _, wg := range wgopath {
-		wg, _ = path.EvalSymlinks(path.Join(wg, "src"))
+
+		wg = path.Join(wg, "src")
 
 		if strings.HasPrefix(strings.ToLower(curpath), strings.ToLower(wg)) {
 			haspath = true
 			appsrcpath = wg
 			break
 		}
+
+		wg, _ = path.EvalSymlinks(wg)
+
+		if strings.HasPrefix(strings.ToLower(curpath), strings.ToLower(wg)) {
+			haspath = true
+			appsrcpath = wg
+			break
+		}
+
 	}
 
 	if !haspath {
-		ColorLog("[ERRO] Unable to create an application outside of $GOPATH(%s)\n", gopath)
+		ColorLog("[ERRO] Unable to create an application outside of $GOPATH%ssrc(%s%ssrc)\n", string(path.Separator), gopath, string(path.Separator))
 		ColorLog("[HINT] Change your work directory by `cd ($GOPATH%ssrc)`\n", string(path.Separator))
 		os.Exit(2)
 	}
 
 	apppath := path.Join(curpath, args[0])
 
-	if _, err := os.Stat(apppath); os.IsNotExist(err) == false {
-		fmt.Printf("[ERRO] Path (%s) already exists\n", apppath)
-		os.Exit(2)
+	if isExist(apppath) {
+		ColorLog("[ERRO] Path (%s) already exists\n", apppath)
+		ColorLog("[WARN] Do you want to overwrite it? [yes|no]]")
+		if !askForConfirmation() {
+			os.Exit(2)
+		}
 	}
 
 	fmt.Println("[INFO] Creating application...")
@@ -224,7 +237,7 @@ type MainController struct {
 func (c *MainController) Get() {
 	c.Data["Website"] = "beego.me"
 	c.Data["Email"] = "astaxie@gmail.com"
-	c.TplNames = "index.tpl"
+	c.TplName = "index.tpl"
 }
 `
 

@@ -25,7 +25,7 @@ func init() {
 		new(Game), new(Match), new(File), new(Msqtor), new(Smiley),
 		//组件
 		new(PushState), new(Recommend),
-		new(HomeAd),
+		new(HomeAd), new(Team),
 	)
 	MSQ_USE_DRIVER = beego.AppConfig.String("msq.driver")
 	if len(MSQ_USE_DRIVER) == 0 {

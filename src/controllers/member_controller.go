@@ -47,6 +47,8 @@ func (c *MemberController) URLMapping() {
 	c.Mapping("GetMyConfig", c.GetMyConfig)
 	c.Mapping("SetMyConfig", c.SetMyConfig)
 	c.Mapping("SetMemberBackgroundImg", c.SetMemberBackgroundImg)
+	c.Mapping("ResetPwd", c.ResetPwd)
+	c.Mapping("GetByUserName", c.GetByUserName)
 }
 
 // @Title 注册用户
@@ -58,6 +60,7 @@ func (c *MemberController) URLMapping() {
 // @Param   lati   path  float  false  "纬度"
 // @Param   vfy_code  path  string  false  "验证码随机字符串"
 // @Param   vfy_str   path  string  false "验证码"
+// @Param   src   path  int  false "来源(0=app,1=web 默认0)"
 // @Success 200 {object} outobjs.OutAccessToken
 // @router /register [post]
 func (c *MemberController) Register() {
@@ -69,6 +72,7 @@ func (c *MemberController) Register() {
 	vfy_code := c.GetString("vfy_code")
 	vfy_str := c.GetString("vfy_str")
 	ip := c.Ctx.Input.IP()
+	src, _ := c.GetInt8("src")
 	if len(vfy_code) > 0 {
 		lerr := c.checkVerifyCode(vfy_code, vfy_str)
 		if lerr != nil {
@@ -87,12 +91,17 @@ func (c *MemberController) Register() {
 		c.Json(libs.NewError("member_register_fail", "M3902", fmt.Sprintf("密码必须小于等于%d位", passport.MemberPasswordMaxLen), ""))
 		return
 	}
+	if src > 1 || src < 0 {
+		c.Json(libs.NewError("member_register_fail", "M3903", "来源编号错误", ""))
+		return
+	}
 
 	member := passport.Member{}
 	member.UserName = user_name
 	member.Password = pwd
 	member.MobileIdentifier = mobile_iden
 	member.CreateIP = utils.IpToInt(ip)
+	member.Src = vars.CLIENT_SRC(src)
 	member_provider := passport.NewMemberProvider()
 	uid, err := member_provider.Create(member, longi, lati)
 	if err != nil {
@@ -953,4 +962,64 @@ func (c *MemberController) SetMyConfig() {
 		return
 	}
 	c.Json(libs.NewError("member_set_config_succ", RESPONSE_SUCCESS, "成功设置配置", ""))
+}
+
+// @Title 设置用户配置信息
+// @Description 设置用户配置信息
+// @Param   ts	   path  int  true "时间戳"
+// @Param   sign   path   string  true  "签名(5分钟有效)"
+// @Param   uid   path   int  true  "用户id"
+// @Param   pwd   path   string true "新密码"
+// @Success 200
+// @router /reset_pwd [post]
+func (c *MemberController) ResetPwd() {
+	ts, _ := c.GetInt64("ts")
+	sign := c.GetString("sign")
+	uid, _ := c.GetInt64("uid")
+	pwd := c.GetString("pwd")
+	if ts <= time.Now().Add(-5*time.Minute).Unix() {
+		c.Json(libs.NewError("member_reset_pwd_fail", "M3921", "时间戳已经过期", ""))
+		return
+	}
+	if uid <= 0 {
+		c.Json(libs.NewError("member_reset_pwd_fail", "M3922", "uid不能小于等于0", ""))
+		return
+	}
+	if len(pwd) == 0 || len(sign) == 0 {
+		c.Json(libs.NewError("member_reset_pwd_fail", "M3923", "参数错误", ""))
+		return
+	}
+	verify_sign := fmt.Sprintf("%d_%d_%s_7297e4cc1568906c07", ts, uid, pwd)
+	if verify_sign != sign {
+		c.Json(libs.NewError("member_reset_pwd_fail", "M3924", "签名错误", ""))
+		return
+	}
+	mp := passport.NewMemberProvider()
+	err := mp.ResetPassword(uid, pwd)
+	if err != nil {
+		c.Json(libs.NewError("member_reset_pwd_fail", "M3925", err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("member_reset_pwd_fail", RESPONSE_SUCCESS, "成功更改密码", ""))
+}
+
+// @Title 根据用户名获取用户信息
+// @Description 根据用户名获取用户信息
+// @Param   user_name	   path  string  true "用户名"
+// @Success 200 {object} outobjs.OutSimpleMember
+// @router /get_by_username [get]
+func (c *MemberController) GetByUserName() {
+	user_name, _ := utils.UrlDecode(c.GetString("user_name"))
+	user_name = utils.StripSQLInjection(user_name)
+	if len(user_name) == 0 {
+		c.Json(libs.NewError("member_get_byusername_fail", "M3931", "用户名不能为空", ""))
+		return
+	}
+	mp := passport.NewMemberProvider()
+	usr := mp.GetByUserName(user_name)
+	if usr == nil {
+		c.Json(libs.NewError("member_get_byusername_fail", "M3932", "用户不存在", ""))
+		return
+	}
+	c.Json(outobjs.GetOutSimpleMember(usr.Uid))
 }

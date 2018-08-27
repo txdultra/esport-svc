@@ -76,9 +76,9 @@ import (
 )
 
 func main() {
-	if beego.RunMode == "dev" {
-		beego.DirectoryIndex = true
-		beego.StaticDir["/swagger"] = "swagger"
+	if beego.BConfig.RunMode == "dev" {
+		beego.BConfig.WebConfig.DirectoryIndex = true
+		beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
 	}
 	beego.Run()
 }
@@ -100,9 +100,9 @@ func init() {
 }
 
 func main() {
-	if beego.RunMode == "dev" {
-		beego.DirectoryIndex = true
-		beego.StaticDir["/swagger"] = "swagger"
+	if beego.BConfig.RunMode == "dev" {
+		beego.BConfig.WebConfig.DirectoryIndex = true
+		beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
 	}
 	beego.Run()
 }
@@ -309,7 +309,7 @@ func (o *ObjectController) Post() {
 	json.Unmarshal(o.Ctx.Input.RequestBody, &ob)
 	objectid := models.AddOne(ob)
 	o.Data["json"] = map[string]string{"ObjectId": objectid}
-	o.ServeJson()
+	o.ServeJSON()
 }
 
 // @Title Get
@@ -319,16 +319,16 @@ func (o *ObjectController) Post() {
 // @Failure 403 :objectId is empty
 // @router /:objectId [get]
 func (o *ObjectController) Get() {
-	objectId := o.Ctx.Input.Params[":objectId"]
+	objectId := o.Ctx.Input.Param(":objectId")
 	if objectId != "" {
 		ob, err := models.GetOne(objectId)
 		if err != nil {
-			o.Data["json"] = err
+			o.Data["json"] = err.Error()
 		} else {
 			o.Data["json"] = ob
 		}
 	}
-	o.ServeJson()
+	o.ServeJSON()
 }
 
 // @Title GetAll
@@ -339,7 +339,7 @@ func (o *ObjectController) Get() {
 func (o *ObjectController) GetAll() {
 	obs := models.GetAll()
 	o.Data["json"] = obs
-	o.ServeJson()
+	o.ServeJSON()
 }
 
 // @Title update
@@ -350,17 +350,17 @@ func (o *ObjectController) GetAll() {
 // @Failure 403 :objectId is empty
 // @router /:objectId [put]
 func (o *ObjectController) Put() {
-	objectId := o.Ctx.Input.Params[":objectId"]
+	objectId := o.Ctx.Input.Param(":objectId")
 	var ob models.Object
 	json.Unmarshal(o.Ctx.Input.RequestBody, &ob)
 
 	err := models.Update(objectId, ob.Score)
 	if err != nil {
-		o.Data["json"] = err
+		o.Data["json"] = err.Error()
 	} else {
 		o.Data["json"] = "update success!"
 	}
-	o.ServeJson()
+	o.ServeJSON()
 }
 
 // @Title delete
@@ -370,10 +370,10 @@ func (o *ObjectController) Put() {
 // @Failure 403 objectId is empty
 // @router /:objectId [delete]
 func (o *ObjectController) Delete() {
-	objectId := o.Ctx.Input.Params[":objectId"]
+	objectId := o.Ctx.Input.Param(":objectId")
 	models.Delete(objectId)
 	o.Data["json"] = "delete success!"
-	o.ServeJson()
+	o.ServeJSON()
 }
 
 `
@@ -402,7 +402,7 @@ func (u *UserController) Post() {
 	json.Unmarshal(u.Ctx.Input.RequestBody, &user)
 	uid := models.AddUser(user)
 	u.Data["json"] = map[string]string{"uid": uid}
-	u.ServeJson()
+	u.ServeJSON()
 }
 
 // @Title Get
@@ -412,7 +412,7 @@ func (u *UserController) Post() {
 func (u *UserController) GetAll() {
 	users := models.GetAllUsers()
 	u.Data["json"] = users
-	u.ServeJson()
+	u.ServeJSON()
 }
 
 // @Title Get
@@ -426,12 +426,12 @@ func (u *UserController) Get() {
 	if uid != "" {
 		user, err := models.GetUser(uid)
 		if err != nil {
-			u.Data["json"] = err
+			u.Data["json"] = err.Error()
 		} else {
 			u.Data["json"] = user
 		}
 	}
-	u.ServeJson()
+	u.ServeJSON()
 }
 
 // @Title update
@@ -448,12 +448,12 @@ func (u *UserController) Put() {
 		json.Unmarshal(u.Ctx.Input.RequestBody, &user)
 		uu, err := models.UpdateUser(uid, &user)
 		if err != nil {
-			u.Data["json"] = err
+			u.Data["json"] = err.Error()
 		} else {
 			u.Data["json"] = uu
 		}
 	}
-	u.ServeJson()
+	u.ServeJSON()
 }
 
 // @Title delete
@@ -466,7 +466,7 @@ func (u *UserController) Delete() {
 	uid := u.GetString(":uid")
 	models.DeleteUser(uid)
 	u.Data["json"] = "delete success!"
-	u.ServeJson()
+	u.ServeJSON()
 }
 
 // @Title login
@@ -484,7 +484,7 @@ func (u *UserController) Login() {
 	} else {
 		u.Data["json"] = "user not exist"
 	}
-	u.ServeJson()
+	u.ServeJSON()
 }
 
 // @Title logout
@@ -493,7 +493,7 @@ func (u *UserController) Login() {
 // @router /logout [get]
 func (u *UserController) Logout() {
 	u.Data["json"] = "logout success"
-	u.ServeJson()
+	u.ServeJSON()
 }
 
 `
@@ -547,6 +547,10 @@ func init() {
 
 func createapi(cmd *Command, args []string) int {
 	curpath, _ := os.Getwd()
+	if len(args) < 1 {
+		ColorLog("[ERRO] Argument [appname] is missing\n")
+		os.Exit(2)
+	}
 	if len(args) > 1 {
 		cmd.Flag.Parse(args[1:])
 	}
@@ -651,9 +655,17 @@ func checkEnv(appname string) (apppath, packpath string, err error) {
 	haspath := false
 	wgopath := path.SplitList(gopath)
 	for _, wg := range wgopath {
-		wg, _ = path.EvalSymlinks(path.Join(wg, "src"))
+		wg = path.Join(wg, "src")
 
-		if path.HasPrefix(strings.ToLower(curpath), strings.ToLower(wg)) {
+		if strings.HasPrefix(strings.ToLower(curpath), strings.ToLower(wg)) {
+			haspath = true
+			appsrcpath = wg
+			break
+		}
+
+		wg, _ = path.EvalSymlinks(wg)
+
+		if strings.HasPrefix(strings.ToLower(curpath), strings.ToLower(wg)) {
 			haspath = true
 			appsrcpath = wg
 			break

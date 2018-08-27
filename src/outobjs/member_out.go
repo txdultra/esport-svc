@@ -87,20 +87,20 @@ func GetOutMember(uid int64, sourceUid int64) *OutMember {
 			jings = _jings
 		}
 	}
-
 	m := &OutMember{
-		Uid:             member.Uid,
-		UserName:        member.UserName,
-		NickName:        member.NickName,
-		Email:           member.Email,
-		Avatar:          member.Avatar,
-		AvatarUrl:       file.GetFileUrl(member.Avatar),
-		CreateTime:      time.Unix(member.CreateTime, 0),
-		IsCertified:     member.Certified,
-		CertifiedReason: member.CertifiedReason,
-		FriendShip:      fship,
-		Credits:         credits,
-		Jings:           jings,
+		Uid:               member.Uid,
+		UserName:          member.UserName,
+		NickName:          member.NickName,
+		Email:             member.Email,
+		Avatar:            member.Avatar,
+		AvatarUrl:         file.GetFileUrl(member.Avatar),
+		CreateTime:        time.Unix(member.CreateTime, 0),
+		IsCertified:       member.Certified,
+		CertifiedReason:   member.CertifiedReason,
+		OfficialCertified: member.OfficialCertified,
+		FriendShip:        fship,
+		Credits:           credits,
+		Jings:             jings,
 	}
 	if state != nil {
 		m.Fans = state.Fans
@@ -124,23 +124,24 @@ type OutMemberPageList struct {
 }
 
 type OutMember struct {
-	Uid             int64              `json:"uid"`
-	UserName        string             `json:"user_name"`
-	NickName        string             `json:"nick_name"`
-	Email           string             `json:"email"`
-	Avatar          int64              `json:"avatar_id"`
-	AvatarUrl       string             `json:"avatar_url"`
-	CreateTime      time.Time          `json:"create_time"`
-	Vods            int                `json:"vods"`
-	Fans            int                `json:"fans"`
-	Notes           int                `json:"shares"`
-	Friends         int                `json:"friends"`
-	IsCertified     bool               `json:"is_certified"`
-	CertifiedReason string             `json:"certified_reason"`
-	FriendShip      *OutUserSTRelation `json:"friendship"`
-	Credits         int64              `json:"credits"`
-	Jings           int64              `json:"jings"`
-	Gender          string             `json:"gender"`
+	Uid               int64              `json:"uid"`
+	UserName          string             `json:"user_name"`
+	NickName          string             `json:"nick_name"`
+	Email             string             `json:"email"`
+	Avatar            int64              `json:"avatar_id"`
+	AvatarUrl         string             `json:"avatar_url"`
+	CreateTime        time.Time          `json:"create_time"`
+	Vods              int                `json:"vods"`
+	Fans              int                `json:"fans"`
+	Notes             int                `json:"shares"`
+	Friends           int                `json:"friends"`
+	IsCertified       bool               `json:"is_certified"`
+	CertifiedReason   string             `json:"certified_reason"`
+	OfficialCertified bool               `json:"official_certified"`
+	FriendShip        *OutUserSTRelation `json:"friendship"`
+	Credits           int64              `json:"credits"`
+	Jings             int64              `json:"jings"`
+	Gender            string             `json:"gender"`
 }
 
 type OutSimpleMember struct {

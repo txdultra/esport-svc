@@ -70,6 +70,27 @@ func GetOutMatch(match *libs.Match) *OutMatch {
 	}
 }
 
+func GetOutTeam(team *libs.Team) *OutTeam {
+	if team == nil {
+		return nil
+	}
+	return &OutTeam{
+		Id:          team.Id,
+		Title:       team.Title,
+		Img1:        team.Img1,
+		Img1Url:     file.GetFileUrl(team.Img1),
+		Img2:        team.Img2,
+		Img2Url:     file.GetFileUrl(team.Img2),
+		Img3:        team.Img3,
+		Img3Url:     file.GetFileUrl(team.Img3),
+		Description: team.Description,
+		TeamType:    team.TeamType,
+		Del:         team.Del,
+		PostTime:    team.PostTime,
+		ParentId:    team.ParentId,
+	}
+}
+
 type OutGame struct {
 	Id      int    `json:"id"`
 	Name    string `json:"name"`
@@ -223,4 +244,27 @@ type OutHomeAdForAdmin struct {
 	PostTime   time.Time        `json:"post_time"`
 	PostUid    int64            `json:"post_uid"`
 	PostMember *OutSimpleMember `json:"post_member"`
+}
+
+type OutTeam struct {
+	Id          int64          `json:"id"`
+	Title       string         `json:"title"`
+	Img1        int64          `json:"img1"`
+	Img1Url     string         `json:"img1_url"`
+	Img2        int64          `json:"img2"`
+	Img2Url     string         `json:"img2_url"`
+	Img3        int64          `json:"img3"`
+	Img3Url     string         `json:"img3_url"`
+	Description string         `json:"description"`
+	TeamType    libs.TEAM_TYPE `json:"team_type"`
+	Del         bool           `json:"del"`
+	PostTime    time.Time      `json:"post_time"`
+	ParentId    int64          `json:"pid"`
+}
+
+type OutTeamPagedList struct {
+	CurrentPage int        `json:"current_page"`
+	Totals      int        `json:"totals"`
+	PageSize    int        `json:"page_size"`
+	Teams       []*OutTeam `json:"teams"`
 }

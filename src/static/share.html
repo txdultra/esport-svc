@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <HTML>
  <HEAD>
   <TITLE> shares </TITLE>
@@ -10,12 +10,10 @@
 
  <BODY>
 <p>发布</p>
-  <form id="up" method="post" action="http://127.0.0.1:8080/v1/share/publish">
-	access_token:<input name="access_token" value="" /><br/>
-    type:<input name="type" value="" /><br/>
-	text:<input name="text" value="" /><br/>
-	vod_ids:<input name="vod_ids" value="" /><br/>
-	source:<input name="source" value="" /><br/>
+  <form id="up" method="post" action="http://www.huomaotv.cn/swf/live_data">
+	access_token:<input type="hidden" name="streamtype" value="live" /><br/>
+    type:<input  type="hidden"  name="VideoIDS" value="djSSISemeHCejZ9Jlc" /><br/>
+	text:<input type="text" name="cdns" value="1" /><br/>
     <input type="submit" value="提交" /><br/>
   </form>
 <p>删除</p>

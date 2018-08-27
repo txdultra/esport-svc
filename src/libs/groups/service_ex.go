@@ -71,8 +71,8 @@ func (u *UserPostNotes) AddNote(ptr interface{}) {
 		ts := time.Now().Unix()
 		o := dbs.NewOrm(db_aliasname)
 		o.QueryTable(&UserPostNoteCount{}).Filter("uid", uid).Update(orm.Params{
-			"publishs": orm.ColValue(orm.Col_Add, publishsAdds),
-			"replys":   orm.ColValue(orm.Col_Add, replysAdds),
+			"publishs": orm.ColValue(orm.ColAdd, publishsAdds),
+			"replys":   orm.ColValue(orm.ColAdd, replysAdds),
 			"lasttime": ts,
 		})
 		upc := &UserPostNoteCount{}

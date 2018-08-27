@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"unsafe"
 	//"strings"
 
 	"github.com/astaxie/beego"
@@ -19,7 +20,9 @@ import (
 	//"libs/lives"
 	//"libs/passport"
 
-	//"libs/reptile"
+	"libs/reptile"
+	"libs/search"
+
 	//"libs/collect"
 
 	_ "libs/version"
@@ -71,11 +74,75 @@ import (
 )
 
 func main() {
+
+	go func() {
+		fmt.Println(unsafe.Sizeof(""))
+		fmt.Println(unsafe.Alignof(struct {
+			A int
+			B string
+		}{1, "A"}))
+	}()
+
+	fmt.Println(runtime.NumGoroutine())
+	return
+	//http://106.ihuyi.cn/webservice/sms.php?method=Submit
+
 	//43067
+
+	//	solrClient, _ := solr.Init("10.10.20.199", 8983, "vod_core")
+	//	q := solr.Query{
+	//		Params: solr.URLParamMap{
+	//			"q":  []string{"title:" + "老鼠 演出"},
+	//			"fl": []string{"id"},
+	//		},
+	//		Sort: "post_time desc",
+	//		Rows: 10,
+	//	}
+	//	res, _ := solrClient.Select(&q)
+	//	fmt.Println(res.Results)
+	//	return
+
+	options := &search.SearchOptions{
+		Host:  "10.10.20.199",
+		Port:  8983,
+		Limit: 10,
+	}
+	//	options.Filters = []search.SearchFilter{
+	//		search.SearchFilter{
+	//			Attr:    "gameids",
+	//			Values:  []uint64{1, 2, 3, 4},
+	//			Exclude: false,
+	//		},
+	//	}
+	//	options.FilterRangeInt = []search.FilterRangeInt{
+	//		search.FilterRangeInt{
+	//			Attr:    "views",
+	//			Min:     100,
+	//			Max:     170,
+	//			Exclude: true,
+	//		},
+	//	}
+	solrSearcher := search.NewSolrSearcher(options)
+	fmt.Println(solrSearcher.ProgramQuery("英雄联盟"))
+	return
 
 	fmt.Println(time.Now().Unix())
 
 	fmt.Println(time.Unix(1454127256, 0))
+
+	fmt.Println(regexp.MatchString("http://www.quanmin.tv/v/(\\w+)", "http://www.quanmin.tv/v/fjioe"))
+
+	rep := &reptile.YoukuReptileV3{}
+	fmt.Println(rep.Reptile("http://v.youku.com/v_show/id_XNzQ4NTcyODQw.html"))
+
+	//	fileid, ep := rep.GenerateEp(0, "030001170053D95555E09A04B921BF84E48ABD-6E37-B28F-6BB8-8F99B4147909", "645268754473312cb3aa5", "2919")
+	//	fmt.Println(fileid)
+	//	fmt.Println(ep)
+	//	fmt.Println(utils.UrlDecode("dCaRGE%2BFUcsE4STciz8bNH7hJSYKXP4J9h%2BFgNNlALshS5y2nDvUwuiwR45CEosQcCN0ZuP13tTvGzJgYfY2qm8QrUygT%2FrmjILr5aUlzZlyYhgydcTXvVScSjH4"))
+	//030001170053D95555E09A04B921BF84E48ABD-6E37-B28F-6BB8-8F99B4147909
+	//dCaRGE%2BFUcsE4STciz8bNH7hJSYKXP4J9h%2BFgNNlALshS5y2nDvUwuiwR45CEosQcCN0ZuP13tTvGzJgYfY2qm8QrUygT%2FrmjILr5aUlzZlyYhgydcTXvVScSjH4
+	//dCaRGE-FUcsE4STciz8bNH7hJSYKXP4J9h-FgNNlALshS5y2nDvUwuiwR45CEosQcCN0ZuP13tTvGzJgYfY2qm8QrUygT_rmjILr5aUlzZlyYhgydcTXvVScSjH4
+	//dCaRGE6NVscC7CHWjD8bZHrnIHIKXP4J9h+Fg9IRALghS5y2mUyiteiwR45CEosQcCN0ZuP13tTvGzJgYfY2qm8QrUygT/rmjILr5aUlzZlyYhgydcTXvVSfRTX1
 
 	return
 

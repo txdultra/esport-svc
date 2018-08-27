@@ -42,6 +42,9 @@ func GetOutShopItem(item *shop.Item) *OutShopItem {
 		Stocks:        item.Stocks,
 		Sells:         item.Sells,
 	}
+	if item.ItemState == shop.ITEM_STATE_SELLOUT {
+		out_item.Stocks = 0
+	}
 	out_item.ShowingImgs = GetShopImgUrls(item.Imgs)
 	return out_item
 }

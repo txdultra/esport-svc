@@ -121,6 +121,11 @@ func init() {
 				&controllers.ImageController{},
 			),
 		),
+		beego.NSNamespace("/im",
+			beego.NSInclude(
+				&controllers.IMController{},
+			),
+		),
 		////admin api
 		//beego.NSNamespace("admin/cache",
 		//	beego.NSInclude(

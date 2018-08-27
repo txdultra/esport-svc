@@ -26,6 +26,7 @@ func (c *GroupController) URLMapping() {
 	c.Mapping("GetSetting", c.GetSetting)
 	c.Mapping("GetGroup", c.GetGroup)
 	c.Mapping("GetGroups", c.GetGroups)
+	c.Mapping("GetRecommendGroups", c.GetRecommendGroups)
 	c.Mapping("GetRecruitingGroups", c.GetRecruitingGroups)
 	c.Mapping("GetMyGroups", c.GetMyGroups)
 	c.Mapping("GetMyJoinGroups", c.GetMyJoinGroups)
@@ -88,6 +89,52 @@ func (c *GroupController) GetGroup() {
 	c.Json(outobjs.GetOutGroup(group, current_uid))
 }
 
+// @Title 获取推荐组列表
+// @Description 获取推荐组列表(返回数组)
+// @Param   access_token  path  string  false  "access_token"
+// @Param   game_ids   path  string  false  "游戏ids(逗号,分隔)"
+// @Param   page_size   path  int  false  "页大小"
+// @Success 200 {object} outobjs.OutGroup
+// @router /group/list_by_recommend [get]
+func (c *GroupController) GetRecommendGroups() {
+	current_uid := c.CurrentUid()
+	gameids := c.GetString("game_ids")
+	pageSize, _ := c.GetInt("page_size")
+
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+	fgameids := []uint64{}
+	_strids := strings.Split(gameids, ",")
+	for _, _id := range _strids {
+		gid, _ := strconv.ParseUint(_id, 10, 64)
+		fgameids = append(fgameids, gid)
+	}
+	var filters []search.SearchFilter
+	if len(fgameids) > 0 {
+		filters = append(filters, search.SearchFilter{
+			Attr:    "gameids",
+			Values:  fgameids,
+			Exclude: false,
+		})
+	}
+	filters = append(filters, search.SearchFilter{
+		Attr:    "status",
+		Values:  []uint64{uint64(groups.GROUP_STATUS_OPENING), uint64(groups.GROUP_STATUS_LOWMEMBER)},
+		Exclude: false,
+	})
+	filters = append(filters, search.SearchFilter{
+		Attr:    "recommend",
+		Values:  []uint64{uint64(groups.GP_SEARCH_SORT_DEFAULT)},
+		Exclude: false,
+	})
+	cfg := groups.GetDefaultCfg()
+	gs := groups.NewGroupService(cfg)
+	_, groups := gs.Search("", 1, pageSize, "all", groups.GP_SEARCH_SORT_VITALITY, filters, nil)
+	out_groups := outobjs.GetOutGroups(groups, current_uid)
+	c.Json(out_groups)
+}
+
 // @Title 获取组列表
 // @Description 获取组列表(返回数组)
 // @Param   access_token  path  string  false  "access_token"
@@ -95,6 +142,7 @@ func (c *GroupController) GetGroup() {
 // @Param   words   path  int  false  "搜索关键字"
 // @Param   game_ids   path  string  false  "游戏ids(逗号,分隔)"
 // @Param   orderby   path  string  false  "排序规则(recommend默认,hot,fans,official)"
+// @Param   exclude_recommend   path  bool false "排除推荐(默认不排除)"
 // @Success 200 {object} outobjs.OutGroupPagedList
 // @router /group/list [get]
 func (c *GroupController) GetGroups() {
@@ -104,6 +152,7 @@ func (c *GroupController) GetGroups() {
 	page, _ := c.GetInt("page")
 	size, _ := c.GetInt("size")
 	orderby := c.GetString("orderby")
+	excludeRcmd, _ := c.GetBool("exclude_recommend")
 	var sortBy groups.GP_SEARCH_SORT
 	switch orderby {
 	case "hot":
@@ -136,6 +185,13 @@ func (c *GroupController) GetGroups() {
 		Values:  []uint64{uint64(groups.GROUP_STATUS_OPENING), uint64(groups.GROUP_STATUS_LOWMEMBER)},
 		Exclude: false,
 	})
+	if excludeRcmd {
+		filters = append(filters, search.SearchFilter{
+			Attr:    "recommend",
+			Values:  []uint64{uint64(groups.GP_SEARCH_SORT_DEFAULT)},
+			Exclude: true,
+		})
+	}
 
 	match_mode := "any"
 	if len(words) == 0 {

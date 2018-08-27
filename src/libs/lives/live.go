@@ -131,6 +131,7 @@ type LiveSubProgram struct {
 	PostTime  time.Time
 	PostUid   int64
 	BetId     int64
+	Close     bool
 }
 
 func (self *LiveSubProgram) TableName() string {

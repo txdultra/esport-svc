@@ -28,7 +28,7 @@ func (c *BaseController) Prepare() {
 
 func (c *BaseController) Json(data interface{}) {
 	c.Data["json"] = data
-	c.ServeJson()
+	c.ServeJSON()
 	//c.StopRun()
 }
 

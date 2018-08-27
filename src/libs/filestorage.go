@@ -187,7 +187,7 @@ func (f *WeedFsFileStorage) SaveFile(data []byte, fileName string, source int64)
 	assign := &weedFsAssign{}
 	_req := httplib.Get(weedfs_master_addr)
 	_req.SetTimeout(file_connect_timeout, file_rwconnect_timeout)
-	err := _req.ToJson(assign)
+	err := _req.ToJSON(assign)
 	if err != nil {
 		return nil, errors.New("远程WeedFs分配错误:" + err.Error())
 	}

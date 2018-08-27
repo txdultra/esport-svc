@@ -3,9 +3,11 @@ package admincp
 import (
 	"controllers"
 	"encoding/json"
+	"fmt"
 	"libs"
 	"libs/reptile"
 	"libs/vod"
+	"net/url"
 	"outobjs"
 	"strconv"
 	"strings"
@@ -20,6 +22,14 @@ type VodCPController struct {
 
 func (c *VodCPController) Prepare() {
 	c.AdminController.Prepare()
+}
+
+func (c *VodCPController) parseVodUrl(srcUrl string) string {
+	_url, err := url.Parse(srcUrl)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%s://%s%s", _url.Scheme, _url.Host, _url.Path)
 }
 
 // @Title 添加新视频
@@ -64,9 +74,15 @@ func (c *VodCPController) Add() {
 		return
 	}
 
+	_url := c.parseVodUrl(url)
+	if len(_url) == 0 {
+		c.Json(libs.NewError("admincp_vod_add_fail", "GM010_005", "抓取地址格式错误", ""))
+		return
+	}
+
 	video := &vod.Video{}
 	video.Title = title
-	video.Url = url
+	video.Url = _url
 	video.Img = img_id
 	video.PostTime = time.Now()
 	video.Mt = true
@@ -138,7 +154,12 @@ func (c *VodCPController) Update() {
 		return
 	}
 	if old_v.Mt {
-		old_v.Url = url
+		_url := c.parseVodUrl(url)
+		if len(_url) == 0 {
+			c.Json(libs.NewError("admincp_vod_add_fail", "GM010_005", "抓取地址格式错误", ""))
+			return
+		}
+		old_v.Url = _url
 		old_v.Source = source
 	}
 	old_v.GameId = int(game_id)
@@ -191,6 +212,10 @@ func (c *VodCPController) List() {
 	size, _ := c.GetInt64("size")
 	of_uid, _ := c.GetInt64("of_uid")
 	unarchived, _ := c.GetBool("unarchived")
+
+	if size <= 0 {
+		size = 20
+	}
 
 	params := make(map[string]string)
 	if len(query) > 0 {
@@ -483,23 +508,28 @@ func (c *VodCPController) CreatePlaylist() {
 // @Title 更新合集中的视频
 // @Description 更新合集中的视频
 // @Param   plid  path int true  "合集id"
-// @Param   vids  path string false  "视频ids(1|2 1表示视频id,2表示排序no)"
+// @Param   vids  path string false  "视频ids(1|2|xx 1表示视频id,2表示排序no,xx表示标题)"
 // @Success 200  {object} libs.Error
 // @router /playlist/update_vods [post]
 func (c *VodCPController) UpdatePlaylistVods() {
 	plid, _ := c.GetInt64("plid")
 	vidstrs := c.GetString("vids")
-	vids := make(map[int64]int)
+	vids := []*vod.VPVData{}
 	vidss := strings.Split(vidstrs, ",")
 	for _, vstr := range vidss {
 		vd := strings.Split(vstr, "|")
-		if len(vd) != 2 {
+		if len(vd) != 3 {
 			continue
 		}
 		_id, _ := strconv.ParseInt(vd[0], 10, 64)
-		_no, _ := strconv.ParseInt(vd[1], 10, 64)
+		_no, _ := strconv.Atoi(vd[1])
+		_title, _ := utils.UrlDecode(vd[2])
 		if _id > 0 {
-			vids[_id] = int(_no)
+			vids = append(vids, &vod.VPVData{
+				VideoId: _id,
+				No:      _no,
+				Title:   _title,
+			})
 		}
 	}
 	if len(vids) == 0 {
@@ -605,10 +635,14 @@ func (c *VodCPController) PlaylistVods() {
 		if vod == nil {
 			continue
 		}
+		_outvod := outobjs.GetOutVodForAdmin(vod)
+		if len(plv.Title) > 0 {
+			_outvod.Title = plv.Title
+		}
 		outp = append(outp, &outobjs.OutVodPlaylistVod{
 			No:    plv.No,
 			VodId: plv.VideoId,
-			Vod:   outobjs.GetOutVodForAdmin(vod),
+			Vod:   _outvod,
 		})
 	}
 	outpl := &outobjs.OutVodPlaylistVodPageForAdmin{

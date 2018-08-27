@@ -152,7 +152,6 @@ func getColorLevel(level string) string {
 	default:
 		return level
 	}
-	return level
 }
 
 // IsExist returns whether a file or directory exists.
@@ -246,4 +245,16 @@ func camelString(s string) string {
 		data = append(data, d)
 	}
 	return string(data[:len(data)])
+}
+
+// The string flag list, implemented flag.Value interface
+type strFlags []string
+
+func (s *strFlags) String() string {
+	return fmt.Sprintf("%s", *s)
+}
+
+func (s *strFlags) Set(value string) error {
+	*s = append(*s, value)
+	return nil
 }

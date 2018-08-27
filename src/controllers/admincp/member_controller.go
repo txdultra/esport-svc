@@ -183,6 +183,7 @@ func (c *MemberCPController) VerifyUserName() {
 // @Param   avatar  path	int true  "播主头像"
 // @Param   certified  path	bool false  "是否认证"
 // @Param   certified_reson  path	string false  "是否认证"
+// @Param   official_certified  path  bool false  "是否官方认证"
 // @Param   game_ids   path	string true  "喜好游戏"
 // @Success 200  {object} libs.Error
 // @router /add [post]
@@ -192,6 +193,7 @@ func (c *MemberCPController) AddMember() {
 	avatar, _ := c.GetInt64("avatar")
 	certified, _ := c.GetBool("certified")
 	certified_reson, _ := utils.UrlDecode(c.GetString("certified_reson"))
+	official_certified, _ := c.GetBool("official_certified")
 	ip := c.Ctx.Input.IP()
 	game_ids := c.GetString("game_ids")
 
@@ -215,6 +217,8 @@ func (c *MemberCPController) AddMember() {
 	//member.Avatar = avatar
 	member.Certified = certified
 	member.CertifiedReason = certified_reson
+	member.OfficialCertified = official_certified
+	member.Src = vars.CLIENT_SRC_MANAGER
 
 	uid, lerr := mp.Create(member, 0, 0)
 	if lerr != nil {
@@ -249,20 +253,22 @@ func (c *MemberCPController) AddMember() {
 // @Title 设置播主认证
 // @Description 设置播主认证
 // @Param   uid   path	int true  "被认证uid"
-// @Param   certified  path	bool true  "是否认证"
-// @Param   certified_reson  path	string false  "是否认证"
+// @Param   certified  path	bool true  "是否VIP"
+// @Param   certified_reson  path	string false  "是否VIP"
+// @Param   official_certified  path  bool false  "是否官方认证"
 // @Success 200  {object} libs.Error
 // @router /set_certified [post]
 func (c *MemberCPController) SetMemberCertifiable() {
 	uid, _ := c.GetInt64("uid")
 	certified, _ := c.GetBool("certified")
 	certified_reson, _ := utils.UrlDecode(c.GetString("certified_reson"))
+	officialCertified, _ := c.GetBool("official_certified")
 	if uid <= 0 {
 		c.Json(libs.NewError("member_set_certified_fail", "GM020_031", "uid参数错误", ""))
 		return
 	}
 	mp := passport.NewMemberProvider()
-	err := mp.SetMemberCertified(uid, certified, certified_reson)
+	err := mp.SetMemberCertified(uid, certified, certified_reson, officialCertified)
 	if err != nil {
 		c.Json(libs.NewError("member_set_certified_fail", "GM020_032", err.Error(), ""))
 		return
@@ -376,7 +382,8 @@ func (c *MemberCPController) GetMemberGames() {
 // @Title 查询播主
 // @Description 查询播主
 // @Param   query   path	string true  "关键字"
-// @Param   certified  path	bool false  "认证用户"
+// @Param   certified  path	bool false  "vip用户"
+// @Param   official_certified  path	bool false  " 官方认证"
 // @Param   page  path	int true  "page"
 // @Param   size  path	int false  "页数量(默认20)"
 // @Success 200  {object} outobjs.OutMemberPageList
@@ -386,6 +393,7 @@ func (c *MemberCPController) Search() {
 	page, _ := c.GetInt("page")
 	size, _ := c.GetInt("size")
 	certified, _ := c.GetBool("certified")
+	official_certified, _ := c.GetBool("official_certified")
 	if page <= 0 {
 		page = 1
 	}
@@ -406,7 +414,7 @@ func (c *MemberCPController) Search() {
 	//}
 
 	mp := passport.NewMemberProvider()
-	total, uids := mp.QueryForAdmin(query, certified, int(page), int(size))
+	total, uids := mp.QueryForAdmin(query, certified, official_certified, int(page), int(size))
 	out_members := []*outobjs.OutMember{}
 	for _, uid := range uids {
 		m := outobjs.GetOutMember(uid, 0)

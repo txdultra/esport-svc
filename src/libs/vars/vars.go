@@ -16,6 +16,15 @@ const (
 	CLIENT_OS_ANDROID CLIENT_OS = "android"
 	CLIENT_OS_IOS     CLIENT_OS = "ios"
 	CLIENT_OS_WP      CLIENT_OS = "wp"
+	CLIENT_OS_OTHER   CLIENT_OS = "other"
+)
+
+type CLIENT_SRC int8
+
+const (
+	CLIENT_SRC_APP     CLIENT_SRC = 0
+	CLIENT_SRC_WEB     CLIENT_SRC = 1
+	CLIENT_SRC_MANAGER CLIENT_SRC = 2
 )
 
 type PIC_SIZE int

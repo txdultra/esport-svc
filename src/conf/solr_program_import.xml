@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataConfig>
+    <dataSource type="JdbcDataSource"
+		name="program_db"
+                driver="com.mysql.jdbc.Driver"
+                url="jdbc:mysql://10.10.50.23:3306/m_mobile?useUnicode=true&amp;characterEncoding=utf-8"
+                batchSize="100"
+                user="root"
+                password="neotv"/>
+
+    <document name="doc">
+        <entity name="program_doc"
+				dataSource="program_db"
+                query="SELECT id,title,sub_title,channel_name,game_name, UNIX_TIMESTAMP(stime) AS stime,UNIX_TIMESTAMP(etime) AS etime,cw,onlines from `live_program_serach_data`"
+                deltaImportQuery="SELECT id,title,sub_title,channel_name,game_name, UNIX_TIMESTAMP(stime) AS stime,UNIX_TIMESTAMP(etime) AS etime,cw,onlines from `live_program_serach_data`
+								 where id='${dataimporter.delta.id}'"
+                deltaQuery="SELECT id FROM `live_program_serach_data` WHERE stime > '${dataimporter.last_index_time}'"
+				>
+
+            <field column="id" name="id"/>
+            <field column="title" name="title" />
+            <field column="sub_title" name="sub_title" />
+            <field column="channel_name" name="channel_name" />
+			<field column="game_name" name="game_name" />
+			<field column="stime" name="stime" />
+			<field column="etime" name="etime" />
+			<field column="cw" name="cw" />
+			<field column="onlines" name="onlines" />
+        </entity>
+    </document>
+</dataConfig>

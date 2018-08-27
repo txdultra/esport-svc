@@ -171,8 +171,8 @@ func (s *Shops) UpdateItemStocks(itemId int64, addStockNums int, addSellNums int
 
 	o := dbs.NewOrm(db_aliasname)
 	_, err := o.QueryTable(&Item{}).Filter("itemid", itemId).Update(orm.Params{
-		"stocks": orm.ColValue(orm.Col_Add, addStockNums),
-		"sells":  orm.ColValue(orm.Col_Add, addSellNums),
+		"stocks": orm.ColValue(orm.ColAdd, addStockNums),
+		"sells":  orm.ColValue(orm.ColAdd, addSellNums),
 	})
 	if err != nil {
 		return err
@@ -419,7 +419,7 @@ func (s *Shops) UseItemCode(itemId int64, orderNo string) (string, error) {
 
 	o := dbs.NewOrm(db_aliasname)
 	var ic ItemCode
-	err = o.QueryTable(&ItemCode{}).Filter("used", false).OrderBy("ts").Limit(1).One(&ic)
+	err = o.QueryTable(&ItemCode{}).Filter("itemid", itemId).Filter("used", false).OrderBy("ts").Limit(1).One(&ic)
 	if err != nil {
 		return "", fmt.Errorf("商品已售罄")
 	}
@@ -602,7 +602,7 @@ func (s *Shops) UpdateMemberCount(uid int64, n int, item MEMBER_COUNT_UPDATE_ITE
 	}
 	if existed {
 		o.QueryTable(mc).Filter("uid", uid).Update(orm.Params{
-			colname: orm.ColValue(orm.Col_Add, n),
+			colname: orm.ColValue(orm.ColAdd, n),
 		})
 	} else {
 		tblname := mc.TableName()

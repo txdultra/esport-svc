@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataConfig>
+    <dataSource type="JdbcDataSource"
+		name="vod_db"
+                driver="com.mysql.jdbc.Driver"
+                url="jdbc:mysql://10.10.50.23:3306/m_mobile?useUnicode=true&amp;characterEncoding=utf-8"
+                batchSize="100"
+                user="root"
+                password="neotv"/>
+
+    <document name="doc">
+        <entity name="vop_doc"
+				dataSource="vod_db"
+                query="SELECT vv.id,vv.title, vv.uid, UNIX_TIMESTAMP(vv.post_time) AS post_time,UNIX_TIMESTAMP(vv.add_time) as add_time,vv.seconds,vv.gid,
+					vc.views,vc.comments,vc.favorites,vc.dings,vc.cais,vc.downloads,vc.ex1,vc.ex2,vc.ex3,vc.ex4,vc.ex5
+					FROM `vod_videos` vv join `vod_counts` vc on vv.id=vc.vid where vv.no_idx=0"
+                deltaImportQuery="SELECT vv.id,vv.title, vv.uid, UNIX_TIMESTAMP(vv.post_time) AS post_time,UNIX_TIMESTAMP(vv.add_time) as add_time,vv.seconds,vv.gid,
+					vc.views,vc.comments,vc.favorites,vc.dings,vc.cais,vc.downloads,vc.ex1,vc.ex2,vc.ex3,vc.ex4,vc.ex5
+					FROM `vod_videos` vv join `vod_counts` vc on vv.id=vc.vid where vv.no_idx=0 where vv.id='${dataimporter.delta.id}'"
+                deltaQuery="SELECT id FROM `vod_videos` WHERE add_time > '${dataimporter.last_index_time}'"
+				>
+
+            <field column="id" name="id"/>
+            <field column="title" name="title" />
+            <field column="uid" name="uid" />
+            <field column="post_time" name="post_time" />
+			<field column="add_time" name="add_time" />
+			<field column="seconds" name="seconds" />
+			<field column="gid" name="gid" />
+			<field column="views" name="views" />
+			<field column="comments" name="comments" />
+			<field column="favorites" name="favorites" />
+			<field column="dings" name="dings" />
+			<field column="cais" name="cais" />
+			<field column="downloads" name="downloads" />
+			<field column="ex1" name="ex1" />
+			<field column="ex2" name="ex2" />
+			<field column="ex3" name="ex3" />
+			<field column="ex4" name="ex4" />
+			<field column="ex5" name="ex5" />
+        </entity>
+    </document>
+</dataConfig>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataConfig>
+    <dataSource type="JdbcDataSource"
+		name="live_db"
+                driver="com.mysql.jdbc.Driver"
+                url="jdbc:mysql://10.10.50.23:3306/m_mobile?useUnicode=true&amp;characterEncoding=utf-8"
+                batchSize="100"
+                user="root"
+                password="neotv"/>
+
+    <document name="doc">
+        <entity name="live_doc"
+				dataSource="live_db"
+                query="SELECT id,pc_name,anchor,status,games,game_ids,cw,onlines from `live_serach_data` where enabled=1"
+                deltaImportQuery="SELECT id,pc_name,anchor,status,games,game_ids,cw,onlines from `live_serach_data`  
+								 where enabled=1 and id='${dataimporter.delta.id}'"
+                deltaQuery="SELECT id FROM `live_serach_data`"
+				transformer="RegexTransformer"
+				>
+
+            <field column="id" name="id"/>
+            <field column="pc_name" name="pc_name" />
+            <field column="anchor" name="anchor" />
+            <field column="status" name="status" />
+			<field column="games" name="games" />
+			<field column="game_ids" name="gameids" splitBy=","/>
+			<field column="cw" name="cw" />
+			<field column="onlines" name="onlines" />
+        </entity>
+    </document>
+</dataConfig>

@@ -3,12 +3,13 @@ package pushapi
 import (
 	"encoding/json"
 	//"fmt"
-	"github.com/astaxie/beego/httplib"
 	"logs"
 	"sort"
 	"strconv"
 	"time"
 	"utils"
+
+	"github.com/astaxie/beego/httplib"
 )
 
 type BAIDU_PUSH_TYPE int
@@ -142,7 +143,7 @@ func (bp *BaiduPusher) PushMsg(userId string, pushType BAIDU_PUSH_TYPE, channelI
 	req.Param("sign", sign)
 
 	var result BaiduResult
-	err := req.ToJson(&result)
+	err := req.ToJSON(&result)
 	if err != nil {
 		logs.Errorf("baidu push msg_err:%s", err.Error())
 		return 0, err

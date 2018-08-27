@@ -1,8 +1,10 @@
 package utils
 
 import (
-	"github.com/axgle/mahonia"
+	//"github.com/axgle/mahonia"
 	"regexp"
+
+	"code.google.com/p/mahonia"
 )
 
 var (

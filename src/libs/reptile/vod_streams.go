@@ -89,7 +89,7 @@ type RVodData struct {
 func ReptileService(source VOD_SOURCE) IReptile {
 	switch source {
 	case VOD_SOURCE_YOUKU:
-		return IReptile(NewYoukuReptileV2())
+		return IReptile(NewYoukuReptileV3())
 	default:
 		return nil
 	}
@@ -98,7 +98,7 @@ func ReptileService(source VOD_SOURCE) IReptile {
 func CallbackReptileService(source VOD_SOURCE) ICallbackReptile {
 	switch source {
 	case VOD_SOURCE_YOUKU:
-		return ICallbackReptile(NewYoukuReptileV2())
+		return ICallbackReptile(NewYoukuReptileV3())
 	default:
 		return nil
 	}

@@ -75,8 +75,10 @@ func (v *Vods) Create(vod *Video, doRep bool) (int64, error) {
 		o.Rollback()
 		return 0, errors.New("保存数据失败:" + err.Error())
 	}
+	rint := v.rangeViews(vod.GameId)
 	vcount := VideoCount{
 		VideoId: vid,
+		Views:   rint,
 	}
 	_, err = o.Insert(&vcount)
 	if err != nil {
@@ -604,7 +606,7 @@ func (v Vods) CompleCollectible(c *collect.Collectible) error {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //专辑 vodIds->id,no
 
-func (v *Vods) CreatePlaylist(p *VideoPlaylist, vodIds map[int64]int) (int64, error) {
+func (v *Vods) CreatePlaylist(p *VideoPlaylist, vods []*VPVData) (int64, error) {
 	if p.Uid <= 0 {
 		return 0, errors.New("专辑必须设置归属主播")
 	}
@@ -614,12 +616,12 @@ func (v *Vods) CreatePlaylist(p *VideoPlaylist, vodIds map[int64]int) (int64, er
 	//	if p.Img == 0 {
 	//		return 0, errors.New("必须有一张标题图片")
 	//	}
-	for vid, _ := range vodIds {
-		if vid <= 0 {
+	for _, vv := range vods {
+		if vv.VideoId <= 0 {
 			return 0, errors.New("视频编号不能小于0")
 		}
 	}
-	p.Vods = len(vodIds)
+	p.Vods = len(vods)
 	if p.PostTime.IsZero() {
 		p.PostTime = time.Now()
 	}
@@ -629,7 +631,7 @@ func (v *Vods) CreatePlaylist(p *VideoPlaylist, vodIds map[int64]int) (int64, er
 		return 0, errors.New("创建视频专辑失败，请联系管理员")
 	}
 	p.Id = id
-	v.UpdatePlaylistVods(p.Id, vodIds)
+	v.UpdatePlaylistVods(p.Id, vods)
 	return id, nil
 }
 
@@ -676,8 +678,13 @@ func (v *Vods) vplvodsCacheKey(plsId int64) string {
 	return fmt.Sprintf("mobile_video_playlist_vods_vid:%d", plsId)
 }
 
+func (v *Vods) vplvodsTitleCacheKey(plsId int64) string {
+	return fmt.Sprintf("mobile_video_playlist_vods_title_vid:%d", plsId)
+}
+
 func (v *Vods) GetPlaylistVods(plsId int64, p int, s int) (int, []*Video) {
 	ckey := v.vplvodsCacheKey(plsId)
+	tkey := v.vplvodsTitleCacheKey(plsId)
 	pl := v.GetPlaylist(plsId)
 	if pl == nil {
 		return 0, []*Video{}
@@ -692,11 +699,26 @@ func (v *Vods) GetPlaylistVods(plsId int64, p int, s int) (int, []*Video) {
 	end := p * s
 	cclient := ssdb.New(use_ssdb_vod_db)
 	objs, _ := cclient.Zrange(ckey, offset, end, reflect.TypeOf(int64(0)))
+	talls, _ := cclient.Hgetall(tkey)
+	titles := make(map[int64]string)
+	if len(objs)*2 == len(talls) {
+		for i := 0; i < len(talls); i = i + 2 {
+			_vid, _ := strconv.ParseInt(talls[i], 10, 64)
+			_title := talls[i+1]
+			titles[_vid] = _title
+		}
+	}
+
 	videos := []*Video{}
 	for _, obj := range objs {
 		_id := *(obj.(*int64))
 		vod := v.Get(_id, false)
 		if vod != nil {
+			//如果视频集合设定了标题，则替换原标题
+			_title, ok := titles[_id]
+			if ok {
+				vod.Title = _title
+			}
 			videos = append(videos, vod)
 		}
 	}
@@ -713,7 +735,7 @@ func (v *Vods) GetPlaylistPlvsForAdmin(plsId int64, p int, s int) (int, []*Video
 	return int(total), lst
 }
 
-func (v *Vods) UpdatePlaylistVods(plsId int64, vodIds map[int64]int) error {
+func (v *Vods) UpdatePlaylistVods(plsId int64, vods []*VPVData) error {
 	pl := v.GetPlaylist(plsId)
 	if pl == nil {
 		return fmt.Errorf("专辑不存在")
@@ -722,14 +744,16 @@ func (v *Vods) UpdatePlaylistVods(plsId int64, vodIds map[int64]int) error {
 	o.QueryTable(&VideoPlaylistVod{}).Filter("pid", plsId).Delete()
 
 	cclient := ssdb.New(use_ssdb_vod_db)
-	cclient.Zclear(v.vplvodsCacheKey(plsId)) //删除原列表
+	cclient.Zclear(v.vplvodsCacheKey(plsId))      //删除原列表
+	cclient.Hclear(v.vplvodsTitleCacheKey(plsId)) //删除原列表
 
 	inserts := []VideoPlaylistVod{}
-	for vid, no := range vodIds {
+	for _, vv := range vods {
 		inserts = append(inserts, VideoPlaylistVod{
 			PlaylistId: plsId,
-			VideoId:    vid,
-			No:         no,
+			VideoId:    vv.VideoId,
+			No:         vv.No,
+			Title:      vv.Title,
 		})
 	}
 	rows, err := o.InsertMulti(50, inserts)
@@ -739,11 +763,18 @@ func (v *Vods) UpdatePlaylistVods(plsId int64, vodIds map[int64]int) error {
 
 	ks := []interface{}{}
 	vs := []int64{}
-	for k, v := range vodIds {
-		ks = append(ks, k)
-		vs = append(vs, int64(v))
+	ts := make(map[string]string)
+	for _, vv := range vods {
+		ks = append(ks, vv.VideoId)
+		vs = append(vs, int64(vv.No))
+		//添加自定义视频标题
+		if len(vv.Title) > 0 {
+			_vid := strconv.FormatInt(vv.VideoId, 10)
+			ts[_vid] = vv.Title
+		}
 	}
 	cclient.MultiZadd(v.vplvodsCacheKey(plsId), ks, vs)
+	cclient.Hmset(v.vplvodsTitleCacheKey(plsId), ts)
 
 	cache := utils.GetCache()
 	cache.Delete(v.vplCacheKey(plsId))

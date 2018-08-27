@@ -3,8 +3,11 @@ package libs
 import (
 	"dbs"
 	"errors"
+	"fmt"
 	"time"
 	"utils"
+
+	"github.com/astaxie/beego/orm"
 )
 
 type Bas struct{}
@@ -183,4 +186,81 @@ func (b *Bas) LastNewHomeAd() *HomeAd {
 		return &ha
 	}
 	return nil
+}
+
+//teams
+func (b *Bas) teamCacheKey(id int64) string {
+	return fmt.Sprintf("mobile_base_team_%d", id)
+}
+
+func (b *Bas) CreateTeam(team *Team) error {
+	team.PostTime = time.Now()
+	o := dbs.NewDefaultOrm()
+	_, err := o.Insert(team)
+	return err
+}
+
+func (b *Bas) UpdateTeam(team *Team) error {
+	team.PostTime = time.Now()
+	o := dbs.NewDefaultOrm()
+	_, err := o.Update(team)
+	cache := utils.GetCache()
+	cache.Delete(b.teamCacheKey(team.Id))
+	return err
+}
+
+func (b *Bas) DelTeam(id int64) error {
+	o := dbs.NewDefaultOrm()
+	_, err := o.QueryTable(&Team{}).Filter("id", id).Update(orm.Params{
+		"del": true,
+	})
+	cache := utils.GetCache()
+	cache.Delete(b.teamCacheKey(id))
+	return err
+}
+
+func (b *Bas) GetTeam(id int64) *Team {
+	cache := utils.GetCache()
+	team := &Team{}
+	err := cache.Get(b.teamCacheKey(id), team)
+	if err != nil {
+		o := dbs.NewDefaultOrm()
+		team.Id = id
+		err = o.Read(team)
+		if err == orm.ErrNoRows || err == orm.ErrMissPK || err != nil {
+			return nil
+		}
+		cache.Set(b.teamCacheKey(id), *team, 48*time.Hour)
+	}
+	return team
+}
+
+func (b *Bas) GetTeams(likeTtile string, t TEAM_TYPE, del int, page int, size int) (int, []*Team) {
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
+	offset := (page - 1) * size
+	like := utils.StripSQLInjection(likeTtile)
+	o := dbs.NewDefaultOrm()
+	query := o.QueryTable(&Team{})
+	if len(like) > 0 {
+		query = query.Filter("title__iexact", like)
+	}
+	if del > 0 {
+		query = query.Filter("del", true)
+	} else if del == 0 {
+		query = query.Filter("del", false)
+	}
+	query = query.Filter("team_type", int(t))
+	count, _ := query.Count()
+	var list []Team
+	query.OrderBy("-post_time").Limit(size, offset).All(&list, "id")
+	teams := []*Team{}
+	for _, m := range list {
+		teams = append(teams, b.GetTeam(m.Id))
+	}
+	return int(count), teams
 }

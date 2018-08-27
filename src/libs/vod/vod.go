@@ -218,6 +218,7 @@ type VideoPlaylistVod struct {
 	PlaylistId int64 `orm:"column(pid)"`
 	VideoId    int64 `orm:"column(vid)"`
 	No         int
+	Title      string
 }
 
 func (self *VideoPlaylistVod) TableName() string {
@@ -226,4 +227,10 @@ func (self *VideoPlaylistVod) TableName() string {
 
 func (self *VideoPlaylistVod) TableEngine() string {
 	return "INNODB"
+}
+
+type VPVData struct {
+	VideoId int64
+	No      int
+	Title   string
 }

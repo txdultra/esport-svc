@@ -151,6 +151,7 @@ type OutSubProgramObj struct {
 	IsScribed       bool                            `json:"is_scribed"`
 	IsExpired       bool                            `json:"is_expired"`
 	BetCid          int64                           `json:"bet_cid"`
+	Close           bool                            `json:"close"`
 }
 
 type OutUserProgramNotice struct {
@@ -287,6 +288,7 @@ func ConvertOutSubProgramObj(sub *lives.LiveSubProgram, program *lives.LiveProgr
 		IsExpired:       time.Now().After(sub.EndTime),
 		IsScribed:       isScribed,
 		BetCid:          sub.BetId,
+		Close:           sub.Close,
 	}
 	return out_subpm
 }

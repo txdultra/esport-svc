@@ -779,10 +779,10 @@ func (s *GroupService) ActionCount(groupId int64, gps []GP_PROPERTY, incrs []int
 		switch field {
 		case GP_PROPERTY_MEMBERS:
 			group.Members += incrs[i]
-			params["members"] = orm.ColValue(orm.Col_Add, incrs[i])
+			params["members"] = orm.ColValue(orm.ColAdd, incrs[i])
 		case GP_PROPERTY_THREADS:
 			group.Threads += incrs[i]
-			params["threads"] = orm.ColValue(orm.Col_Add, incrs[i])
+			params["threads"] = orm.ColValue(orm.ColAdd, incrs[i])
 		default:
 		}
 	}
@@ -1375,82 +1375,82 @@ func (c *MemberCountService) ActionCountProperty(mcs []MC_PROPERTY, actions []CO
 		case MC_PROPERTY_GROUPS:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.Groups++
-				params["groups"] = orm.ColValue(orm.Col_Add, 1)
+				params["groups"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.Groups--
-				params["groups"] = orm.ColValue(orm.Col_Except, 1)
+				params["groups"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		case MC_PROPERTY_TODINGS:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.ToDings++
-				params["todings"] = orm.ColValue(orm.Col_Add, 1)
+				params["todings"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.ToDings--
-				params["todings"] = orm.ColValue(orm.Col_Except, 1)
+				params["todings"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		case MC_PROPERTY_TOCAIS:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.ToCais++
-				params["tocais"] = orm.ColValue(orm.Col_Add, 1)
+				params["tocais"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.ToCais--
-				params["tocais"] = orm.ColValue(orm.Col_Except, 1)
+				params["tocais"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		case MC_PROPERTY_FROMDINGS:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.FromDings++
-				params["fromdings"] = orm.ColValue(orm.Col_Add, 1)
+				params["fromdings"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.FromDings--
-				params["fromdings"] = orm.ColValue(orm.Col_Except, 1)
+				params["fromdings"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		case MC_PROPERTY_FROMCAIS:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.FromCais++
-				params["fromcais"] = orm.ColValue(orm.Col_Add, 1)
+				params["fromcais"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.FromCais--
-				params["fromcais"] = orm.ColValue(orm.Col_Except, 1)
+				params["fromcais"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		case MC_PROPERTY_POSTS:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.Posts++
-				params["posts"] = orm.ColValue(orm.Col_Add, 1)
+				params["posts"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.Posts--
-				params["posts"] = orm.ColValue(orm.Col_Except, 1)
+				params["posts"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		case MC_PROPERTY_THREADS:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.Threads++
-				params["threads"] = orm.ColValue(orm.Col_Add, 1)
+				params["threads"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.Threads--
-				params["threads"] = orm.ColValue(orm.Col_Except, 1)
+				params["threads"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		case MC_PROPERTY_JOINS:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.Joins++
-				params["joins"] = orm.ColValue(orm.Col_Add, 1)
+				params["joins"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.Joins--
-				params["joins"] = orm.ColValue(orm.Col_Except, 1)
+				params["joins"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		case MC_PROPERTY_SHARES:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.Shares++
-				params["shares"] = orm.ColValue(orm.Col_Add, 1)
+				params["shares"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.Shares--
-				params["shares"] = orm.ColValue(orm.Col_Except, 1)
+				params["shares"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		case MC_PROPERTY_REPORTS:
 			if actions[i] == COUNT_ACTION_INCR {
 				mc.Reports++
-				params["reports"] = orm.ColValue(orm.Col_Add, 1)
+				params["reports"] = orm.ColValue(orm.ColAdd, 1)
 			} else {
 				mc.Reports--
-				params["reports"] = orm.ColValue(orm.Col_Except, 1)
+				params["reports"] = orm.ColValue(orm.ColExcept, 1)
 			}
 		default:
 		}

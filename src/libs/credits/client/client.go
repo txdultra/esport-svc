@@ -3,6 +3,7 @@ package client
 import (
 	"libs/credits/proxy"
 	"logs"
+	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/thrift"
@@ -24,7 +25,7 @@ func NewClient(host string) (*proxy.CreditServiceClient, thrift.TTransport, erro
 	} else {
 		transport, _ = thrift.NewTSocket(creditServerHost)
 	}
-
+	transport.SetTimeout(3 * time.Second)
 	useTransport := transportFactory.GetTransport(transport)
 	client := proxy.NewCreditServiceClientFactory(useTransport, protocolFactory)
 	if err := transport.Open(); err != nil {

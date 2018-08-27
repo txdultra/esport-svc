@@ -425,6 +425,9 @@ func (lsp *LiveSubPrograms) ResetProgramTimeEdges(programId int64) {
 	startTime := allsubs[0].StartTime
 	endTime := allsubs[0].EndTime
 	for _, sub := range allsubs {
+		if sub.Close {
+			continue
+		}
 		if startTime.After(sub.StartTime) {
 			startTime = sub.StartTime
 		}
@@ -550,6 +553,28 @@ func (lsp *LiveSubPrograms) Delete(id int64) error {
 	return nil
 }
 
+func (lsp *LiveSubPrograms) Close(id int64) error {
+	lm := lsp.Get(id)
+	if lm == nil {
+		return errors.New("不存在指定的预告")
+	}
+	if !lsp.IsLocked(id) {
+		return errors.New("节目单未被锁定,不能关闭")
+	}
+	lm.Close = true
+	o := dbs.NewDefaultOrm()
+	_, err := o.Update(lm, "close")
+	if err != nil {
+		return err
+	}
+	cache := utils.GetCache()
+	cache.Delete(lsp.lpskey(lm.ProgramId))
+	cache.Delete(lsp.lpkey(lm.Id))
+	//重新计算时间跨度
+	lsp.ResetProgramTimeEdges(lm.ProgramId)
+	return nil
+}
+
 func (lsp *LiveSubPrograms) Get(id int64) *LiveSubProgram {
 	cache := utils.GetCache()
 	lp := LiveSubProgram{}
@@ -582,7 +607,7 @@ func (lsp *LiveSubPrograms) Gets(programId int64) []*LiveSubProgram {
 		return lps
 	}
 	o := dbs.NewDefaultOrm()
-	_, err = o.QueryTable(LiveSubProgram{}).Filter("pid", programId).OrderBy("start_time", "id").All(&lps)
+	_, err = o.QueryTable(LiveSubProgram{}).Filter("pid", programId).Filter("close", false).OrderBy("start_time", "id").All(&lps)
 	if err != nil {
 		return lps
 	}

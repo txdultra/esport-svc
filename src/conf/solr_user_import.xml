@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataConfig>
+    <dataSource type="JdbcDataSource"
+		name="user_db"
+                driver="com.mysql.jdbc.Driver"
+                url="jdbc:mysql://10.10.50.23:3306/m_mobile?useUnicode=true&amp;characterEncoding=utf-8"
+                batchSize="100"
+                user="root"
+                password="neotv"/>
+
+    <document name="doc">
+        <entity name="user_doc"
+				dataSource="user_db"
+                query="SELECT m.uid,m.nick_name,UNIX_TIMESTAMP(m.create_time) AS create_time,m.certified,m.official_certified,m.gids,
+				  s.longitude,s.latitude,s.vods,s.fans,s.friends,s.notes,s.count_1,s.count_2,s.count_3,s.count_4,s.count_5
+				  from `common_member` m 
+				  join `common_member_states` s on s.uid=m.uid"
+                deltaImportQuery="SELECT m.uid,m.nick_name,UNIX_TIMESTAMP(m.create_time) AS create_time,m.certified,m.official_certified,m.gids,
+				  s.longitude,s.latitude,s.vods,s.fans,s.friends,s.notes,s.count_1,s.count_2,s.count_3,s.count_4,s.count_5
+				  from `common_member` m 
+				  join `common_member_states` s on s.uid=m.uid 
+				  where m.uid='${dataimporter.delta.uid}'"
+                deltaQuery="SELECT uid FROM `common_member` WHERE create_time > UNIX_TIMESTAMP(date_format('${dataimporter.last_index_time}', '%Y-%m-%d %H:%i:%s'))"
+				transformer="RegexTransformer">
+
+            <field column="uid" name="uid"/>
+            <field column="nick_name" name="nick_name" />
+            <field column="create_time" name="create_time" />
+            <field column="certified" name="certified" />
+			<field column="official_certified" name="official_certified" />
+			<field column="longitude" name="longitude" />
+			<field column="latitude" name="latitude" />
+			<field column="vods" name="vods" />
+			<field column="fans" name="fans" />
+			<field column="friends" name="friends" />
+			<field column="notes" name="notes" />
+			<field column="count_1" name="count_1" />
+			<field column="count_2" name="count_2" />
+			<field column="count_3" name="count_3" />
+			<field column="count_4" name="count_4" />
+			<field column="count_5" name="count_5" />
+			<field column="gids" name="gids" splitBy=","/>
+        </entity>
+    </document>
+</dataConfig>

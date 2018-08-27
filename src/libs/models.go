@@ -219,3 +219,35 @@ func (self *HomeAd) TableName() string {
 func (self *HomeAd) TableEngine() string {
 	return "INNODB"
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// team
+////////////////////////////////////////////////////////////////////////////////
+
+type TEAM_TYPE int
+
+const (
+	TEAM_TYPE_PERSON TEAM_TYPE = 1
+	TEAM_TYPE_GROUP  TEAM_TYPE = 2
+)
+
+type Team struct {
+	Id          int64     `orm:"pk"`
+	Title       string    `orm:"column(title)"`
+	Img1        int64     `orm:"column(img1)"`
+	Img2        int64     `orm:"column(img2)"`
+	Img3        int64     `orm:"column(img3)"`
+	Description string    `orm:"column(description)"`
+	TeamType    TEAM_TYPE `orm:"column(team_type)"`
+	Del         bool      `orm:"column(del)"`
+	PostTime    time.Time `orm:"column(post_time)"`
+	ParentId    int64     `orm:"column(pid)"`
+}
+
+func (self *Team) TableName() string {
+	return "common_teams"
+}
+
+func (self *Team) TableEngine() string {
+	return "INNODB"
+}

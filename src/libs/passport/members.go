@@ -426,13 +426,14 @@ func (m *MemberProvider) CheckMemberUnCompletedProcs(uid int64, version string) 
 	return unprocs
 }
 
-func (m *MemberProvider) SetMemberCertified(uid int64, certified bool, certified_reson string) error {
+func (m *MemberProvider) SetMemberCertified(uid int64, certified bool, certified_reson string, officialCertified bool) error {
 	u := m.Get(uid)
 	if u == nil {
 		return fmt.Errorf("用户不存在")
 	}
 	u.Certified = certified
 	u.CertifiedReason = certified_reson
+	u.OfficialCertified = officialCertified
 	return m.Update(*u)
 }
 
@@ -1106,12 +1107,15 @@ func (m *MemberProvider) Query(words string, p int, s int, match_mode string, so
 	return total, ids
 }
 
-func (m *MemberProvider) QueryForAdmin(words string, certified bool, p int, s int) (int, []int64) {
+func (m *MemberProvider) QueryForAdmin(words string, certified bool, officialCertified bool, p int, s int) (int, []int64) {
 	offset := (p - 1) * s
 	o := dbs.NewDefaultOrm()
 	query := o.QueryTable(Member{}).Filter("nick_name__icontains", words)
 	if certified {
 		query = query.Filter("certified", true)
+	}
+	if officialCertified {
+		query = query.Filter("official_certified", true)
 	}
 	total, _ := query.Count()
 	uids := []int64{}

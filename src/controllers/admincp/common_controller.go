@@ -2,8 +2,10 @@ package admincp
 
 import (
 	"controllers"
+	"encoding/json"
 	"libs"
 	//"libs/passport"
+	"libs/matchrace"
 	"libs/version"
 	"outobjs"
 	"time"
@@ -759,7 +761,7 @@ func (c *CommonCPController) GetLastHomeAd() {
 func (c *CommonCPController) DeleteHomeAd() {
 	id, _ := c.GetInt64("id")
 	if id <= 0 {
-		c.Json(libs.NewError("admincp_common_homead_dle_fail", "GM004_070", "id非法", ""))
+		c.Json(libs.NewError("admincp_common_homead_del_fail", "GM004_070", "id非法", ""))
 		return
 	}
 	bas := &libs.Bas{}
@@ -769,4 +771,1105 @@ func (c *CommonCPController) DeleteHomeAd() {
 		return
 	}
 	c.Json(libs.NewError("admincp_common_homead_del_fail", "GM004_071", err.Error(), ""))
+}
+
+// @Title 新增战队
+// @Description 新增战队
+// @Param   title   path	string true  "标题"
+// @Param   img1   path	int true  "图片1"
+// @Param   img2   path	int true  "图片2"
+// @Param   img3   path	int true  "图片2"
+// @Param   description   path	string false  "描述"
+// @Param   tt   path	int true  "战队类型"
+// @Param   del   path	bool false  "删除"
+// @Param   pid   path	int false  "父id"
+// @Success 200 {object} libs.Error
+// @router /team/add [post]
+func (c *CommonCPController) TeamAdd() {
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	img1, _ := c.GetInt64("img1")
+	img2, _ := c.GetInt64("img2")
+	img3, _ := c.GetInt64("img3")
+	desc, _ := utils.UrlDecode(c.GetString("description"))
+	tt, _ := c.GetInt("tt")
+	del, _ := c.GetBool("del")
+	pid, _ := c.GetInt64("pid")
+
+	if len(title) == 0 {
+		c.Json(libs.NewError("admincp_common_teamadd_fail", "GM005_010", "title不能为空", ""))
+		return
+	}
+	team := &libs.Team{
+		Title:       title,
+		Img1:        img1,
+		Img2:        img2,
+		Img3:        img3,
+		Description: desc,
+		TeamType:    libs.TEAM_TYPE(tt),
+		Del:         del,
+		ParentId:    pid,
+	}
+	bas := &libs.Bas{}
+	err := bas.CreateTeam(team)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_teamadd_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_teamadd_fail", "GM005_011", err.Error(), ""))
+}
+
+// @Title 更新战队
+// @Description 新增战队
+// @Param   id   path	int true  "id"
+// @Param   title   path	string true  "标题"
+// @Param   img1   path	int true  "图片1"
+// @Param   img2   path	int true  "图片2"
+// @Param   img3   path	int true  "图片2"
+// @Param   description   path	string false  "描述"
+// @Param   tt   path	int true  "战队类型"
+// @Param   del   path	bool false  "删除"
+// @Param   pid   path	int false  "父id"
+// @Success 200 {object} libs.Error
+// @router /team/update [post]
+func (c *CommonCPController) TeamUpdate() {
+	id, _ := c.GetInt64("id")
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	img1, _ := c.GetInt64("img1")
+	img2, _ := c.GetInt64("img2")
+	img3, _ := c.GetInt64("img3")
+	desc, _ := utils.UrlDecode(c.GetString("description"))
+	tt, _ := c.GetInt("tt")
+	del, _ := c.GetBool("del")
+	pid, _ := c.GetInt64("pid")
+
+	if len(title) == 0 {
+		c.Json(libs.NewError("admincp_common_teamupdate_fail", "GM005_020", "title不能为空", ""))
+		return
+	}
+	bas := &libs.Bas{}
+	team := bas.GetTeam(id)
+	if team == nil {
+		c.Json(libs.NewError("admincp_common_teamupdate_fail", "GM005_021", "对象不存在", ""))
+		return
+	}
+	team.Title = title
+	team.Img1 = img1
+	team.Img2 = img2
+	team.Img3 = img3
+	team.Description = desc
+	team.TeamType = libs.TEAM_TYPE(tt)
+	team.Del = del
+	team.ParentId = pid
+	err := bas.UpdateTeam(team)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_teamupdate_succ", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_teamupdate_fail", "GM005_022", err.Error(), ""))
+}
+
+// @Title 删除战队
+// @Description 删除战队
+// @Param   id   path	int true  "id"
+// @Success 200 {object} libs.Error
+// @router /team/remove [delete]
+func (c *CommonCPController) DelTeam() {
+	id, _ := c.GetInt64("id")
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_common_teamdel_fail", "GM005_040", "id不能为0", ""))
+		return
+	}
+	bas := &libs.Bas{}
+	team := bas.GetTeam(id)
+	if team == nil {
+		c.Json(libs.NewError("admincp_common_teamdel_fail", "GM005_041", "对象不存在", ""))
+		return
+	}
+	err := bas.DelTeam(id)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_teamdel_succ", controllers.RESPONSE_SUCCESS, "删除成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_teamdel_fail", "GM005_042", err.Error(), ""))
+}
+
+// @Title 获取战队
+// @Description 获取战队
+// @Param   id   path	int true  "id"
+// @Success 200 {object} outobjs.OutTeam
+// @router /team/:id([0-9]+) [get]
+func (c *CommonCPController) GetTeam() {
+	id, _ := c.GetInt64(":id")
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_common_teamget_fail", "GM005_030", "id不能为0", ""))
+		return
+	}
+	bas := &libs.Bas{}
+	team := bas.GetTeam(id)
+	if team == nil {
+		c.Json(libs.NewError("admincp_common_teamget_fail", "GM005_031", "对象不存在", ""))
+		return
+	}
+	c.Json(outobjs.GetOutTeam(team))
+}
+
+// @Title 查询战队库
+// @Description 查询战队库
+// @Param   title   path	string false  "标题"
+// @Param   tt   path	int true  "类型"
+// @Param   del   path	int false  "是否已被删除(1删除0未删除-1忽略)"
+// @Param   page   path	int true  "页"
+// @Param   page_size   path	int true  "页大小"
+// @Success 200 {object} outobjs.OutTeamPagedList
+// @router /team/list [get]
+func (c *CommonCPController) GetTeams() {
+	title := c.GetString("title")
+	tt, _ := c.GetInt("tt")
+	del, _ := c.GetInt("del")
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("page_size")
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 {
+		size = 20
+	}
+	bas := &libs.Bas{}
+	total, teams := bas.GetTeams(title, libs.TEAM_TYPE(tt), del, page, size)
+	outteams := make([]*outobjs.OutTeam, len(teams), len(teams))
+	for i, team := range teams {
+		outteams[i] = outobjs.GetOutTeam(team)
+	}
+	outp := &outobjs.OutTeamPagedList{
+		CurrentPage: page,
+		Totals:      total,
+		PageSize:    size,
+		Teams:       outteams,
+	}
+	c.Json(outp)
+}
+
+// @Title 新增赛程模式
+// @Description 新增赛程模式
+// @Param   title   path	string true  "标题"
+// @Param   match_id   path	int true  "赛事id"
+// @Param   mode_type   path	int true  "类型"
+// @Param   displayorder   path	int true  "排序"
+// @Param   is_view   path	bool true  "是否显示"
+// @Success 200 {object} libs.Error
+// @router /matchrace/mode_add [post]
+func (c *CommonCPController) MatchModeAdd() {
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	match_id, _ := c.GetInt64("match_id")
+	mode_type, _ := c.GetInt16("mode_type")
+	displayorder, _ := c.GetInt("displayorder")
+	is_view, _ := c.GetBool("is_view")
+	if len(title) == 0 {
+		c.Json(libs.NewError("admincp_common_matchmode_add_fail", "GM006_001", "标题不能为空", ""))
+		return
+	}
+	if match_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchmode_add_fail", "GM006_002", "未指定关联赛事", ""))
+		return
+	}
+	if mode_type <= 0 {
+		c.Json(libs.NewError("admincp_common_matchmode_add_fail", "GM006_003", "类型错误", ""))
+		return
+	}
+	race := &matchrace.RaceMode{
+		MatchId:      match_id,
+		ModeType:     matchrace.MODE_TYPE(mode_type),
+		DisplayOrder: displayorder,
+		IsView:       is_view,
+		Title:        title,
+	}
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.CreateMode(race)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchmode_add_succ", controllers.RESPONSE_SUCCESS, "创建成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchmode_add_fail", "GM006_004", err.Error(), ""))
+}
+
+// @Title  更新赛程模式
+// @Description 更新赛程模式
+// @Param   id   path	int true  "id"
+// @Param   title   path	string true  "标题"
+// @Param   match_id   path	int true  "赛事id"
+// @Param   displayorder   path	int true  "排序"
+// @Param   is_view   path	bool true  "是否显示"
+// @Success 200 {object} libs.Error
+// @router /matchrace/mode_update [post]
+func (c *CommonCPController) MatchModeUpdate() {
+	id, _ := c.GetInt64("id")
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	match_id, _ := c.GetInt64("match_id")
+	displayorder, _ := c.GetInt("displayorder")
+	is_view, _ := c.GetBool("is_view")
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchmode_update_fail", "GM006_010", "id错误", ""))
+		return
+	}
+	if len(title) == 0 {
+		c.Json(libs.NewError("admincp_common_matchmode_update_fail", "GM006_011", "标题不能为空", ""))
+		return
+	}
+	if match_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchmode_update_fail", "GM006_012", "未指定关联赛事", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	mode := mrs.GetMode(id)
+	if mode == nil {
+		c.Json(libs.NewError("admincp_common_matchmode_update_fail", "GM006_014", "对象不存在", ""))
+		return
+	}
+	mode.Title = title
+	mode.MatchId = match_id
+	mode.DisplayOrder = displayorder
+	mode.IsView = is_view
+	err := mrs.UpdateMode(mode)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchmode_update_succ", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchmode_update_fail", "GM006_015", err.Error(), ""))
+}
+
+// @Title  获取赛程模式
+// @Description 获取赛程模式
+// @Param   id   path	int true  "id"
+// @Success 200 {object} outobjs.OutMatchModeForAdmin
+// @router /matchrace/get_mode [get]
+func (c *CommonCPController) GetMatchMode() {
+	id, _ := c.GetInt64("id")
+	mrs := &matchrace.MatchRaceService{}
+	mode := mrs.GetMode(id)
+	if mode == nil {
+		c.Json(libs.NewError("admincp_common_matchmode_get_fail", "GM006_020", "对象不存在", ""))
+		return
+	}
+	out := outobjs.GetOutMatchModeForAdmin(mode)
+	c.Json(out)
+}
+
+// @Title  获取赛事下的赛程模式
+// @Description 获取赛事下的赛程模式
+// @Param   match_id   path	int true  "id"
+// @Success 200 {object} outobjs.OutMatchMode
+// @router /matchrace/get_modes [get]
+func (c *CommonCPController) GetMatchModes() {
+	match_id, _ := c.GetInt64("match_id")
+	if match_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchmode_gets_fail", "GM006_020", "未指定关联赛事", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	modes := mrs.GetModes(match_id)
+	outs := []*outobjs.OutMatchMode{}
+	for _, mode := range modes {
+		outs = append(outs, outobjs.GetOutMatchMode(mode))
+	}
+	c.Json(outs)
+}
+
+// @Title 新增赛程输赢数据
+// @Description 新增赛程输赢数据
+// @Param   mode_id   path	int true  "模型id"
+// @Param   player_id  path	int true  "玩家id"
+// @Param   m1   path	int true  "赢输平"
+// @Param   m2   path	int true  "赢输平"
+// @Param   m3   path	int true  "赢输平"
+// @Param   m4   path	int true  "赢输平"
+// @Param   m5   path	int true  "赢输平"
+// @Param   displayorder   path	int false  "排序"
+// @Param   disabled   path	bool false  "关闭"
+// @Success 200 {object} libs.Error
+// @router /matchrace/recent_add [post]
+func (c *CommonCPController) CreateMatchRecent() {
+	mode_id, _ := c.GetInt64("mode_id")
+	player_id, _ := c.GetInt64("player_id")
+	m1, _ := c.GetInt16("m1")
+	m2, _ := c.GetInt16("m2")
+	m3, _ := c.GetInt16("m3")
+	m4, _ := c.GetInt16("m4")
+	m5, _ := c.GetInt16("m5")
+	displayorder, _ := c.GetInt("displayorder")
+	disabled, _ := c.GetBool("disabled")
+
+	if mode_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchrecent_create_fail", "GM006_030", "模型id错误", ""))
+		return
+	}
+	m1t := matchrace.WLP_UNDEFINED
+	m2t := matchrace.WLP_UNDEFINED
+	m3t := matchrace.WLP_UNDEFINED
+	m4t := matchrace.WLP_UNDEFINED
+	m5t := matchrace.WLP_UNDEFINED
+	if m1 > 0 && m1 < 4 {
+		m1t = matchrace.WLP(m1)
+	}
+	if m2 > 0 && m2 < 4 {
+		m2t = matchrace.WLP(m2)
+	}
+	if m3 > 0 && m3 < 4 {
+		m3t = matchrace.WLP(m3)
+	}
+	if m4 > 0 && m4 < 4 {
+		m4t = matchrace.WLP(m4)
+	}
+	if m5 > 0 && m5 < 4 {
+		m5t = matchrace.WLP(m5)
+	}
+	if player_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchrecent_create_fail", "GM006_031", "玩家id错误", ""))
+		return
+	}
+	recent := &matchrace.MatchRecent{
+		ModeId:       mode_id,
+		Player:       player_id,
+		M1:           m1t,
+		M2:           m2t,
+		M3:           m3t,
+		M4:           m4t,
+		M5:           m5t,
+		DisplayOrder: displayorder,
+		Disabled:     disabled,
+	}
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.CreateMatchRecent(recent)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchrecent_create_succ", controllers.RESPONSE_SUCCESS, "创建成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchrecent_create_fail", "GM006_032", err.Error(), ""))
+}
+
+// @Title 更新赛程输赢数据
+// @Description 更新赛程输赢数据
+// @Param   id   path	int true  "id"
+// @Param   mode_id   path	int true  "模型id"
+// @Param   player_id  path	int true  "玩家id"
+// @Param   m1   path	int true  "赢输平"
+// @Param   m2   path	int true  "赢输平"
+// @Param   m3   path	int true  "赢输平"
+// @Param   m4   path	int true  "赢输平"
+// @Param   m5   path	int true  "赢输平"
+// @Param   displayorder   path	int false  "排序"
+// @Param   disabled   path	bool false  "关闭"
+// @Success 200 {object} libs.Error
+// @router /matchrace/recent_update [post]
+func (c *CommonCPController) UpdateMatchRecent() {
+	id, _ := c.GetInt64("id")
+	player_id, _ := c.GetInt64("player_id")
+	mode_id, _ := c.GetInt64("mode_id")
+	m1, _ := c.GetInt16("m1")
+	m2, _ := c.GetInt16("m2")
+	m3, _ := c.GetInt16("m3")
+	m4, _ := c.GetInt16("m4")
+	m5, _ := c.GetInt16("m5")
+	displayorder, _ := c.GetInt("displayorder")
+	disabled, _ := c.GetBool("disabled")
+
+	m1t := matchrace.WLP_UNDEFINED
+	m2t := matchrace.WLP_UNDEFINED
+	m3t := matchrace.WLP_UNDEFINED
+	m4t := matchrace.WLP_UNDEFINED
+	m5t := matchrace.WLP_UNDEFINED
+	if m1 > 0 && m1 < 4 {
+		m1t = matchrace.WLP(m1)
+	}
+	if m2 > 0 && m2 < 4 {
+		m2t = matchrace.WLP(m2)
+	}
+	if m3 > 0 && m3 < 4 {
+		m3t = matchrace.WLP(m3)
+	}
+	if m4 > 0 && m4 < 4 {
+		m4t = matchrace.WLP(m4)
+	}
+	if m5 > 0 && m5 < 4 {
+		m5t = matchrace.WLP(m5)
+	}
+
+	mrs := &matchrace.MatchRaceService{}
+	recent := &matchrace.MatchRecent{
+		Id:           id,
+		ModeId:       mode_id,
+		Player:       player_id,
+		M1:           m1t,
+		M2:           m2t,
+		M3:           m3t,
+		M4:           m4t,
+		M5:           m5t,
+		DisplayOrder: displayorder,
+		Disabled:     disabled,
+	}
+	err := mrs.UpdateMatchRecent(recent)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchrecent_update_succ", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchrecent_update_fail", "GM006_041", err.Error(), ""))
+}
+
+// @Title 获取赛程输赢数据
+// @Description 获取赛程输赢数据
+// @Param   mode_id   path	int true  "模型id"
+// @Success 200 {object} outobjs.OutMatchRecentForAdmin
+// @router /matchrace/get_recents [get]
+func (c *CommonCPController) GetMatchRecents() {
+	mode_id, _ := c.GetInt64("mode_id")
+	if mode_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchrecent_recents_fail", "GM006_050", "模型id错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	recents := mrs.GetMatchRecents(mode_id)
+	outs := []*outobjs.OutMatchRecentForAdmin{}
+	for _, recent := range recents {
+		outs = append(outs, outobjs.GetOutMatchRecentForAdmin(recent))
+	}
+	c.Json(outs)
+}
+
+// @Title 新增赛程小组
+// @Description 新增赛程小组
+// @Param   title   path	string true  "标题"
+// @Param   mode_id   path	int true  "模型id"
+// @Param   displayorder   path	int true  "排序"
+// @Success 200 {object} libs.Error
+// @router /matchrace/group_add [post]
+func (c *CommonCPController) CreateMatchGroup() {
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	mode_id, _ := c.GetInt64("mode_id")
+	displayorder, _ := c.GetInt("displayorder")
+	if mode_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchgroup_add_fail", "GM006_060", "模型id错误", ""))
+		return
+	}
+	group := &matchrace.MatchGroup{
+		ModeId:       mode_id,
+		Title:        title,
+		DisplayOrder: displayorder,
+		PostTime:     time.Now(),
+	}
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.CreateMatchGroup(group)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchgroup_add_succ", controllers.RESPONSE_SUCCESS, "创建成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchgroup_add_fail", "GM006_061", err.Error(), ""))
+}
+
+// @Title 更新赛程小组
+// @Description 更新赛程小组
+// @Param   id   path	int true  "id"
+// @Param   title   path	string true  "标题"
+// @Param   displayorder   path	int true  "排序"
+// @Success 200 {object} libs.Error
+// @router /matchrace/group_update [post]
+func (c *CommonCPController) UpdateMatchGroup() {
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	id, _ := c.GetInt64("id")
+	displayorder, _ := c.GetInt("displayorder")
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchgroup_update_fail", "GM006_070", "id错误", ""))
+		return
+	}
+	group := &matchrace.MatchGroup{
+		Id:           id,
+		Title:        title,
+		DisplayOrder: displayorder,
+		PostTime:     time.Now(),
+	}
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.UpdateMatchGroup(group)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchgroup_update_succ", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchgroup_update_fail", "GM006_071", err.Error(), ""))
+}
+
+// @Title 获取赛程小组数据
+// @Description 获取赛程小组数据
+// @Param   mode_id   path	int true  "模型id"
+// @Success 200 {object} outobjs.OutMatchGroup
+// @router /matchrace/get_groups [get]
+func (c *CommonCPController) GetMatchGroups() {
+	mode_id, _ := c.GetInt64("mode_id")
+	if mode_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchgroup_gets_fail", "GM006_070", "模型id错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	mode := mrs.GetMode(mode_id)
+	if mode == nil {
+		c.Json(libs.NewError("admincp_common_matchgroup_gets_fail", "GM006_071", "模型不存在", ""))
+		return
+	}
+	groups := mrs.GetMatchGroups(mode_id)
+	outs := []*outobjs.OutMatchGroup{}
+	for _, group := range groups {
+		players := mrs.GetMatchGroupPlayers(group.Id)
+		outs = append(outs, outobjs.GetOutMatchGroup(mode.MatchId, group, players))
+	}
+	c.Json(outs)
+}
+
+// @Title 新增赛程小组成员
+// @Description 新增赛程小组成员
+// @Param   group_id   path	int true  "组id"
+// @Param   players   path	string true  "成员属性(json)"
+// @Success 200 {object} libs.Error
+// @router /matchrace/group_players_add [post]
+func (c *CommonCPController) CreateMatchGroupPlayers() {
+	group_id, _ := c.GetInt64("group_id")
+	sPlayer, _ := utils.UrlDecode(c.GetString("players"))
+
+	if group_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchgroupp_create_fail", "GM006_080", "组id错误", ""))
+		return
+	}
+	type PlyerData struct {
+		Player       int64 `json:"player"`
+		Wins         int16 `json:"wins"`
+		Pings        int16 `json:"pings"`
+		Loses        int16 `json:"loses`
+		Points       int   `json:"points"`
+		DisplayOrder int   `json:"displayorder"`
+		Outlet       bool  `json:"outlet"`
+	}
+	var pds []*PlyerData
+	err := json.Unmarshal([]byte(sPlayer), pds)
+	if err != nil {
+		c.Json(libs.NewError("admincp_common_matchgroupp_create_fail", "GM006_081", err.Error(), ""))
+		return
+	}
+	if len(pds) == 0 {
+		c.Json(libs.NewError("admincp_common_matchgroup_create_fail", "GM006_082", "添加的成员不能为空", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	for _, p := range pds {
+		addobj := &matchrace.MatchGroupPlayer{
+			GroupId:      group_id,
+			Player:       p.Player,
+			Wins:         p.Wins,
+			Pings:        p.Pings,
+			Loses:        p.Loses,
+			Points:       p.Points,
+			DisplayOrder: p.DisplayOrder,
+			Outlet:       p.Outlet,
+		}
+		mrs.CreateMatchGroupPlayer(addobj)
+	}
+	c.Json(libs.NewError("admincp_common_matchgroupp_create_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+}
+
+// @Title 更新赛程小组成员
+// @Description 更新赛程小组成员
+// @Param   id   path	int true  "id"
+// @Param   player   path	string true  "成员属性(json)"
+// @Success 200 {object} libs.Error
+// @router /matchrace/group_players_update [post]
+func (c *CommonCPController) UpdateMatchGroupPlayer() {
+	id, _ := c.GetInt64("id")
+	sPlayer, _ := utils.UrlDecode(c.GetString("players"))
+
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchgroupp_update_fail", "GM006_090", "id错误", ""))
+		return
+	}
+	type PlyerData struct {
+		Player       int64 `json:"player"`
+		Wins         int16 `json:"wins"`
+		Pings        int16 `json:"pings"`
+		Loses        int16 `json:"loses`
+		Points       int   `json:"points"`
+		DisplayOrder int   `json:"displayorder"`
+		Outlet       bool  `json:"outlet"`
+	}
+	var pd *PlyerData
+	err := json.Unmarshal([]byte(sPlayer), pd)
+	if err != nil || pd == nil {
+		c.Json(libs.NewError("admincp_common_matchgroupp_update_fail", "GM006_091", err.Error(), ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	p := mrs.GetMatchGroupPlayerForAdmin(id)
+	if p == nil {
+		c.Json(libs.NewError("admincp_common_matchgroupp_update_fail", "GM006_092", "对象不存在", ""))
+		return
+	}
+	p.Player = pd.Player
+	p.Wins = pd.Wins
+	p.Pings = pd.Pings
+	p.Loses = pd.Loses
+	p.Points = pd.Points
+	p.DisplayOrder = pd.DisplayOrder
+	p.Outlet = pd.Outlet
+	err = mrs.UpdateMatchGroupPlayer(p)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchgroupp_update_succ", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchgroupp_update_fail", "GM006_093", err.Error(), ""))
+}
+
+// @Title 新增晋级模型组
+// @Description 新增晋级模型组
+// @Param   mode_id   path	int true  "模型id"
+// @Param   title   path	string true  "标题"
+// @Param   icon   path	int true  "图标id"
+// @Param   displayorder   path	int true  "排序"
+// @Param   t   path	int false  "冠亚军"
+// @Success 200 {object} libs.Error
+// @router /matchrace/elimin_ms_add [post]
+func (c *CommonCPController) CreateMatchEliminMs() {
+	mode_id, _ := c.GetInt64("mode_id")
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	icon, _ := c.GetInt64("icon")
+	displayorder, _ := c.GetInt("displayorder")
+	t, _ := c.GetInt16("t")
+
+	if mode_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchelimin_add_fail", "GM006_100", "模型id错误", ""))
+		return
+	}
+	if len(title) == 0 {
+		c.Json(libs.NewError("admincp_common_matchelimin_add_fail", "GM006_100", "标题不能为空", ""))
+		return
+	}
+	mstype := matchrace.ELIMIN_MSTYPE(t)
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.CreateEliminMs(&matchrace.MatchEliminMs{
+		ModeId:       mode_id,
+		Title:        title,
+		PostTime:     time.Now().Unix(),
+		Icon:         icon,
+		DisplayOrder: displayorder,
+		T:            mstype,
+	})
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchelimin_add_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchelimin_add_fail", "GM006_101", err.Error(), ""))
+}
+
+// @Title 更新晋级模型组
+// @Description 更新晋级模型组
+// @Param   id   path	int true  "id"
+// @Param   title   path	string true  "标题"
+// @Param   icon   path	int true  "图标id"
+// @Param   displayorder   path	int true  "排序"
+// @Param   t   path	int false  "冠亚军"
+// @Success 200 {object} libs.Error
+// @router /matchrace/elimin_ms_update [post]
+func (c *CommonCPController) UpdateEliminMs() {
+	id, _ := c.GetInt64("id")
+	title, _ := utils.UrlDecode(c.GetString("title"))
+	icon, _ := c.GetInt64("icon")
+	displayorder, _ := c.GetInt("displayorder")
+	t, _ := c.GetInt16("t")
+
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchelimin_update_fail", "GM006_110", "模型id错误", ""))
+		return
+	}
+	if len(title) == 0 {
+		c.Json(libs.NewError("admincp_common_matchelimin_update_fail", "GM006_111", "标题不能为空", ""))
+		return
+	}
+	mstype := matchrace.ELIMIN_MSTYPE(t)
+	mrs := &matchrace.MatchRaceService{}
+	ms := mrs.GetEliminMsForAdmin(id)
+	if ms == nil {
+		c.Json(libs.NewError("admincp_common_matchelimin_update_fail", "GM006_112", "对象不存在", ""))
+		return
+	}
+	ms.Title = title
+	ms.Icon = icon
+	ms.DisplayOrder = displayorder
+	ms.T = mstype
+	err := mrs.UpdateEliminMs(ms)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchelimin_update_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchelimin_update_fail", "GM006_113", err.Error(), ""))
+}
+
+// @Title 删除晋级模型组
+// @Description 删除晋级模型组
+// @Param   id   path	int true  "id"
+// @Success 200 {object} libs.Error
+// @router /matchrace/elimin_ms_del [delete]
+func (c *CommonCPController) DeleteEliminMs() {
+	id, _ := c.GetInt64("id")
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.DeleteEliminMs(id)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchelimin_del_succ", controllers.RESPONSE_SUCCESS, "删除成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchelimin_del_fail", "GM006_120", err.Error(), ""))
+}
+
+// @Title 获取赛程小组数据
+// @Description 获取赛程小组数据
+// @Param   mode_id   path	int true  "模型id"
+// @Success 200 {object} outobjs.OutMatchEliminMs
+// @router /matchrace/get_eliminmss [get]
+func (c *CommonCPController) GetEliminMss() {
+	mode_id, _ := c.GetInt64("mode_id")
+	if mode_id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchelimin_gets_fail", "GM006_120", "id错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	mss := mrs.GetEliminMss(mode_id)
+	out_mss := []*outobjs.OutMatchEliminMs{}
+	for _, ms := range mss {
+		out_mss = append(out_mss, outobjs.GetOutMatchEliminMs(ms))
+	}
+	c.Json(out_mss)
+}
+
+// @Title 新增晋级模型组对阵
+// @Description 新增晋级模型组对阵
+// @Param   msid   path	int true  "模型id"
+// @Param   vsid   path	int true  "对阵vsid"
+// @Param   outletid   path	int true  "出线选手id"
+// @Success 200 {object} libs.Error
+// @router /matchrace/elimin_vs_add [post]
+func (c *CommonCPController) CreateMatchEliminVs() {
+	msid, _ := c.GetInt64("msid")
+	vsid, _ := c.GetInt64("vsid")
+	outletid, _ := c.GetInt64("outletid")
+	if msid <= 0 || vsid <= 0 {
+		c.Json(libs.NewError("admincp_common_matcheliminvs_add_fail", "GM006_130", "参数错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.CreateEliminVs(&matchrace.MatchEliminVs{
+		MsId:     msid,
+		VsId:     vsid,
+		OutletId: outletid,
+		PostTime: time.Now().Unix(),
+	})
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matcheliminvs_add_fail", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matcheliminvs_add_fail", "GM006_131", err.Error(), ""))
+}
+
+// @Title 更新晋级模型组对阵
+// @Description 更新晋级模型组对阵
+// @Param   id   path	int true  "id"
+// @Param   msid   path	int true  "模型id"
+// @Param   vsid   path	int true  "对阵vsid"
+// @Param   outletid   path	int true  "出线选手id"
+// @Success 200 {object} libs.Error
+// @router /matchrace/elimin_vs_update [post]
+func (c *CommonCPController) UpdateMatchEliminVs() {
+	id, _ := c.GetInt64("id")
+	msid, _ := c.GetInt64("msid")
+	vsid, _ := c.GetInt64("vsid")
+	outletid, _ := c.GetInt64("outletid")
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.UpdateEliminVs(&matchrace.MatchEliminVs{
+		Id:       id,
+		MsId:     msid,
+		VsId:     vsid,
+		OutletId: outletid,
+		PostTime: time.Now().Unix(),
+	})
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matcheliminvs_update_fail", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matcheliminvs_update_fail", "GM006_140", err.Error(), ""))
+}
+
+// @Title 删除晋级模型组对阵
+// @Description 删除晋级模型组对阵
+// @Param   id   path	int true  "id"
+// @Success 200 {object} libs.Error
+// @router /matchrace/elimin_vs_del [delete]
+func (c *CommonCPController) DeleteMatchEliminVs() {
+	id, _ := c.GetInt64("id")
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.DeleteEliminVs(id)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matcheliminvs_del_succ", controllers.RESPONSE_SUCCESS, "删除成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matcheliminvs_del_fail", "GM006_150", err.Error(), ""))
+}
+
+// @Title 新增对阵数据
+// @Description 新增对阵数据
+// @Param   a_id   path	int true  "aid"
+// @Param   a_img   path	int true  "a图片"
+// @Param   a_name   path	string true  "a名称"
+// @Param   a_score   path	int false  "a比分"
+// @Param   b_id   path	int true  "bid"
+// @Param   b_img   path	int true  "b图片"
+// @Param   b_name   path	string true  "b名称"
+// @Param   b_score   path	int false  "b比分"
+// @Param   match_id   path	int true  "赛事id"
+// @Param   mode_id   path	int true  "模型id"
+// @Param   ref_id   path	int true  "关联id"
+// @Success 200 {object} libs.Error
+// @router /matchrace/matchvs_add [post]
+func (c *CommonCPController) CreateMatchVs() {
+	aid, _ := c.GetInt64("a_id")
+	aimg, _ := c.GetInt64("a_img")
+	aname, _ := utils.UrlDecode(c.GetString("a_name"))
+	ascore, _ := c.GetInt16("a_score")
+	bid, _ := c.GetInt64("b_id")
+	bimg, _ := c.GetInt64("b_img")
+	bname, _ := utils.UrlDecode(c.GetString("b_name"))
+	bscore, _ := c.GetInt16("b_score")
+	matchid, _ := c.GetInt64("match_id")
+	modeid, _ := c.GetInt64("mode_id")
+	refid, _ := c.GetInt64("ref_id")
+	if aimg <= 0 || len(aname) <= 0 || bimg <= 0 || len(bname) <= 0 {
+		c.Json(libs.NewError("admincp_common_matchvs_add_fail", "GM006_160", "参数错误", ""))
+		return
+	}
+	if matchid <= 0 || modeid <= 0 {
+		c.Json(libs.NewError("admincp_common_matchvs_add_fail", "GM006_161", "参数错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.CreateMatchVs(&matchrace.MatchVs{
+		A:       aid,
+		AName:   aname,
+		AImg:    aimg,
+		AScore:  ascore,
+		B:       bid,
+		BName:   bname,
+		BImg:    bimg,
+		BScore:  bscore,
+		MatchId: matchid,
+		ModeId:  modeid,
+		RefId:   refid,
+	})
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchvs_add_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchvs_add_fail", "GM006_162", err.Error(), ""))
+}
+
+// @Title 更新对阵数据
+// @Description 更新对阵数据
+// @Param   id   path	int true  "id"
+// @Param   a_id   path	int true  "aid"
+// @Param   a_img   path	int true  "a图片"
+// @Param   a_name   path	string true  "a名称"
+// @Param   a_score   path	int false  "a比分"
+// @Param   b_id   path	int true  "bid"
+// @Param   b_img   path	int true  "b图片"
+// @Param   b_name   path	string true  "b名称"
+// @Param   b_score   path	int false  "b比分"
+// @Param   match_id   path	int true  "赛事id"
+// @Param   mode_id   path	int true  "模型id"
+// @Param   ref_id   path	int true  "关联id"
+// @Success 200 {object} libs.Error
+// @router /matchrace/matchvs_add [post]
+func (c *CommonCPController) UpdateMatchVs() {
+	id, _ := c.GetInt64("id")
+	aid, _ := c.GetInt64("a_id")
+	aimg, _ := c.GetInt64("a_img")
+	aname, _ := utils.UrlDecode(c.GetString("a_name"))
+	ascore, _ := c.GetInt16("a_score")
+	bid, _ := c.GetInt64("b_id")
+	bimg, _ := c.GetInt64("b_img")
+	bname, _ := utils.UrlDecode(c.GetString("b_name"))
+	bscore, _ := c.GetInt16("b_score")
+	matchid, _ := c.GetInt64("match_id")
+	modeid, _ := c.GetInt64("mode_id")
+	refid, _ := c.GetInt64("ref_id")
+	if aimg <= 0 || len(aname) <= 0 || bimg <= 0 || len(bname) <= 0 {
+		c.Json(libs.NewError("admincp_common_matchvs_update_fail", "GM006_170", "参数错误", ""))
+		return
+	}
+	if matchid <= 0 || modeid <= 0 {
+		c.Json(libs.NewError("admincp_common_matchvs_update_fail", "GM006_171", "参数错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	vs := mrs.GetMatchVs(id)
+	if vs == nil {
+		c.Json(libs.NewError("admincp_common_matchvs_update_fail", "GM006_172", "参数错误", ""))
+		return
+	}
+	vs.A = aid
+	vs.AName = aname
+	vs.AImg = aimg
+	vs.AScore = ascore
+	vs.B = bid
+	vs.BName = bname
+	vs.BImg = bimg
+	vs.BScore = bscore
+	vs.MatchId = matchid
+	vs.ModeId = modeid
+	vs.RefId = refid
+	err := mrs.UpdateMatchVs(vs)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_matchvs_update_succ", controllers.RESPONSE_SUCCESS, "更新成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_matchvs_update_fail", "GM006_162", err.Error(), ""))
+}
+
+// @Title 获取对阵数据
+// @Description 获取对阵数据
+// @Param   id   path	int true  "id"
+// @Success 200 {object} outobjs.OutMatchVs
+// @router /matchrace/matchvs [get]
+func (c *CommonCPController) GetMatchVs() {
+	id, _ := c.GetInt64("id")
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_common_matchvs_get_fail", "GM006_180", "参数错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	vs := mrs.GetMatchVs(id)
+	if vs == nil {
+		c.Json(libs.NewError("admincp_common_matchvs_get_fail", "GM006_181", "对象不存在", ""))
+		return
+	}
+	c.Json(outobjs.GetOutMatchVs(vs))
+}
+
+// @Title 获取对阵数据列表
+// @Description 获取对阵数据列表
+// @Param   player   path	int true  "选手id"
+// @Param   match_id   path	int true  "赛程id"
+// @Success 200 {object} outobjs.OutMatchVs
+// @router /matchrace/matchvss [get]
+func (c *CommonCPController) GetMatchVss() {
+	palyerid, _ := c.GetInt64("player")
+	matchid, _ := c.GetInt64("match_id")
+	if palyerid <= 0 || matchid <= 0 {
+		c.Json(libs.NewError("admincp_common_matchvss_get_fail", "GM006_180", "参数错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	vss := mrs.GetMatchVss(palyerid, matchid)
+	out_vss := []*outobjs.OutMatchVs{}
+	for _, vs := range vss {
+		out_vss = append(out_vss, outobjs.GetOutMatchVs(vs))
+	}
+
+	c.Json(out_vss)
+}
+
+// @Title 新增选手资料
+// @Description 新增选手资料
+// @Param   player_name   path	int true  "选手名称"
+// @Param   img_id   path	int true  "图片id"
+// @Success 200 {object} libs.Error
+// @router /matchrace/player_add [post]
+func (c *CommonCPController) CreatePlayer() {
+	pname, _ := utils.UrlDecode(c.GetString("player_name"))
+	imgid, _ := c.GetInt64("img_id")
+	if len(pname) <= 0 || imgid <= 0 {
+		c.Json(libs.NewError("admincp_common_player_add_fail", "GM006_190", "参数错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	err := mrs.CreatePlayer(&matchrace.MatchPlayer{
+		Name:     pname,
+		Img:      imgid,
+		PostTime: time.Now(),
+	})
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_player_add_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_player_add_fail", "GM006_191", err.Error(), ""))
+}
+
+// @Title 更新选手资料
+// @Description 更新选手资料
+// @Param   id   path	int true  "选手id"
+// @Param   player_name   path	int true  "选手名称"
+// @Param   img_id   path	int true  "图片id"
+// @Success 200 {object} libs.Error
+// @router /matchrace/player_update [post]
+func (c *CommonCPController) UpdatePlayer() {
+	id, _ := c.GetInt64("id")
+	pname, _ := utils.UrlDecode(c.GetString("player_name"))
+	imgid, _ := c.GetInt64("img_id")
+	if id <= 0 || len(pname) <= 0 || imgid <= 0 {
+		c.Json(libs.NewError("admincp_common_player_update_fail", "GM006_200", "参数错误", ""))
+		return
+	}
+	mrs := &matchrace.MatchRaceService{}
+	player := mrs.GetPlayer(id)
+	if player == nil {
+		c.Json(libs.NewError("admincp_common_player_update_fail", "GM006_201", "对象不存在", ""))
+		return
+	}
+	player.Name = pname
+	player.Img = imgid
+	err := mrs.UpdatePlayer(player)
+	if err == nil {
+		c.Json(libs.NewError("admincp_common_player_update_succ", controllers.RESPONSE_SUCCESS, "添加成功", ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_common_player_update_fail", "GM006_202", err.Error(), ""))
+}
+
+// @Title 获取选手资料
+// @Description 获取选手资料
+// @Param   id   path	int true  "选手id"
+// @Success 200 {object} outobjs.OutMatchPlayer
+// @router /matchrace/getplayer [get]
+func (c *CommonCPController) GetMatchPlayer() {
+	id, _ := c.GetInt64("id")
+	mrs := &matchrace.MatchRaceService{}
+	player := mrs.GetPlayer(id)
+	if player == nil {
+		c.Json(libs.NewError("admincp_common_player_get_fail", "GM006_210", "对象不存在", ""))
+		return
+	}
+	c.Json(outobjs.GetOutMatchPlayer(player))
+}
+
+// @Title 获取选手们资料
+// @Description 获取选手们资料
+// @Param   like   path	string false  "关键字"
+// @Param   page   path	int true  "页"
+// @Param   size   path	int true  "页大小"
+// @Success 200 {object} outobjs.OutMatchPlayerPagedList
+// @router /matchrace/getplayers [get]
+func (c *CommonCPController) GetMatchPlayers() {
+	like, _ := utils.UrlDecode(c.GetString("like"))
+	page, _ := c.GetInt("page")
+	size, _ := c.GetInt("size")
+	mrs := &matchrace.MatchRaceService{}
+	total, players := mrs.GetPlayers(like, page, size)
+	outs := []*outobjs.OutMatchPlayer{}
+	for _, player := range players {
+		outs = append(outs, outobjs.GetOutMatchPlayer(player))
+	}
+	outsp := &outobjs.OutMatchPlayerPagedList{
+		Total:       total,
+		TotalPage:   utils.TotalPages(total, size),
+		CurrentPage: page,
+		Size:        size,
+		Lists:       outs,
+	}
+	c.Json(outsp)
 }

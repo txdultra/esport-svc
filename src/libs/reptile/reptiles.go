@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"utils"
@@ -38,6 +39,7 @@ const (
 	REP_SUPPORT_QQOPEN  REP_SUPPORT = "qqopen"
 	REP_SUPPORT_CC163   REP_SUPPORT = "cc163"
 	REP_SUPPORT_PANDATV REP_SUPPORT = "pandatv"
+	REP_SUPPORT_QUANMIN REP_SUPPORT = "quanmin"
 )
 
 type REP_METHOD string
@@ -76,6 +78,7 @@ var LIVE_REPTILE_MODULES = map[string]reflect.Type{
 	string(REP_SUPPORT_QQOPEN):  reflect.TypeOf(QQOpenLive{}),
 	string(REP_SUPPORT_CC163):   reflect.TypeOf(CC163Live{}),
 	string(REP_SUPPORT_PANDATV): reflect.TypeOf(PandaTVLive{}),
+	string(REP_SUPPORT_QUANMIN): reflect.TypeOf(QuanminTVLive{}),
 }
 
 func SupportReptilePlatforms() []string {
@@ -98,7 +101,7 @@ func LiveRepMethod(support REP_SUPPORT) REP_METHOD {
 	switch support {
 	case REP_SUPPORT_17173, REP_SUPPORT_DOUYU, REP_SUPPORT_QQ, REP_SUPPORT_ZHANQI,
 		REP_SUPPORT_HUOMAO, REP_SUPPORT_TWITCH, REP_SUPPORT_MLGTV, REP_SUPPORT_HITBOX,
-		REP_SUPPORT_QQOPEN, REP_SUPPORT_CC163, REP_SUPPORT_PANDATV:
+		REP_SUPPORT_QQOPEN, REP_SUPPORT_CC163, REP_SUPPORT_PANDATV, REP_SUPPORT_QUANMIN:
 		return REP_METHOD_SERANDCLT
 	default:
 		return REP_METHOD_DIRECT
@@ -115,15 +118,15 @@ func Get_REP_SUPPORT(url string) (REP_SUPPORT, error) {
 	if matched {
 		return REP_SUPPORT_DOUYU, nil
 	}
-	matched, _ = regexp.MatchString("http://v.qq.com/live/game/(\\d+).html", lowerUrl)
-	if matched {
-		return REP_SUPPORT_QQ, nil
-	}
 	matched, _ = regexp.MatchString("http://www.zhanqi.tv/(\\w+)", lowerUrl)
 	if matched {
 		return REP_SUPPORT_ZHANQI, nil
 	}
-	matched, _ = regexp.MatchString("http://www.huomaotv.com/live/(\\w+)", lowerUrl)
+	matched, _ = regexp.MatchString("http://www.huomaotv.cn/live/(\\w+)", lowerUrl)
+	if matched {
+		return REP_SUPPORT_HUOMAO, nil
+	}
+	matched, _ = regexp.MatchString(`huomao_id=([a-z0-9A-Z_/=\\\-]+)`, lowerUrl)
 	if matched {
 		return REP_SUPPORT_HUOMAO, nil
 	}
@@ -147,9 +150,17 @@ func Get_REP_SUPPORT(url string) (REP_SUPPORT, error) {
 	if matched {
 		return REP_SUPPORT_QQOPEN, nil
 	}
+	matched, _ = regexp.MatchString("http://v.qq.com/live/game/(\\d+).html", lowerUrl)
+	if matched {
+		return REP_SUPPORT_QQ, nil
+	}
 	matched, _ = regexp.MatchString("http://www.panda.tv/(\\d+)", lowerUrl)
 	if matched {
 		return REP_SUPPORT_PANDATV, nil
+	}
+	matched, _ = regexp.MatchString("http://www.quanmin.tv/v/(\\w+)", lowerUrl)
+	if matched {
+		return REP_SUPPORT_QUANMIN, nil
 	}
 	return "", errors.New("not exist support rep")
 }
@@ -189,7 +200,7 @@ type IUserReptile interface {
 	ValidateUrl(url string) error
 }
 
-var reptile_status_douyu_url, reptile_status_17173_url, reptile_status_fengyun_url, reptile_status_twitchtv_urls, reptile_status_zhanqi_url, reptile_status_huomao_url, reptile_status_panda_url string
+var reptile_status_douyu_url, reptile_status_17173_url, reptile_status_fengyun_url, reptile_status_twitchtv_urls, reptile_status_zhanqi_url, reptile_status_huomao_url, reptile_status_panda_url, reptile_status_quanmin_url string
 
 func init() {
 	reptile_status_douyu_url = beego.AppConfig.String("reptile.status.douyu.url")
@@ -199,6 +210,7 @@ func init() {
 	reptile_status_zhanqi_url = beego.AppConfig.String("reptile.status.zhanqi.url")
 	reptile_status_huomao_url = beego.AppConfig.String("reptile.status.huomao.url")
 	reptile_status_panda_url = beego.AppConfig.String("reptile.status.panda.url")
+	reptile_status_quanmin_url = beego.AppConfig.String("reptile.status.quanmin.url")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -275,7 +287,9 @@ func (d DouyuLive) ProxyReptile(parameter string, cmd string) (clientReqUrl stri
 		live_stream_path := ""
 		if data, ok := json_data.CheckGet("data"); ok {
 			if _d, _ok := data.CheckGet("rtmp_multi_bitrate"); _ok {
-				if __d, __ok := _d.CheckGet("middle"); __ok {
+				if __d, __ok := _d.CheckGet("middle2"); __ok {
+					live_stream_path, _ = __d.String()
+				} else if __d, __ok := _d.CheckGet("middle"); __ok {
 					live_stream_path, _ = __d.String()
 				}
 			}
@@ -516,8 +530,9 @@ func (r QQLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string,
 		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:001")
 	}
 	cache := utils.GetLocalCache()
+	var playurl string
 	var content string
-	err = cache.Get(fmt.Sprintf("reptile_qqlive_page:%s", parameter), &content)
+	err = cache.Get(fmt.Sprintf("reptile_qqlive_playurl:%s", parameter), &playurl)
 	if err != nil {
 		req := httplib.Get(parameter)
 		req.SetTimeout(3*time.Minute, 3*time.Minute)
@@ -525,7 +540,8 @@ func (r QQLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string,
 		if err != nil || len(content) == 0 {
 			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:002")
 		}
-		cache.Set(fmt.Sprintf("reptile_qqlive_page:%s", parameter), content, 12*time.Hour)
+	} else {
+		return playurl, "get_stream_params", nil
 	}
 	//playid:'100601300'
 	re := regexp.MustCompile(`playid:'(\d+)'`)
@@ -537,9 +553,48 @@ func (r QQLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string,
 	mstr = strings.Replace(mstr, "'", "", -1)
 	__idx := strings.LastIndex(mstr, ":")
 	cnlid := mstr[__idx+1:]
-	client_url := "http://info.zb.qq.com/?cnlid=" + cnlid + "&host=qq.com&cmd=2&qq=0&guid=" + utils.RandomStrings(32) +
-		"&txvjsv=2.0&stream=1&debug=&ip=&system=1&sdtfrom=113"
-	return client_url, "get_stream_params", nil
+	//	client_url := "http://info.zb.qq.com/?cnlid=" + cnlid + "&host=qq.com&cmd=2&qq=0&guid=" + utils.RandomStrings(32) +
+	//		"&txvjsv=2.0&stream=1&debug=&ip=&system=1&sdtfrom=113"
+
+	roomId := fmt.Sprintf("qq_video_%s", cnlid)
+
+	protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+	transport, _ := thrift.NewTSocketTimeout(douyu_api_host, 1*time.Minute)
+	client := douyuapi.NewDouyuApiServiceClientFactory(transport, protocolFactory)
+	if err := transport.Open(); err != nil {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:005")
+	}
+	defer transport.Close()
+	url, err := client.GetData(roomId, parameter)
+
+	if len(url) == 0 || err != nil {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:006")
+	}
+	jcontent, err := httplib.Get(url).Bytes()
+	if err != nil {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:007")
+	}
+	jdata, _ := utils.NewJson(jcontent)
+	fmts := make(map[string]string)
+	jfmts, _ := jdata.Get("formats").Array()
+	for _, jfmt := range jfmts {
+		if jfd, ok := jfmt.(map[string]interface{}); ok {
+			fn := jfd["fn"].(string)
+			id := jfd["id"].(string)
+			fmts[fn] = id
+		}
+	}
+	//使用520p格式
+	if _id, ok := fmts["hd"]; ok {
+		r1 := regexp.MustCompile(`cnlid=(\d+)`)
+		url = r1.ReplaceAllString(url, "cnlid="+_id)
+		r2 := regexp.MustCompile(`defn=(\w{0,})`)
+		url = r2.ReplaceAllString(url, "defn=hd")
+		r3 := regexp.MustCompile(`fntick=(\d+)`)
+		url = r3.ReplaceAllString(url, fmt.Sprintf("fntick=%d", time.Now().Unix()))
+	}
+	cache.Set(fmt.Sprintf("reptile_qqlive_playurl:%s", parameter), url, 10*time.Minute)
+	return url, "get_stream_params", nil
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -755,32 +810,42 @@ func (r HuomaoLive) ProxyReptile(parameter string, cmd string) (clientReqUrl str
 	if support != REP_SUPPORT_HUOMAO {
 		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:001")
 	}
-
 	cache := utils.GetLocalCache()
 	var client_url string
 	err = cache.Get(fmt.Sprintf("reptile_huomao_url:%s", parameter), &client_url)
 	if err != nil {
-		req := httplib.Get(parameter)
-		req.SetTimeout(3*time.Minute, 3*time.Minute)
-		content, err := req.String()
-		if err != nil || len(content) == 0 {
-			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:003")
+		v, err := url.ParseRequestURI(parameter)
+		if err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:010")
 		}
-		re := regexp.MustCompile(`video_name = '([a-z0-9A-Z_/=\\\-]+)'`)
-		us := re.FindAllString(content, -1)
-		if len(us) == 0 {
-			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:004")
+		u := v.RawQuery
+		vals, _ := url.ParseQuery(u)
+		vids := vals.Get("huomao_id")
+		if len(vids) == 0 {
+			req := httplib.Get(parameter)
+			req.SetTimeout(3*time.Minute, 3*time.Minute)
+			content, err := req.String()
+			if err != nil || len(content) == 0 {
+				return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:003")
+			}
+			re := regexp.MustCompile(`video_name = '([a-z0-9A-Z_/=\\\-]+)'`)
+			us := re.FindAllString(content, -1)
+			if len(us) == 0 {
+				return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:004")
+			}
+			mstr := us[0]
+			mstr = strings.Replace(mstr, "'", "", -1)
+			mstr = strings.Replace(mstr, " ", "", -1)
+			__idx := strings.LastIndex(mstr, "=")
+			vids = mstr[__idx+1:]
 		}
-		mstr := us[0]
-		mstr = strings.Replace(mstr, "'", "", -1)
-		mstr = strings.Replace(mstr, " ", "", -1)
-		__idx := strings.LastIndex(mstr, "=")
-		vids := mstr[__idx+1:]
 
-		req = httplib.Post("http://www.huomaotv.com/swf/live_data")
+		req := httplib.Post("http://www.huomaotv.cn/swf/live_data")
 		req.SetTimeout(3*time.Minute, 3*time.Minute)
 		req.Param("streamtype", "live")
 		req.Param("VideoIDS", vids)
+		req.Param("cdns", "1")
+		req.Header("Host", "www.huomaotv.cn")
 		bytes, err := req.Bytes()
 		if err != nil || len(bytes) == 0 {
 			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:005")
@@ -797,26 +862,35 @@ func (r HuomaoLive) ProxyReptile(parameter string, cmd string) (clientReqUrl str
 		if len(arr) == 0 { //未抓取到直接退出
 			return "", REP_CALLBACK_COMMAND_EXIT, nil
 		}
+		slist, has := json_data.Get("streamList").GetIndex(0).CheckGet("list")
+		if !has {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("回传数据错误:006")
+		}
+		rlist, _ := slist.Array()
 		stream_url := ""
 		searchStream := func(data []interface{}, t string) (bool, string) {
 			for _, ar := range data {
 				stream := ar.(map[string]interface{})
-				t, ok := stream["type"]
-				if ok {
-					if t.(string) == t {
+				if _l, ok := stream["type"]; ok {
+					if t == _l.(string) {
 						return true, stream["url"].(string)
 					}
 				}
 			}
 			return false, ""
 		}
-
-		ok, stream_url := searchStream(arr, "HD")
+		ok, stream_url := searchStream(rlist, "TD")
 		if ok {
 			cache.Set(fmt.Sprintf("reptile_huomao_url:%s", parameter), stream_url, 2*time.Hour)
 			return stream_url, REP_CALLBACK_COMMAND_COMPLETED, nil
 		}
-		ok, stream_url = searchStream(arr, "SD")
+
+		ok, stream_url = searchStream(rlist, "HD")
+		if ok {
+			cache.Set(fmt.Sprintf("reptile_huomao_url:%s", parameter), stream_url, 2*time.Hour)
+			return stream_url, REP_CALLBACK_COMMAND_COMPLETED, nil
+		}
+		ok, stream_url = searchStream(rlist, "SD")
 		if ok {
 			cache.Set(fmt.Sprintf("reptile_huomao_url:%s", parameter), stream_url, 2*time.Hour)
 			return stream_url, REP_CALLBACK_COMMAND_COMPLETED, nil
@@ -1243,6 +1317,32 @@ func (r QQOpenLive) ViewHtmlOnPc(url string, width int, height int) string {
 }
 
 func (r QQOpenLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string, nextCmd string, err error) {
+	lcmd := strings.ToLower(cmd)
+	if lcmd == "get_stream_params" {
+		type _stramUrl struct {
+			SecurityUrl string `json:"securityUrl"`
+			Resolution  string `json:"resolution"`
+			Ext         string `json:"ext"`
+		}
+		type _stramLiveUrls struct {
+			LiveUrl string      `json:"liveUrl"`
+			Urls    []_stramUrl `json:"urls"`
+			Status  int         `json:"status"`
+		}
+
+		slu := &_stramLiveUrls{}
+		err := json.Unmarshal([]byte(parameter), slu)
+		if err != nil {
+			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:10")
+		}
+		for _, liveUrl := range slu.Urls {
+			if liveUrl.Resolution == "1920x1080" {
+				return liveUrl.SecurityUrl, REP_CALLBACK_COMMAND_COMPLETED, nil
+			}
+		}
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:11")
+	}
+
 	support, _ := Get_REP_SUPPORT(parameter)
 	if support != REP_SUPPORT_QQOPEN {
 		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:00")
@@ -1254,32 +1354,35 @@ func (r QQOpenLive) ProxyReptile(parameter string, cmd string) (clientReqUrl str
 	}
 	u := v.RawQuery
 	vals, _ := url.ParseQuery(u)
-	roomId := vals.Get("qq_id")
-	if len(roomId) == 0 {
+	qqid := vals.Get("qq_id")
+	if len(qqid) == 0 {
 		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误:02")
 	}
-	roomId = fmt.Sprintf("qqopen_%s", roomId)
+	//roomId := fmt.Sprintf("qqopen_%s", qqid)
 
-	cache := utils.GetLocalCache()
-	ckey := fmt.Sprintf("reptile_qqopen_stream_url:%s", parameter)
-	var playurl string
-	err = cache.Get(ckey, &playurl)
-	if err != nil {
-		//远程服务调用
-		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
-		transport, _ := thrift.NewTSocketTimeout(douyu_api_host, 1*time.Minute)
-		client := douyuapi.NewDouyuApiServiceClientFactory(transport, protocolFactory)
-		if err := transport.Open(); err != nil {
-			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:005")
-		}
-		defer transport.Close()
-		url, err := client.GetData(roomId, parameter)
-		if len(url) == 0 || err != nil {
-			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:006")
-		}
-		return url, REP_CALLBACK_COMMAND_COMPLETED, nil
-	}
-	return playurl, REP_CALLBACK_COMMAND_COMPLETED, nil
+	//	cache := utils.GetLocalCache()
+	//	ckey := fmt.Sprintf("reptile_qqopen_stream_url:%s", parameter)
+	//	var playurl string
+	//	err = cache.Get(ckey, &playurl)
+	//	if err != nil {
+	//远程服务调用
+	//		protocolFactory := thrift.NewTBinaryProtocolFactoryDefault()
+	//		transport, _ := thrift.NewTSocketTimeout(douyu_api_host, 1*time.Minute)
+	//		client := douyuapi.NewDouyuApiServiceClientFactory(transport, protocolFactory)
+	//		if err := transport.Open(); err != nil {
+	//			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:005")
+	//		}
+	//		defer transport.Close()
+	//		url, err := client.GetData(roomId, parameter)
+	//		if len(url) == 0 || err != nil {
+	//			return "", REP_CALLBACK_COMMAND_EXIT, errors.New("远程服务器错误:006")
+	//		}
+	//		return url, REP_CALLBACK_COMMAND_COMPLETED,
+
+	//http://star.api.plu.cn/live/GetLiveUrl?roomId=15556
+	return fmt.Sprintf("http://star.api.plu.cn/live/GetLiveUrl?roomId=%s", qqid), "get_stream_params", nil
+	//	}
+	//	return playurl, REP_CALLBACK_COMMAND_COMPLETED, nil
 }
 
 func (r QQOpenLive) GetStatus(parameter string) (LIVE_STATUS, error) {
@@ -1466,5 +1569,68 @@ func (d PandaTVLive) ProxyReptile(parameter string, cmd string) (clientReqUrl st
 }
 
 func (d PandaTVLive) Reptile(parameter string) (string, error) {
+	return "", errors.New("此方法无效")
+}
+
+type QuanminTVLive struct{}
+
+func (d QuanminTVLive) ViewHtmlOnPc(url string, width int, height int) string {
+	return ""
+}
+
+func (d QuanminTVLive) GetStatus(parameter string) (LIVE_STATUS, error) {
+	__index := strings.LastIndex(parameter, "/")
+	if __index <= 0 {
+		return LIVE_STATUS_NOTHING, errors.New("抓取地址格式错误")
+	}
+	roomId := parameter[__index+1:]
+	//本地缓存,防止同一时间多次获取数据
+	cache := utils.GetLocalCache()
+	cacheKey := "reptile_status_quanmin_content"
+	var content string
+	cache.Get(cacheKey, &content)
+	if len(content) == 0 {
+		req := httplib.Get(reptile_status_quanmin_url)
+		req.SetTimeout(3*time.Minute, 3*time.Minute)
+		content, err := req.String()
+		if err != nil {
+			return LIVE_STATUS_NOTHING, err
+		}
+		cache.Set(cacheKey, content, 5*time.Minute)
+	}
+	findStr := "\"slug\":\"" + roomId + "\""
+	if _, err := strconv.ParseInt(roomId, 10, 32); err == nil {
+		findStr = "\"uid\":\"" + roomId + "\""
+	}
+	if strings.Contains(content, findStr) {
+		return LIVE_STATUS_LIVING, nil
+	}
+	return LIVE_STATUS_NOTHING, nil
+}
+
+//客户端参与的特别处理模式
+func (d QuanminTVLive) ProxyReptile(parameter string, cmd string) (clientReqUrl string, nextCmd string, err error) {
+	__index := strings.LastIndex(parameter, "/")
+	if __index <= 0 {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取地址格式错误")
+	}
+	roomId := parameter[__index+1:]
+	//http://www.quanmin.tv/json/rooms/vip/info.json?t=24160668
+	info, err := httplib.Get(fmt.Sprintf("http://www.quanmin.tv/json/rooms/%s/info.json", roomId)).Bytes()
+	if err != nil {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取失败:001")
+	}
+	info_json, err := utils.NewJson(info)
+	if err != nil {
+		return "", REP_CALLBACK_COMMAND_EXIT, errors.New("抓取失败:002")
+	}
+	if _uid, ok := info_json.CheckGet("uid"); ok {
+		uid, _ := _uid.String()
+		return fmt.Sprintf("rtmp://live.quanmin.tv/live/%s", uid), REP_CALLBACK_COMMAND_COMPLETED, nil
+	}
+	return "", REP_CALLBACK_COMMAND_COMPLETED, nil
+}
+
+func (d QuanminTVLive) Reptile(parameter string) (string, error) {
 	return "", errors.New("此方法无效")
 }

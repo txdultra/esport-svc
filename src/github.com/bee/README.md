@@ -9,11 +9,14 @@ Bee is a command line tool facilitating development with beego framework.
 
 - Go version >= 1.1.
 
+
 ## Installation
 
 Begin by installing `bee` using `go get` command.
 
-	go get github.com/beego/bee
+```bash
+go get github.com/beego/bee
+```
 
 Then you can add `bee` binary to PATH environment variable in your `~/.bashrc` or `~/.bash_profile` file:
 
@@ -23,21 +26,24 @@ export PATH=$PATH:<your_main_gopath>/bin/bee
 
 > If you already have `bee` installed, updating `bee` is simple:
 
-	go get -u github.com/beego/bee
+```bash
+go get -u github.com/beego/bee
+```
 
 ## Basic commands
 
 Bee provides a variety of commands which can be helpful at various stage of development. The top level commands include: 
-
-	new         create an application base on beego framework
-	run         run the app which can hot compile
-	pack        compress an beego project
-	api         create an api application base on beego framework
-	bale        packs non-Go files to Go source files
-	version     show the bee & beego version
-	generate    source code generator
-	migrate     run database migrations
-
+```base
+  new         create an application base on beego framework
+  run         run the app which can hot compile
+  pack        compress an beego project
+  api         create an api application base on beego framework
+  bale        packs non-Go files to Go source files
+  version     show the bee & beego version
+  generate    source code generator
+  migrate     run database migrations
+  hprose      create an rpc application use hprose base on beego framework
+```
 ## bee version
 
 The first command is the easiest: displaying which version of `bee`, `beego` and `go` is installed on your machine:
@@ -115,32 +121,61 @@ usage: bee api [appname]
 
 create an api application base on beego framework
 
-bee api [appname] [-tables=""] [-driver=mysql] [-conn=root:@tcp(127.0.0.1:3306)/test]
+bee api [appname] [-tables=""] [-driver="mysql"] [-conn="root:@tcp(127.0.0.1:3306)/test"]
     -tables: a list of table names separated by ',', default is empty, indicating all tables
     -driver: [mysql | postgres | sqlite], the default is mysql
     -conn:   the connection string used by the driver, the default is ''
              e.g. for mysql:    root:@tcp(127.0.0.1:3306)/test
              e.g. for postgres: postgres://postgres:postgres@127.0.0.1:5432/postgres
-	
+  
 if conn is empty will create a example api application. otherwise generate api application based on an existing database.
 
 In the current path, will create a folder named [appname]
 
 In the appname folder has the follow struct:
 
-	├── conf
-	│   └── app.conf
-	├── controllers
-	│   └── object.go
-	│   └── user.go
-	├── routers
-	│   └── router.go
-	├── tests
-	│   └── default_test.go
-	├── main.go
-	└── models
-	    └── object.go
-	    └── user.go
+  ├── conf
+  │   └── app.conf
+  ├── controllers
+  │   └── object.go
+  │   └── user.go
+  ├── routers
+  │   └── router.go
+  ├── tests
+  │   └── default_test.go
+  ├── main.go
+  └── models
+      └── object.go
+      └── user.go
+```
+
+## bee hprose
+
+```bash
+usage: bee hprose [appname]
+
+create an rpc application use hprose base on beego framework
+
+bee hprose [appname] [-tables=""] [-driver=mysql] [-conn=root:@tcp(127.0.0.1:3306)/test]
+    -tables: a list of table names separated by ',', default is empty, indicating all tables
+    -driver: [mysql | postgres | sqlite], the default is mysql
+    -conn:   the connection string used by the driver, the default is ''
+             e.g. for mysql:    root:@tcp(127.0.0.1:3306)/test
+             e.g. for postgres: postgres://postgres:postgres@127.0.0.1:5432/postgres
+  
+if conn is empty will create a example rpc application. otherwise generate rpc application use hprose based on an existing database.
+
+In the current path, will create a folder named [appname]
+
+In the appname folder has the follow struct:
+
+  ├── conf
+  │   └── app.conf
+  ├── main.go
+  └── models
+      └── object.go
+      └── user.go
+
 ```
 
 ## bee bale
@@ -162,22 +197,22 @@ This is mainly used for zealots who are requiring 100% Go code.
 ```bash
 usage: bee migrate [Command]
 
-bee migrate [-driver=mysql] [-conn="root:@tcp(127.0.0.1:3306)/test"]
+bee migrate [-driver="mysql"] [-conn="root:@tcp(127.0.0.1:3306)/test"]
     run all outstanding migrations
     -driver: [mysql | postgresql | sqlite], the default is mysql
     -conn:   the connection string used by the driver, the default is root:@tcp(127.0.0.1:3306)/test
 
-bee migrate rollback [-driver=mysql] [-conn="root:@tcp(127.0.0.1:3306)/test"]
+bee migrate rollback [-driver="mysql"] [-conn="root:@tcp(127.0.0.1:3306)/test"]
     rollback the last migration operation
     -driver: [mysql | postgresql | sqlite], the default is mysql
     -conn:   the connection string used by the driver, the default is root:@tcp(127.0.0.1:3306)/test
 
-bee migrate reset [-driver=mysql] [-conn="root:@tcp(127.0.0.1:3306)/test"]
+bee migrate reset [-driver="mysql"] [-conn="root:@tcp(127.0.0.1:3306)/test"]
     rollback all migrations
     -driver: [mysql | postgresql | sqlite], the default is mysql
     -conn:   the connection string used by the driver, the default is root:@tcp(127.0.0.1:3306)/test
 
-bee migrate refresh [-driver=mysql] [-conn="root:@tcp(127.0.0.1:3306)/test"]
+bee migrate refresh [-driver="mysql"] [-conn="root:@tcp(127.0.0.1:3306)/test"]
     rollback all migrations and run them all again
     -driver: [mysql | postgresql | sqlite], the default is mysql
     -conn:   the connection string used by the driver, the default is root:@tcp(127.0.0.1:3306)/test
@@ -191,7 +226,7 @@ Bee also comes with a souce code generator which speeds up the development.
 ```bash
 usage: bee generate [Command]
 
-bee generate scaffold [scaffoldname] [-fields=""] [-driver=mysql] [-conn="root:@tcp(127.0.0.1:3306)/test"]
+bee generate scaffold [scaffoldname] [-fields=""] [-driver="mysql"] [-conn="root:@tcp(127.0.0.1:3306)/test"]
     The generate scaffold command will do a number of things for you.
     -fields: a list of table fields. Format: field:type, ...
     -driver: [mysql | postgres | sqlite], the default is mysql
@@ -211,14 +246,14 @@ bee generate view [viewpath]
 bee generate migration [migrationfile] [-fields=""]
     generate migration file for making database schema update
     -fields: a list of table fields. Format: field:type, ...
-	
+  
 bee generate docs
     generate swagger doc file
 
 bee generate test [routerfile]
     generate testcase
 
-bee generate appcode [-tables=""] [-driver=mysql] [-conn="root:@tcp(127.0.0.1:3306)/test"] [-level=3]
+bee generate appcode [-tables=""] [-driver="mysql"] [-conn="root:@tcp(127.0.0.1:3306)/test"] [-level=3]
     generate appcode based on an existing database
     -tables: a list of table names separated by ',', default is empty, indicating all tables
     -driver: [mysql | postgres | sqlite], the default is mysql
@@ -258,13 +293,13 @@ usage: bee run [appname] [watchall] [-main=*.go] [-downdoc=true]  [-gendoc=true]
 start the appname throw exec.Command
 
 then start a inotify watch for current dir
-										
+                    
 when the file has changed bee will auto go build and restart the app
 
-	file changed
-	     |
+  file changed
+       |
   check if it's go file
-	     |
+       |
      yes     no
       |       |
  go build    do nothing

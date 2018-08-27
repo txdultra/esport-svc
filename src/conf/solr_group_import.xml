@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataConfig>
+    <dataSource type="JdbcDataSource"
+		name="user_db"
+                driver="com.mysql.jdbc.Driver"
+                url="jdbc:mysql://10.10.50.23:3306/m_mobile_groups?useUnicode=true&amp;characterEncoding=utf-8"
+                batchSize="100"
+                user="root"
+                password="neotv"/>
+
+    <document name="doc">
+        <entity name="group_doc"
+				dataSource="group_db"
+                query="SELECT id,groupname,createtime,members,threads,gameids,displayorder,`status`,belong,type,vitality,searchkeyword,gameids,
+						longitude,latitude,recommend,starttime,endtime from `groups`"
+                deltaImportQuery="SELECT id,groupname,createtime,members,threads,gameids,displayorder,`status`,belong,type,vitality,searchkeyword,gameids,
+						longitude,latitude,recommend,starttime,endtime from `groups` where id='${dataimporter.delta.id}'"
+                deltaQuery="SELECT id FROM `groups` WHERE createtime > UNIX_TIMESTAMP(date_format('${dataimporter.last_index_time}', '%Y-%m-%d %H:%i:%s'))"
+				transformer="RegexTransformer">
+
+            <field column="id" name="id"/>
+            <field column="groupname" name="groupname" />
+            <field column="createtime" name="createtime" />
+            <field column="members" name="members" />
+			<field column="threads" name="threads" />
+			<field column="gameids" name="gameids" />
+			<field column="displayorder" name="displayorder" />
+			<field column="status" name="status" />
+			<field column="belong" name="belong" />
+			<field column="type" name="type" />
+			<field column="vitality" name="vitality" />
+			<field column="searchkeyword" name="searchkeyword" />
+			<field column="longitude" name="longitude" />
+			<field column="latitude" name="latitude" />
+			<field column="recommend" name="recommend" />
+			<field column="starttime" name="starttime" />
+			<field column="endtime" name="endtime" />
+			<field column="gameids" name="gameids" splitBy=","/>
+        </entity>
+    </document>
+</dataConfig>

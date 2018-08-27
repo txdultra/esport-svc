@@ -19,25 +19,27 @@ const (
 )
 
 type Member struct {
-	Uid              int64                `orm:"auto;pk"`
-	UserName         string               `orm:"column(user_name)"`
-	NickName         string               `orm:"column(nick_name)"`
-	Email            string               `orm:"column(email)"`
-	Password         string               `orm:"column(password)"`
-	Salt             string               `orm:"column(salt)"`
-	MobileIdentifier string               `orm:"size(32)"`
-	MemberIdentifier string               `orm:"size(32)"`
-	CreateTime       int64                `orm:"column(create_time)"`
-	CreateIP         int64                `orm:"column(create_ip)"`
-	Avatar           int64                `orm:"column(avatar)"`
-	RegMode          MEMBER_REGISTER_MODE `orm:"column(reg_type)"`
-	PushId           string               `orm:"column(push_id)"`
-	PushChannelId    string               `orm:"column(channel_id)"`
-	PushProxy        int                  `orm:"column(push_pxy)"`
-	DeviceType       vars.CLIENT_OS       `orm:"column(device_type)"`
-	Certified        bool                 `orm:"column(certified)"`
-	CertifiedReason  string               `orm:"column(certified_reason)"`
-	Gids             string               `orm:"column(gids)"`
+	Uid               int64                `orm:"auto;pk"`
+	UserName          string               `orm:"column(user_name)"`
+	NickName          string               `orm:"column(nick_name)"`
+	Email             string               `orm:"column(email)"`
+	Password          string               `orm:"column(password)"`
+	Salt              string               `orm:"column(salt)"`
+	MobileIdentifier  string               `orm:"size(32)"`
+	MemberIdentifier  string               `orm:"size(32)"`
+	CreateTime        int64                `orm:"column(create_time)"`
+	CreateIP          int64                `orm:"column(create_ip)"`
+	Avatar            int64                `orm:"column(avatar)"`
+	RegMode           MEMBER_REGISTER_MODE `orm:"column(reg_type)"`
+	PushId            string               `orm:"column(push_id)"`
+	PushChannelId     string               `orm:"column(channel_id)"`
+	PushProxy         int                  `orm:"column(push_pxy)"`
+	DeviceType        vars.CLIENT_OS       `orm:"column(device_type)"`
+	Certified         bool                 `orm:"column(certified)"`
+	CertifiedReason   string               `orm:"column(certified_reason)"`
+	OfficialCertified bool                 `orm:"column(official_certified)"` //新增
+	Gids              string               `orm:"column(gids)"`
+	Src               vars.CLIENT_SRC      `orm:"column(src)"` //新增
 }
 
 func (self *Member) TableName() string {

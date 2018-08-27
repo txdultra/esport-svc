@@ -45,12 +45,12 @@ func (c *WebController) Prepare() {
 		port_str = ":" + strconv.Itoa(port)
 	}
 	if mobile && domain != MOBILE_DOMAIN {
-		redirect_url := c.Ctx.Input.Scheme() + "://" + MOBILE_DOMAIN + port_str + c.Ctx.Input.Url()
+		redirect_url := c.Ctx.Input.Scheme() + "://" + MOBILE_DOMAIN + port_str + c.Ctx.Input.URL()
 		c.Ctx.Redirect(302, redirect_url)
 		c.StopRun()
 	}
 	if !mobile && domain != WWW_DOMAIN {
-		redirect_url := c.Ctx.Input.Scheme() + "://" + WWW_DOMAIN + port_str + c.Ctx.Input.Url()
+		redirect_url := c.Ctx.Input.Scheme() + "://" + WWW_DOMAIN + port_str + c.Ctx.Input.URL()
 		c.Ctx.Redirect(302, redirect_url)
 		c.StopRun()
 	}
@@ -78,10 +78,10 @@ func (c *WebController) Prepare() {
 // @router / [get]
 func (c *WebController) Home() {
 	if c.IsMobile {
-		c.TplNames = "m_home.html"
+		c.TplName = "m_home.html"
 		return
 	}
-	c.TplNames = "www_home.html"
+	c.TplName = "www_home.html"
 }
 
 func (c *WebController) getPlat(agent string) version.MOBILE_PLATFORM {
@@ -182,7 +182,7 @@ func (c *WebController) Feedback() {
 
 // @router /privacy_protocol [get]
 func (c *WebController) PrivacyProtocol() {
-	c.TplNames = "privacy_protocol.html"
+	c.TplName = "privacy_protocol.html"
 }
 
 // @router /vod/:id([0-9]+) [get]
@@ -212,10 +212,10 @@ func (c *WebController) VodPlay() {
 		}
 		c.Data["Stream"] = stream_url
 		c.Data["Poster"] = file_storage.GetFileUrl(vod.Img)
-		c.TplNames = "m_vod.html"
+		c.TplName = "m_vod.html"
 		return
 	}
-	c.TplNames = "www_vod.html"
+	c.TplName = "www_vod.html"
 }
 
 // @router /vod/:id([0-9]+)/stream [get]
@@ -274,7 +274,7 @@ func (c *WebController) PeronalLive() {
 	}
 	c.Data["ViewHtml"] = html
 	c.Data["Title"] = per.Name
-	c.TplNames = "www_plive.html"
+	c.TplName = "www_plive.html"
 }
 
 // @router /jlive/:id([0-9]+) [get]
@@ -324,7 +324,7 @@ func (c *WebController) JigouLive() {
 	}
 	c.Data["ViewHtml"] = html
 	c.Data["Title"] = channel.Name
-	c.TplNames = "www_plive.html"
+	c.TplName = "www_plive.html"
 }
 
 func (c *WebController) pc_qx2(opts []vod.VideoOpt, defMode reptile.VOD_STREAM_MODE) *vod.VideoOpt {

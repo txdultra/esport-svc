@@ -1162,14 +1162,39 @@ func (c *LiveCPController) LiveSubProgramGet() {
 	lsps := &lives.LiveSubPrograms{}
 	sp := lsps.Get(id)
 	if sp == nil {
-		c.Json(libs.NewError("admincp_live_subprogram__get_fail", "GM016_131", "节目单不存在", ""))
+		c.Json(libs.NewError("admincp_live_subprogram_get_fail", "GM016_131", "节目单不存在", ""))
 		return
 	}
 	p := lsp.Get(sp.ProgramId)
 	if p == nil {
-		c.Json(libs.NewError("admincp_live_subprogram__get_fail", "GM016_132", "主节目单不存在", ""))
+		c.Json(libs.NewError("admincp_live_subprogram_get_fail", "GM016_132", "主节目单不存在", ""))
 		return
 	}
 	out := *outobjs.ConvertOutSubProgramObj(sp, p, 0)
 	c.Json(out)
+}
+
+// @Title 关闭锁定中的子节目单
+// @Description 关闭锁定中的子节目单
+// @Param   id   path	int true  "子节目单id"
+// @Success 200  {object} libs.Error
+// @router /org/locking_subprogram/close [post]
+func (c *LiveCPController) CloseLockingSubProgram() {
+	id, _ := c.GetInt64("id")
+	if id <= 0 {
+		c.Json(libs.NewError("admincp_live_subprogram_close_fail", "GM016_140", "id非法", ""))
+		return
+	}
+	lsps := &lives.LiveSubPrograms{}
+	sp := lsps.Get(id)
+	if sp == nil {
+		c.Json(libs.NewError("admincp_live_subprogram_close_fail", "GM016_141", "节目单不存在", ""))
+		return
+	}
+	err := lsps.Close(id)
+	if err != nil {
+		c.Json(libs.NewError("admincp_live_subprogram_close_fail", "GM016_142", "关闭失败:"+err.Error(), ""))
+		return
+	}
+	c.Json(libs.NewError("admincp_live_subprogram_close_succ", controllers.RESPONSE_SUCCESS, "关闭成功", ""))
 }
